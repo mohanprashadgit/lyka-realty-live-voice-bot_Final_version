@@ -811,9 +811,9 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
                 className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium"
               >
                 <optgroup label="Female Voices — Agent Priya">
-                  <option value="Sulafat">Sulafat (Default — Preferred Tanglish)</option>
-                  <option value="Callirrhoe">Callirrhoe (Empathetic &amp; Professional)</option>
-                  <option value="Aoede">Aoede (Lively &amp; Conversational)</option>
+                  <option value="Sulafat">Sulafat (Default — Expressive Tanglish)</option>
+                  <option value="Aoede">Aoede (Warm &amp; Conversational)</option>
+                  <option value="Callirrhoe">Callirrhoe (Empathetic &amp; Friendly)</option>
                 </optgroup>
                 <optgroup label="Male Voices — Agent Harish">
                   <option value="Achird">Achird (Default Male — Confident Natural)</option>

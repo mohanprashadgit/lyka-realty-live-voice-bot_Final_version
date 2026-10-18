@@ -56,11 +56,11 @@ export interface AgentPersona {
 }
 
 export const SUPPORTED_VOICES: Array<{ id: string; name: string; gender: 'female' | 'male'; tone: string; description: string }> = [
-  { id: 'Sulafat', name: 'Sulafat (Primary)', gender: 'female', tone: 'Warm, expressive Tanglish phone cadence with natural pitch variation', description: 'Preferred female voice preset for Lyka Realty' },
-  { id: 'Callirrhoe', name: 'Callirrhoe', gender: 'female', tone: 'Friendly, empathetic & professional adult delivery', description: 'Alternative female executive voice' },
-  { id: 'Aoede', name: 'Aoede', gender: 'female', tone: 'Lively, conversational & engaging tone', description: 'Alternative female relationship manager' },
-  { id: 'Achird', name: 'Achird (Primary)', gender: 'male', tone: 'Confident, reassuring & natural phone conversation', description: 'Preferred male portfolio executive' },
-  { id: 'Zubenelgenubi', name: 'Zubenelgenubi', gender: 'male', tone: 'Calm, authoritative & clear explanation tone', description: 'Alternative male senior advisor' },
+  { id: 'Sulafat', name: 'Sulafat (Primary)', gender: 'female', tone: 'Expressive Tanglish, lively pitch variation & warm conversational rhythm', description: 'Reference female voice preset for Lyka Realty' },
+  { id: 'Aoede', name: 'Aoede', gender: 'female', tone: 'Warm adult conversational delivery, flexible pitch & engaging tone', description: 'Alternative female relationship manager' },
+  { id: 'Callirrhoe', name: 'Callirrhoe', gender: 'female', tone: 'Warm adult conversational delivery, empathetic & friendly', description: 'Alternative female executive voice' },
+  { id: 'Achird', name: 'Achird (Primary)', gender: 'male', tone: 'Natural male character, confident Tanglish conversation & pauses', description: 'Preferred male portfolio executive' },
+  { id: 'Zubenelgenubi', name: 'Zubenelgenubi', gender: 'male', tone: 'Natural male character, emotional variation & clear emphasis', description: 'Alternative male senior advisor' },
 ];
 
 export function getAgentPersona(gender: 'female' | 'male', language: string = 'bilingual', voiceId?: string): AgentPersona {

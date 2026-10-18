@@ -280,7 +280,7 @@ The CRM database (`lyka_crm`) runs on MySQL with connection pooling and idempote
 | Method | Endpoint | Description |
 |---|---|---|
 | `WS` | `/api/live-ws` | Low-latency full-duplex WebSocket stream for Gemini Live (`gemini-3.8-live`). Handles 16kHz PCM audio streaming, live neural transcription, tool calling (`update_lead_info`), and live mid-session voice switching (`change_voice`). |
-| `POST` | `/api/voice-preview` | Generates short, consistent 24kHz WAV audio sample (*"Vanakkam! Naan Lyka Realty AI assistant. Ungalukku eppadi help panna mudiyum?"*) for any of the 5 supported voices (`Sulafat`, `Callirrhoe`, `Aoede`, `Achird`, `Zubenelgenubi`) using `gemini-2.5-flash-preview-tts` and in-memory cache. |
+| `POST` | `/api/voice-preview` | Generates short, consistent 24kHz WAV audio sample (*"Vanakkam! Eppadi irukkeenga? Naan Lyka Realty-la irundhu pesuren. Aaaah, okay nga! Property investment pathi interested-ah irukkeengala? Super nga!"*) for any of the 5 supported voices (`Sulafat`, `Aoede`, `Callirrhoe`, `Achird`, `Zubenelgenubi`) using `gemini-2.5-flash-preview-tts` and in-memory cache. |
 | `GET` | `/api/health` | Service health status, Gemini model, API key configuration, and default voice preset (`Sulafat`). |
 | `GET` | `/api/health/db` | MySQL connection status and database heartbeat. |
 | `GET` | `/api/config` | Returns supported voices, agent personas, and language configuration. |

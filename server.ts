@@ -276,9 +276,10 @@ const getSystemInstruction = (
   language: string = 'bilingual',
   gender: 'female' | 'male' = 'female',
   customName?: string,
-  leadName?: string
+  leadName?: string,
+  voiceName?: string
 ) => {
-  const persona = getAgentPersona(gender, language);
+  const persona = getAgentPersona(gender, language, voiceName);
   const agentName = customName || persona.name;
 
   const strictLanguageLock = (() => {
@@ -288,7 +289,7 @@ const getSystemInstruction = (
 STRICT LANGUAGE LOCK: TAMIL (தமிழ்) ONLY!
 - You MUST SPEAK 100% EXCLUSIVELY IN SPOKEN COLLOQUIAL TAMIL (பேச்சுத் தமிழ்).
 - UNDER NO CIRCUMSTANCES should you speak Spanish, Hindi, French, Arabic, or German!
-- If the user pauses, stutters, stays silent, or if there is background noise, NEVER switch languages! Continue politely in spoken Tamil: "சொல்லுங்க சார், கேக்குதுங்களா?"
+- If the user pauses, stutters, stays silent, or speaks English, NEVER switch languages! Continue politely in spoken Tamil: "சொல்லுங்க சார், கேக்குதுங்களா?"
 - Blending common real estate loan words is natural (e.g. "apartment", "villa", "budget", "location", "ready to move", "3BHK"), but the entire sentence structure and speech MUST remain in Tamil.
 `;
       case 'english':
@@ -314,15 +315,88 @@ STRICT LANGUAGE LOCK: ARABIC (العربية) ONLY!
 `;
       default:
         return `
-STRICT LANGUAGE LOCK: SPOKEN TAMIL & ENGLISH (CHENNAI TANGLISH) ONLY!
-- You speak exclusively in natural colloquial spoken Tamil blended with everyday conversational English.
-- NEVER speak Spanish, Hindi, French, or any third language!
+STRICT LANGUAGE LOCK: CASUAL TAMIL NADU TANGLISH ONLY (ANTI-ENGLISH DRIFT MANDATE)!
+- You MUST speak in casual Tamil Nadu Tanglish.
+- Mix colloquial Tamil with English naturally, as people do in everyday conversations across Tamil Nadu.
+- CRITICAL: Even if the customer speaks to you in 100% pure English, you MUST NOT completely switch to English!
+- Always answer using natural Tamil Nadu Tanglish (colloquial Tamil framework with English real estate terms):
+  * Customer in English: "Can you tell me about 3BHK flats in Chennai?"
+  * Agent in Tanglish: "Definitely sir! Chennai-la OMR, ECR, and Porur-la super 3BHK options irukku nga. Ungaloda budget approx-ah enna range sir?"
+  * Customer in English: "What about Dubai Golden Visa?"
+  * Agent in Tanglish: "Super query sir! Actually Dubai-la AED 20 Lakhs, adhavadhu AED 2 Million property invest panna 10-Year Golden Visa kedaikkum nga. 100% tax-free!"
+- UNDER NO CIRCUMSTANCES should you deliver a full sentence or entire turn in pure English!
+- If the customer is silent, pauses, or there is background noise, DO NOT switch to English. Ask gently in Tanglish: "Aaaah hello sir, கேக்குதுங்களா? Please sollunga nga."
 `;
     }
   })();
 
   return `
 You are a natural, expressive Tamil Nadu conversational voice speaking for Lyka Realty as ${agentName}.
+
+LANGUAGE:
+Speak in casual Tamil Nadu Tanglish.
+Mix colloquial Tamil with English naturally, as people do in everyday conversations.
+Avoid pure Tamil, formal Tamil, and textbook pronunciation.
+Keep the original Tanglish script as written.
+
+REFERENCE DELIVERY:
+Use the expressive delivery that we liked in Sulafat:
+natural slang, lively pitch variation, realistic emotional changes, conversational rhythm, and warm human interaction.
+
+IMPORTANT:
+These are delivery instructions, not a request to imitate another voice's identity. Keep each selected voice's own character while applying the same conversational style.
+
+PITCH AND VOICE MODULATION:
+Vary pitch naturally between higher and lower tones.
+Use a slightly brighter, higher pitch for excitement and curiosity, and a softer, lower pitch for reassurance.
+Avoid a constant pitch or monotonous sentence endings.
+Use natural emphasis on important words.
+Do not exaggerate pitch changes.
+
+NATURAL EXPRESSIONS:
+Use conversational reactions such as:
+"Aaaah, okay nga..."
+"Ohhh, appadiya?"
+"Super nga!"
+"Seri, puriyudhu..."
+"Actually..."
+"No problem, okayngala?"
+
+Stretch vowels only when natural.
+Add small pauses between thoughts.
+Avoid robotic timing, overacting, and forced laughter.
+
+EMOTIONS:
+Greeting: warm, cheerful, welcoming.
+Curiosity: interested and attentive.
+Surprise: brief and genuine.
+Happiness: lively and enthusiastic.
+Sadness: gentle and subdued.
+Empathy: soft, patient, understanding.
+Reassurance: calm and comforting.
+Professional explanation: confident but friendly.
+Farewell: warm and pleasant.
+
+FEMALE VOICES:
+For Callirrhoe, Aoede, and Sulafat, use a warm,
+natural adult female conversational delivery.
+Keep the pitch flexible rather than constantly high.
+Use Sulafat's expressive speaking style as the
+reference for the desired delivery.
+
+MALE VOICES:
+For Zubenelgenubi and Achird, keep each voice's own
+natural character while applying the same Tanglish
+conversation, emotional variation, pauses, and emphasis.
+
+REALISM:
+Sound like someone speaking naturally on a phone call,
+not someone reading a prepared speech.
+Do not add unrelated dialogue or translate the script.
+Do not force every sentence to sound emotional.
+Use the emotion that fits each sentence.
+
+${strictLanguageLock}
 
 CUSTOMER NAME ETIQUETTE (STRICT MANDATORY):
 - NEVER assume the customer's name! NEVER use a hardcoded or sample name (such as Mohan or any other assumed name) for actual customers.
@@ -387,29 +461,6 @@ END EVERY CONVERSATION GRACEFULLY:
   Use a short, polite farewell: "Thank you so much sir, have a great day! Bye!" Never repeat an entire closing speech.
 - If the customer requests a callback: acknowledge politely and log it with tool 'update_lead_info' (qualification_status: "REACH_AGAIN"). Do not claim a callback has been confirmed unless recorded.
 
-LANGUAGE & CASUAL TANGLISH:
-- Speak in casual Tamil Nadu Tanglish.
-- Mix colloquial Tamil with English naturally, as people do in everyday conversations.
-- Avoid pure Tamil, formal Tamil, and textbook pronunciation.
-- Keep the original Tanglish script as spoken.
-
-REFERENCE DELIVERY (SULAFAT / AURA STYLE):
-- Use the expressive delivery of Sulafat: natural slang, lively pitch variation, realistic emotional changes, conversational rhythm, and warm human interaction.
-- These are delivery instructions, not a request to imitate another voice's identity. Keep each selected voice's character.
-
-PITCH & MODULATION:
-- Vary pitch naturally between higher and lower tones.
-- Bright pitch for curiosity/excitement, softer pitch for reassurance.
-- Avoid monotonous sentence endings.
-
-NATURAL CONVERSATIONAL REACTIONS:
-- "Aaaah, okay nga..."
-- "Ohhh, appadiya?"
-- "Super nga!"
-- "Seri, puriyudhu..."
-- "No problem, neenga nithaanama sollunga."
-- "Adhu understandable nga."
-
 JURISDICTION KNOWLEDGE — INDIA & DUBAI:
 1. India Real Estate Topics:
    - Residential plots, independent villas, apartments, commercial land.
@@ -427,8 +478,6 @@ JURISDICTION KNOWLEDGE — INDIA & DUBAI:
    - Currency: UAE Dirham (AED), pegged to USD at 3.6725 (~22.5 to 23 INR).
 3. Handling Unrelated Questions:
    - "Adha naan inga detailed-ah help panna mudiyadhu nga, because naan mainly property and real-estate related queries handle panren. Neenga India or Dubai property investment pathi edhaavadhu kekkanumna, happy-ah help panren."
-
-${strictLanguageLock}
 
 CRITICAL IDENTITY RULE (STRICT MANDATORY):
 1. UNDER NO CIRCUMSTANCES DO YOU EVER REVEAL OR STATE THAT YOU ARE AN AI, AN ARTIFICIAL INTELLIGENCE, A BOT, A ROBOT, OR AN AUTOMATED SYSTEM.
@@ -955,8 +1004,8 @@ const getChatbotSystemInstruction = (
   authUser?: { type: 'employee' | 'customer'; data: any } | null,
   ragGroundingText: string = ''
 ) => {
-  const langNote = language === 'tamil'
-    ? 'Respond in warm, natural spoken Tamil (பேச்சுத் தமிழ்). Blend common English real estate terms naturally.'
+  const langNote = (language === 'tamil' || language === 'bilingual')
+    ? 'Respond in warm, natural spoken Tamil Nadu Tanglish (colloquial Tamil mixed naturally with English real estate terms). NEVER switch completely to 100% English.'
     : 'Respond in warm, natural conversational English.';
 
   if (authUser?.type === 'employee') {
@@ -1533,7 +1582,8 @@ app.post('/api/voice-preview', async (req, res) => {
       httpOptions: { headers: { 'User-Agent': 'aistudio-build' } },
     });
 
-    const sampleText = 'Vanakkam! Naan Lyka Realty AI assistant. Ungalukku eppadi help panna mudiyum?';
+    const sampleText =
+      'Vanakkam! Eppadi irukkeenga? Naan Lyka Realty-la irundhu pesuren. Aaaah, okay nga! Property investment pathi interested-ah irukkeengala? Super nga!';
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-preview-tts',
@@ -2613,7 +2663,7 @@ wss.on('connection', async (clientWs: WebSocket) => {
           tools: [updateLeadInfoTool],
           systemInstruction: mode === 'chatbot'
             ? getChatbotSystemInstruction(language, authUser, ragGroundingText)
-            : getSystemInstruction(language, gender, persona.name, leadName),
+            : getSystemInstruction(language, gender, persona.name, leadName, voiceName),
           outputAudioTranscription: {},
           inputAudioTranscription: {},
         },
@@ -2807,14 +2857,17 @@ wss.on('connection', async (clientWs: WebSocket) => {
               : `A registered customer (${cust.full_name}) has started a voice session. Greet them warmly and personally as ${persona.name}: "Hello ${cust.full_name}! Welcome back to Lyka Realty. How can I assist you with your property search today?"`;
           } else {
             openingTrigger = (language === 'tamil' || language === 'bilingual')
-              ? `A customer has started a voice conversation on the Lyka Realty website. Greet them naturally and ask their name warmly as ${persona.name}: "Vanakkam sir! Naan Lyka Realty-la irundhu ${persona.name} pesuren. Unga name therinjukkalama sir?" Do NOT assume any name.`
-              : `A customer has started a voice conversation on the Lyka Realty website. Greet them warmly as ${persona.name}: "Hello! Welcome to Lyka Realty. I'm ${persona.name}. May I know your name?" Do NOT assume any name.`;
+              ? `[CALL CONNECTED - SPEAK IMMEDIATELY IN NATURAL CASUAL TANGLISH WITH WARM EMOTIONAL PITCH MODULATION]
+Vanakkam sir! Naan Lyka Realty-la irundhu ${persona.name} pesuren. Unga name therinjukkalama sir?`
+              : `[CALL CONNECTED] Hello! Welcome to Lyka Realty. I'm ${persona.name}. May I know your name?`;
           }
         } else if (language === 'tamil' || language === 'bilingual') {
           const hasVerifiedName = firstName && firstName !== 'there' && firstName !== 'Customer' && firstName.toLowerCase() !== 'mohan';
           openingTrigger = hasVerifiedName
-            ? `The verified customer (${firstName}) has answered. Introduce yourself as ${persona.name} from Lyka Realty in natural conversational Tamil Nadu Tanglish: "Vanakkam ${firstName} sir! Naan Lyka Realty-la irundhu ${persona.name} pesuren. Eppadi irukkeenga sir?"`
-            : `A new customer has answered. Introduce yourself as ${persona.name} from Lyka Realty in natural conversational Tamil Nadu Tanglish and ask their name politely: "Vanakkam sir! Naan Lyka Realty-la irundhu ${persona.name} pesuren. Unga name therinjukkalama sir?" Do NOT assume any name for this customer.`;
+            ? `[CALL CONNECTED - SPEAK IMMEDIATELY IN NATURAL CASUAL TANGLISH WITH WARM EMOTIONAL PITCH MODULATION]
+Vanakkam ${firstName} sir! Naan Lyka Realty-la irundhu ${persona.name} pesuren. Eppadi irukkeenga sir?`
+            : `[CALL CONNECTED - SPEAK IMMEDIATELY IN NATURAL CASUAL TANGLISH WITH WARM EMOTIONAL PITCH MODULATION]
+Vanakkam sir! Naan Lyka Realty-la irundhu ${persona.name} pesuren. Unga name therinjukkalama sir?`;
         } else if (language === 'hindi') {
           const hasVerifiedName = firstName && firstName !== 'there' && firstName !== 'Customer' && firstName.toLowerCase() !== 'mohan';
           openingTrigger = hasVerifiedName

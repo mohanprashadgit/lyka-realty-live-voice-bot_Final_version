@@ -10,6 +10,7 @@ import { LeadDetailDrawer } from './LeadDetailDrawer';
 import { CustomerDetailModal } from './CustomerDetailModal';
 import { AddLeadModal } from './AddLeadModal';
 import { AddCustomerModal } from './AddCustomerModal';
+import { GlobalAIAssistant } from './GlobalAIAssistant';
 import { useCrm } from '../context/CrmContext';
 
 export const CrmLayout: React.FC = () => {
@@ -69,6 +70,9 @@ export const CrmLayout: React.FC = () => {
 
       <AddLeadModal />
       <AddCustomerModal />
+
+      {/* Global Floating AI CRM Assistant */}
+      <GlobalAIAssistant />
     </div>
   );
 };

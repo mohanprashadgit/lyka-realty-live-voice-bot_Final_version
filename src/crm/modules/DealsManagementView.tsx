@@ -19,21 +19,23 @@ import {
 } from 'lucide-react';
 
 export const DealsManagementView: React.FC = () => {
-  const { activeRole, theme } = useCrm();
+  const { activeRole, theme, authFetch, authenticatedUser } = useCrm();
   const isDark = theme === 'dark';
+
+  const canVerify = ['Super Admin', 'Sales Territory Manager', 'Operations Admin'].includes(activeRole);
 
   const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [forbiddenError, setForbiddenError] = useState<string | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [verifyMsg, setVerifyMsg] = useState<{ id: string; msg: string; isError: boolean } | null>(null);
 
   const fetchDeals = () => {
     setLoading(true);
     setForbiddenError(null);
-    fetch('/api/crm/deals', {
-      headers: { 'x-user-role': activeRole },
-    })
+    authFetch('/api/crm/deals')
       .then(res => {
         if (res.status === 403) {
           return res.json().then(d => {
@@ -47,6 +49,27 @@ export const DealsManagementView: React.FC = () => {
       })
       .catch(err => console.error('[DealsView] Fetch error:', err))
       .finally(() => setLoading(false));
+  };
+
+  const handleVerifyPurchase = async (dealId: string) => {
+    setVerifyingId(dealId);
+    setVerifyMsg(null);
+    try {
+      const res = await authFetch(`/api/crm/deals/${dealId}/verify-purchase`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setVerifyMsg({ id: dealId, msg: data.error || 'Verification failed.', isError: true });
+      } else {
+        setVerifyMsg({ id: dealId, msg: `✓ Verified! +${data.pointsAwarded || 500} pts attributed.`, isError: false });
+        fetchDeals();
+      }
+    } catch (err: any) {
+      setVerifyMsg({ id: dealId, msg: err.message || 'Verification request error.', isError: true });
+    } finally {
+      setVerifyingId(null);
+    }
   };
 
   useEffect(() => {
@@ -221,45 +244,79 @@ export const DealsManagementView: React.FC = () => {
                   <th className="py-3.5 px-4 min-w-[110px]">Commission</th>
                   <th className="py-3.5 px-4 min-w-[140px]">Managing Agent</th>
                   <th className="py-3.5 px-4 min-w-[120px]">Status</th>
+                  <th className="py-3.5 px-4 min-w-[180px] text-right">Purchase Verification</th>
                 </tr>
               </thead>
               <tbody className={`divide-y text-xs ${isDark ? 'divide-[#28232D]/70' : 'divide-[#E2D8D1]'}`}>
-                {filtered.map(deal => (
-                  <tr key={deal.id} className={`transition-colors ${isDark ? 'hover:bg-[#1f1d26]/60' : 'hover:bg-[#FAF7F2]'}`}>
-                    <td className="py-4 px-4">
-                      <div className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-[#1c1b1e]'}`}>
-                        {deal.title}
-                      </div>
-                      <div className="text-xs text-[#968a7e] mt-0.5">
-                        {deal.property_title || 'General Property Inquest'}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-[#c9c0b5]">
-                      {deal.prospect_name || 'Verified Client'}
-                    </td>
-                    <td className="py-4 px-4 font-mono font-bold text-sm text-[#d8a868]">
-                      {formatPrice(deal.deal_value || deal.projected_value)}
-                    </td>
-                    <td className="py-4 px-4 font-mono text-xs text-violet-400">
-                      {deal.commission_amount ? formatPrice(deal.commission_amount) : `${deal.commission_rate || 2.0}%`}
-                    </td>
-                    <td className="py-4 px-4 text-[#c9c0b5]">
-                      {deal.agent_name || 'Assigned Consultant'}
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                        deal.deal_status === 'closed_won'
-                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                          : deal.deal_status === 'closed_lost'
-                          ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                          : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
-                      }`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                        <span className="capitalize">{String(deal.deal_status || 'In Negotiation').replace(/_/g, ' ')}</span>
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map(deal => {
+                  const isVerified = deal.purchase_verified === 1 || deal.purchase_verified === true;
+                  const isVerifying = verifyingId === deal.id;
+                  const feedback = verifyMsg && verifyMsg.id === deal.id ? verifyMsg : null;
+
+                  return (
+                    <tr key={deal.id} className={`transition-colors ${isDark ? 'hover:bg-[#1f1d26]/60' : 'hover:bg-[#FAF7F2]'}`}>
+                      <td className="py-4 px-4">
+                        <div className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-[#1c1b1e]'}`}>
+                          {deal.title}
+                        </div>
+                        <div className="text-xs text-[#968a7e] mt-0.5">
+                          {deal.property_title || 'General Property Inquest'}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-[#c9c0b5]">
+                        {deal.prospect_name || 'Verified Client'}
+                      </td>
+                      <td className="py-4 px-4 font-mono font-bold text-sm text-[#d8a868]">
+                        {formatPrice(deal.deal_value || deal.projected_value)}
+                      </td>
+                      <td className="py-4 px-4 font-mono text-xs text-violet-400">
+                        {deal.commission_amount ? formatPrice(deal.commission_amount) : `${deal.commission_rate || 2.0}%`}
+                      </td>
+                      <td className="py-4 px-4 text-[#c9c0b5]">
+                        {deal.agent_name || 'Assigned Consultant'}
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                          deal.deal_status === 'closed_won'
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            : deal.deal_status === 'closed_lost'
+                            ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                            : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                          <span className="capitalize">{String(deal.deal_status || 'In Negotiation').replace(/_/g, ' ')}</span>
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        {isVerified ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Verified (+500 pts)</span>
+                          </span>
+                        ) : canVerify ? (
+                          <div className="flex flex-col items-end gap-1">
+                            <button
+                              onClick={() => handleVerifyPurchase(deal.id)}
+                              disabled={isVerifying}
+                              className="px-3 py-1.5 rounded-xl font-bold text-xs bg-gradient-to-r from-[#d8a868] to-[#b88c4c] text-[#0B0A0C] hover:opacity-95 shadow-sm shadow-[#d8a868]/15 cursor-pointer disabled:opacity-50"
+                            >
+                              {isVerifying ? 'Verifying...' : 'Verify Purchase'}
+                            </button>
+                            {feedback && (
+                              <span className={`text-[10px] ${feedback.isError ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                {feedback.msg}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-[#968a7e]">
+                            Awaiting Manager Approval
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

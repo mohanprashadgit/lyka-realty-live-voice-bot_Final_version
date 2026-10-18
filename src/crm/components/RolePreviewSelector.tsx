@@ -21,6 +21,9 @@ export const RolePreviewSelector: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Hide in production builds
+  if (!import.meta.env.DEV) return null;
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button

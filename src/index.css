@@ -2,6 +2,8 @@
 @source "../index.html";
 @source "../src";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ═══════════════════════════════════════════════════════════════════════
    LYKA REALTY AI CHATBOT — Aura Privé Design System
    Design tokens extracted from Google Stitch UI ZIP

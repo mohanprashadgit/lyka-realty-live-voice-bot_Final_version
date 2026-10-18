@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { CRM_MODULES, CrmModuleId } from '../types/crm';
+import { hasModuleAccess } from '../permissions';
 import {
   LayoutDashboard,
   Users,
@@ -34,6 +35,7 @@ import {
   ChevronUp,
   ExternalLink,
   X,
+  LogOut,
 } from 'lucide-react';
 
 interface NavItem {
@@ -112,6 +114,8 @@ export const Sidebar: React.FC = () => {
     kpis,
     notificationCount,
     theme,
+    authenticatedUser,
+    logout,
   } = useCrm();
 
   const isDark = theme === 'dark';
@@ -202,8 +206,7 @@ export const Sidebar: React.FC = () => {
   const isCollapsed = isSidebarCollapsed && !isMobileSidebarOpen;
 
   const isItemAllowed = (itemId: CrmModuleId) => {
-    const meta = CRM_MODULES.find(m => m.id === itemId);
-    return meta ? meta.allowedRoles.includes(activeRole) : true;
+    return hasModuleAccess(activeRole, itemId);
   };
 
   const visiblePrimaryItems = PRIMARY_NAV_ITEMS.filter(item => isItemAllowed(item.id));
@@ -360,20 +363,40 @@ export const Sidebar: React.FC = () => {
         }`}
       >
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-[#d8a868]/20 border border-[#d8a868]/40 flex items-center justify-center text-xs font-bold text-[#d8a868] shrink-0">
-            {activeRole.charAt(0)}
-          </div>
-          {!isCollapsed && (
-            <div className="truncate flex-1">
-              <div
-                className={`text-xs font-semibold truncate ${
-                  isDark ? 'text-white' : 'text-[#1c1b1e]'
-                }`}
-              >
-                Authorized Session
-              </div>
-              <div className="text-[10px] text-[#d8a868] truncate font-medium">{activeRole}</div>
-            </div>
+          {(() => {
+            const displayName = authenticatedUser?.name || (authenticatedUser as any)?.fullName || 'Staff User';
+            const displayRole = authenticatedUser?.role || activeRole || 'Super Admin';
+            const avatarInitial = (displayName.charAt(0) || displayRole.charAt(0) || 'S').toUpperCase();
+            return (
+              <>
+                <div className="w-8 h-8 rounded-full bg-[#d8a868]/20 border border-[#d8a868]/40 flex items-center justify-center text-xs font-bold text-[#d8a868] shrink-0">
+                  {avatarInitial}
+                </div>
+                {!isCollapsed && (
+                  <div className="truncate flex-1 min-w-0">
+                    <div
+                      className={`text-xs font-semibold truncate ${
+                        isDark ? 'text-white' : 'text-[#1c1b1e]'
+                      }`}
+                    >
+                      {displayName}
+                    </div>
+                    <div className="text-[10px] text-[#d8a868] truncate font-medium">
+                      {authenticatedUser ? `${displayRole} • ${authenticatedUser.id || 'Staff'}` : displayRole}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+          {!isCollapsed && authenticatedUser && (
+            <button
+              onClick={logout}
+              className="p-1.5 rounded-lg text-[#968a7e] hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer shrink-0"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           )}
         </div>
       </div>

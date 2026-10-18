@@ -256,6 +256,8 @@ export class LiveMicRecorder {
   public language: string;
   public deviceId: string;
 
+  private isMuted: boolean = false;
+
   constructor(
     onAudioChunk: (base64Chunk: string) => void,
     onEnergy?: (energy: number) => void,
@@ -268,6 +270,10 @@ export class LiveMicRecorder {
     this.onUserTranscript = onUserTranscript;
     this.language = language;
     this.deviceId = deviceId;
+  }
+
+  public setMuted(muted: boolean) {
+    this.isMuted = muted;
   }
 
   public setAgentSpeaking(speaking: boolean) {
@@ -351,7 +357,7 @@ export class LiveMicRecorder {
           shouldTransmitAudio = true;
         }
 
-        if (shouldTransmitAudio) {
+        if (shouldTransmitAudio && !this.isMuted) {
           const downsampled = downsampleBuffer(inputData, this.ctx!.sampleRate, 16000);
           const int16Array = float32ToInt16(downsampled);
           const base64Chunk = arrayBufferToBase64(int16Array.buffer);
@@ -409,15 +415,24 @@ export class LiveMicRecorder {
             }
           };
 
+          let restartTimeout: any = null;
           this.recognition.onerror = (event: any) => {
+            if (event?.error === 'network' || event?.error === 'no-speech' || event?.error === 'aborted') {
+              return;
+            }
             console.warn('[LiveMicRecorder] Speech recognition notice:', event?.error);
           };
 
           this.recognition.onend = () => {
             if (this.isRecording && this.recognition) {
-              try {
-                this.recognition.start();
-              } catch {}
+              if (restartTimeout) clearTimeout(restartTimeout);
+              restartTimeout = setTimeout(() => {
+                if (this.isRecording && this.recognition) {
+                  try {
+                    this.recognition.start();
+                  } catch {}
+                }
+              }, 1000);
             }
           };
 

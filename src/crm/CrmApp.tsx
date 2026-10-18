@@ -4,17 +4,21 @@
 import React from 'react';
 import { CrmProvider } from './context/CrmContext';
 import { CrmLayout } from './components/CrmLayout';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 export interface CrmAppProps {
   onOpenChatbot: () => void;
+  onLogout?: () => void;
   initialTheme?: 'dark' | 'light';
 }
 
-export const CrmApp: React.FC<CrmAppProps> = ({ onOpenChatbot, initialTheme = 'dark' }) => {
+export const CrmApp: React.FC<CrmAppProps> = ({ onOpenChatbot, onLogout, initialTheme = 'dark' }) => {
   return (
-    <CrmProvider onOpenChatbot={onOpenChatbot} initialTheme={initialTheme}>
-      <CrmLayout />
-    </CrmProvider>
+    <ErrorBoundary>
+      <CrmProvider onOpenChatbot={onOpenChatbot} onLogout={onLogout} initialTheme={initialTheme}>
+        <CrmLayout />
+      </CrmProvider>
+    </ErrorBoundary>
   );
 };
 

@@ -537,3 +537,191 @@ export function evaluateCallOutcome(
     extractedLeadData: resolvedExtracted,
   };
 }
+
+/**
+ * calculateDeterministicLeadScore — Transparent, rule-based 100-point scoring.
+ * Evaluates: Purchase Timeline (25), Budget Clarity (25), Property Specificity (20),
+ * Decision Readiness (15), and Willingness to Take Next Step (15).
+ */
+export function calculateDeterministicLeadScore(
+  data: Partial<LeadData> | Record<string, any>,
+  transcriptText: string = ''
+): import('../types/agent').LeadScoreBreakdown {
+  const factors: import('../types/agent').LeadScoreFactor[] = [];
+  const reasons: string[] = [];
+  const missingInformation: string[] = [];
+
+  const raw = { ...data };
+  const combinedText = `${transcriptText} ${JSON.stringify(raw)}`.toLowerCase();
+
+  // 1. Purchase Timeline (Max 25 pts)
+  let timelinePts = 0;
+  let timelineReason = '';
+  const tl = (raw.timeline || '').toLowerCase();
+
+  if (tl.includes('immediate') || tl.includes('ready') || tl.includes('30') || combinedText.includes('immediate') || combinedText.includes('ready to move') || combinedText.includes('உடனே')) {
+    timelinePts = 25;
+    timelineReason = 'Urgent / Immediate timeline (within 30 days)';
+    reasons.push('High urgency: Looking to purchase immediately (+25 pts)');
+  } else if (tl.includes('1') || tl.includes('2') || tl.includes('3') || tl.includes('60') || combinedText.includes('2 months') || combinedText.includes('3 months') || combinedText.includes('அடுத்த')) {
+    timelinePts = 20;
+    timelineReason = 'Active short-term timeline (1 to 3 months)';
+    reasons.push('Active timeline: Target purchase within 1-3 months (+20 pts)');
+  } else if (tl.includes('6') || combinedText.includes('6 months')) {
+    timelinePts = 10;
+    timelineReason = 'Medium-term horizon (3 to 6 months)';
+    reasons.push('Medium-term horizon: 3 to 6 months (+10 pts)');
+  } else if (tl.includes('flexible') || tl.includes('year') || combinedText.includes('flexible')) {
+    timelinePts = 5;
+    timelineReason = 'Exploratory / Flexible timeline (> 6 months)';
+    reasons.push('Exploratory timeline: Greater than 6 months (+5 pts)');
+  } else {
+    timelinePts = 0;
+    timelineReason = 'Purchase timeline unstated';
+    missingInformation.push('Purchase timeline (e.g. immediate, 1-3 months)');
+  }
+
+  factors.push({
+    factor: 'Purchase Timeline',
+    points: timelinePts,
+    maxPoints: 25,
+    reason: timelineReason,
+  });
+
+  // 2. Budget Clarity (Max 25 pts)
+  let budgetPts = 0;
+  let budgetReason = '';
+  const bg = (raw.budget || '').trim();
+
+  if (bg && (bg.includes('cr') || bg.includes('lakh') || bg.includes('m') || bg.includes('aed') || bg.includes('inr') || /\d/.test(bg))) {
+    budgetPts = 25;
+    budgetReason = `Verified stated budget: ${bg}`;
+    reasons.push(`Clear budget stated: ${bg} (+25 pts)`);
+  } else if (combinedText.includes('crore') || combinedText.includes('lakh') || combinedText.includes('million') || combinedText.includes('aed')) {
+    budgetPts = 18;
+    budgetReason = 'Conversational budget range detected';
+    reasons.push('Ballpark budget range mentioned in discussion (+18 pts)');
+  } else {
+    budgetPts = 0;
+    budgetReason = 'No clear budget stated yet';
+    missingInformation.push('Budget & currency range (e.g. ₹1.5 Cr, AED 1.8M)');
+  }
+
+  factors.push({
+    factor: 'Budget Clarity',
+    points: budgetPts,
+    maxPoints: 25,
+    reason: budgetReason,
+  });
+
+  // 3. Property Specificity (Max 20 pts)
+  let propPts = 0;
+  let propReason = '';
+  const hasLoc = Boolean(raw.location && String(raw.location).trim().length > 1);
+  const hasType = Boolean(raw.property_type && String(raw.property_type).trim().length > 1);
+
+  if (hasLoc && hasType) {
+    propPts = 20;
+    propReason = `Explicit property type (${raw.property_type}) and locality (${raw.location})`;
+    reasons.push(`Targeted requirement: ${raw.property_type} in ${raw.location} (+20 pts)`);
+  } else if (hasLoc || hasType) {
+    propPts = 10;
+    propReason = hasLoc ? `Location specified (${raw.location})` : `Property type specified (${raw.property_type})`;
+    reasons.push(`Partial property requirement identified (+10 pts)`);
+    if (!hasLoc) missingInformation.push('Preferred location/locality');
+    if (!hasType) missingInformation.push('Property type (apartment, villa, plot, etc.)');
+  } else {
+    propPts = 0;
+    propReason = 'No location or property type identified';
+    missingInformation.push('Location and property type preferences');
+  }
+
+  factors.push({
+    factor: 'Property Specificity',
+    points: propPts,
+    maxPoints: 20,
+    reason: propReason,
+  });
+
+  // 4. Decision Readiness (Max 15 pts)
+  let decisionPts = 0;
+  let decisionReason = '';
+  const bt = (raw.buyer_type || '').toLowerCase();
+
+  if (bt.includes('investor') || combinedText.includes('invest') || combinedText.includes('cash ready') || combinedText.includes('pre-approved')) {
+    decisionPts = 15;
+    decisionReason = 'Active investor or pre-qualified capital';
+    reasons.push('High decision readiness: Verified investor profile (+15 pts)');
+  } else if (bt.includes('first-time') || bt.includes('family') || bt.includes('buyer')) {
+    decisionPts = 10;
+    decisionReason = 'Genuine primary homebuyer / end-user';
+    reasons.push('Active homebuyer looking for personal use (+10 pts)');
+  } else if (combinedText.includes('looking') || combinedText.includes('buying')) {
+    decisionPts = 5;
+    decisionReason = 'Early discovery / browsing stage';
+    reasons.push('Early discovery stage (+5 pts)');
+  } else {
+    decisionPts = 0;
+    decisionReason = 'Buyer profile unconfirmed';
+    missingInformation.push('Buyer profile (investor, first-time buyer, upgrading family)');
+  }
+
+  factors.push({
+    factor: 'Decision Readiness',
+    points: decisionPts,
+    maxPoints: 15,
+    reason: decisionReason,
+  });
+
+  // 5. Willingness to Take Next Step (Max 15 pts)
+  let nextStepPts = 0;
+  let nextStepReason = '';
+
+  if (combinedText.includes('site visit') || combinedText.includes('viewing') || combinedText.includes('visit') || combinedText.includes('appointment')) {
+    nextStepPts = 15;
+    nextStepReason = 'Agreed to site viewing / appointment booking';
+    reasons.push('High engagement: Requested site viewing (+15 pts)');
+  } else if (combinedText.includes('call back') || combinedText.includes('whatsapp') || combinedText.includes('brochure') || (raw.phone && String(raw.phone).length >= 10)) {
+    nextStepPts = 10;
+    nextStepReason = 'Provided contact info for follow-up documentation';
+    reasons.push('Provided verified contact details (+10 pts)');
+  } else {
+    nextStepPts = 0;
+    nextStepReason = 'No follow-up action agreed yet';
+    missingInformation.push('Contact phone / WhatsApp for brochure sharing');
+  }
+
+  factors.push({
+    factor: 'Next Step Willingness',
+    points: nextStepPts,
+    maxPoints: 15,
+    reason: nextStepReason,
+  });
+
+  // Total Score Calculation
+  const totalScore = Math.min(100, timelinePts + budgetPts + propPts + decisionPts + nextStepPts);
+
+  let temperature: 'HOT' | 'WARM' | 'COLD' = 'COLD';
+  let nextAction = '';
+
+  if (totalScore >= 75) {
+    temperature = 'HOT';
+    nextAction = 'Immediate Priority: Assign senior relationship manager and schedule site visit within 24 hours.';
+  } else if (totalScore >= 45) {
+    temperature = 'WARM';
+    nextAction = 'Nurture Priority: Send WhatsApp curated property catalog and schedule follow-up call within 48 hours.';
+  } else {
+    temperature = 'COLD';
+    nextAction = 'Low Priority: Add to monthly newsletter and automated market insights drip.';
+  }
+
+  return {
+    score: totalScore,
+    temperature,
+    factors,
+    reasons,
+    missingInformation,
+    nextAction,
+  };
+}
+

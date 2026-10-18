@@ -1,13 +1,19 @@
 export type LeadQualificationStatus = 'HOT' | 'WARM' | 'COLD' | 'PENDING' | 'REACH_AGAIN' | 'OPT_OUT';
 
 export interface LeadData {
+  name?: string;
+  phone?: string;
+  email?: string;
   interest: string;
   buyer_type: string;
   property_type: string;
   budget: string;
+  currency?: string;
   location: string;
+  country?: string;
   timeline: string;
   qualification_status: LeadQualificationStatus;
+  score?: number;
   stage_reached: number;
   notes?: string;
   updated_at?: string;
@@ -15,6 +21,7 @@ export interface LeadData {
 
 export type CallStatus =
   | 'idle'
+  | 'calling'
   | 'connecting'
   | 'connected'
   | 'speaking'
@@ -24,13 +31,18 @@ export type CallStatus =
   | 'error';
 
 export interface TranscriptTurn {
-  id: string;
-  role: 'agent' | 'user' | 'system';
+  id?: string;
+  role?: 'agent' | 'user' | 'system';
+  speaker?: 'agent' | 'customer';
+  agentName?: string;
   text: string;
   timestamp: string;
+  timeFormatted?: string;
   isStreaming?: boolean;
+  isComplete?: boolean;
   stage?: number;
   interrupted?: boolean;
+  latencyMs?: number;
 }
 
 export interface AgentPersona {
@@ -39,31 +51,41 @@ export interface AgentPersona {
   gender: 'female' | 'male';
   language: 'tamil' | 'english' | 'hindi' | 'arabic' | 'bilingual';
   title: string;
-  voiceId: string;
+  voiceId: 'Sulafat' | 'Callirrhoe' | 'Aoede' | 'Achird' | 'Zubenelgenubi';
   tagline: string;
 }
 
-export function getAgentPersona(gender: 'female' | 'male', language: string): AgentPersona {
-  const isTamil = language === 'tamil' || language === 'bilingual';
-  if (gender === 'female') {
+export const SUPPORTED_VOICES: Array<{ id: string; name: string; gender: 'female' | 'male'; tone: string; description: string }> = [
+  { id: 'Sulafat', name: 'Sulafat (Primary)', gender: 'female', tone: 'Warm, expressive Tanglish phone cadence with natural pitch variation', description: 'Preferred female voice preset for Lyka Realty' },
+  { id: 'Callirrhoe', name: 'Callirrhoe', gender: 'female', tone: 'Friendly, empathetic & professional adult delivery', description: 'Alternative female executive voice' },
+  { id: 'Aoede', name: 'Aoede', gender: 'female', tone: 'Lively, conversational & engaging tone', description: 'Alternative female relationship manager' },
+  { id: 'Achird', name: 'Achird (Primary)', gender: 'male', tone: 'Confident, reassuring & natural phone conversation', description: 'Preferred male portfolio executive' },
+  { id: 'Zubenelgenubi', name: 'Zubenelgenubi', gender: 'male', tone: 'Calm, authoritative & clear explanation tone', description: 'Alternative male senior advisor' },
+];
+
+export function getAgentPersona(gender: 'female' | 'male', language: string = 'bilingual', voiceId?: string): AgentPersona {
+  const isFemale = gender === 'female';
+  const resolvedVoice = (voiceId as any) || (isFemale ? 'Sulafat' : 'Achird');
+
+  if (isFemale) {
     return {
-      id: isTamil ? 'lyka-tamil' : `lyka-${language}`,
-      name: 'Lyka',
+      id: 'priya-realty',
+      name: 'Priya',
       gender: 'female',
-      language: (language as any) || 'tamil',
+      language: (language as any) || 'bilingual',
       title: 'Senior Property Relationship Manager',
-      voiceId: 'Kore',
-      tagline: isTamil ? 'வணக்கம், நான் லைகா ரியல் எஸ்டேட்-ல இருந்து லைகா பேசுறேன்' : 'Hello, this is Lyka from Lyka Realty',
+      voiceId: resolvedVoice,
+      tagline: 'Vanakkam! Naan Lyka Realty-la irundhu Priya pesuren.',
     };
   } else {
     return {
-      id: isTamil ? 'vinakya-tamil' : `stark-${language}`,
-      name: isTamil ? 'Vinakya Mahadev' : 'Stark',
+      id: 'harish-realty',
+      name: 'Harish',
       gender: 'male',
-      language: (language as any) || 'tamil',
+      language: (language as any) || 'bilingual',
       title: 'Senior Property Portfolio Executive',
-      voiceId: 'Puck',
-      tagline: isTamil ? 'வணக்கம், நான் லைகா ரியல் எஸ்டேட்-ல இருந்து விநாயகா மகாதேவ் பேசறேன்' : 'Hello, this is Stark from Lyka Realty',
+      voiceId: resolvedVoice,
+      tagline: 'Vanakkam! Naan Lyka Realty-la irundhu Harish pesuren.',
     };
   }
 }
@@ -73,6 +95,7 @@ export interface VoiceOption {
   name: string;
   gender: 'female' | 'male';
   tone: string;
+  description?: string;
 }
 
 export interface LanguageOption {
@@ -107,6 +130,22 @@ export type LeadOutcome =
   | 'REACH_AGAIN'
   | 'PENDING';
 
+export interface LeadScoreFactor {
+  factor: string;
+  points: number;
+  maxPoints: number;
+  reason: string;
+}
+
+export interface LeadScoreBreakdown {
+  score: number;
+  temperature: 'HOT' | 'WARM' | 'COLD';
+  factors: LeadScoreFactor[];
+  reasons: string[];
+  missingInformation: string[];
+  nextAction: string;
+}
+
 export interface LeadRecord {
   id: string;
   name: string;
@@ -116,11 +155,15 @@ export interface LeadRecord {
   consent: boolean;
   callStatus: LeadCallStatus;
   outcome?: LeadOutcome;
+  score?: number;
+  scoreBreakdown?: LeadScoreBreakdown;
   interest?: string;
   buyerType?: string;
   propertyType?: string;
   budget?: string;
+  currency?: string;
   location?: string;
+  country?: string;
   timeline?: string;
   lastCalledAt?: string;
   createdAt: string;
@@ -128,11 +171,45 @@ export interface LeadRecord {
   isOptedOut?: boolean;
 }
 
+export type FieldStatus = 'unknown' | 'extracted' | 'confirmed';
+
+export interface LeadField {
+  value: string | null;
+  status: FieldStatus;
+}
+
+export interface LeadInfo {
+  name: LeadField;
+  phone: LeadField;
+  email: LeadField;
+  lead_source: LeadField;
+  intent: LeadField;
+  interest: LeadField;
+  buyer_type: LeadField;
+  property_type: LeadField;
+  location: LeadField;
+  country: LeadField;
+  state_province: LeadField;
+  city: LeadField;
+  budget: LeadField;
+  currency: LeadField;
+  rental_period: LeadField;
+  property_size: LeadField;
+  area_unit: LeadField;
+  bedrooms: LeadField;
+  bathrooms: LeadField;
+  amenities: LeadField;
+  timeline: LeadField;
+  notes: LeadField;
+  qualification_status: LeadField;
+}
+
 export interface CallRecord {
   callId: string;
   leadId: string;
   leadName: string;
   leadPhone: string;
+  channel?: 'browser' | 'twilio' | 'simulation';
   startedAt: string;
   endedAt: string;
   duration: number; // in seconds
@@ -145,6 +222,7 @@ export interface CallRecord {
   timeline: string;
   sentiment?: 'positive' | 'negative' | 'neutral' | 'opt_out';
   outcome: LeadOutcome;
+  score?: number;
   summary: string;
   transcript: TranscriptTurn[];
   nextAction: string;
@@ -162,7 +240,6 @@ export interface DashboardStats {
   cold: number;
   reachAgain: number;
   optOut: number;
-  // Rates in percentages
   answerRate: number;
   interestedRate: number;
   qualificationRate: number;
@@ -170,10 +247,17 @@ export interface DashboardStats {
 }
 
 export interface ApiUsageData {
-
+  provider: string;
   model: string;
   tier: string;
   quotaStatus: 'HEALTHY' | 'WARNING' | 'EXHAUSTED';
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  audioInputSeconds: number;
+  audioOutputSeconds: number;
+  estimatedCostUsd: number;
+  actualBilledCostNote: string;
   daily: {
     limit: number;
     used: number;
@@ -203,5 +287,4 @@ export interface ApiUsageData {
   timestamp: string;
 }
 
-
-
+export type MainAppTab = 'live' | 'leads' | 'dial' | 'usage';

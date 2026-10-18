@@ -4,11 +4,10 @@
 
 export type CrmRole =
   | 'Super Admin'
-  | 'Admin'
-  | 'Lead Management Team'
-  | 'Sales Manager'
-  | 'Sales Agent'
-  | 'Marketing Executive';
+  | 'Operations Admin'
+  | 'Lead Management Executive'
+  | 'Sales Territory Manager'
+  | 'Sales & Growth Executive';
 
 export interface DevRoleInfo {
   role: CrmRole;
@@ -23,42 +22,35 @@ export const DEV_ROLES: DevRoleInfo[] = [
     role: 'Super Admin',
     title: 'Super Admin',
     badgeColor: '#d8a868',
-    description: 'Full unconstrained platform control, financial audits, employee targets & system settings.',
+    description: 'Full unconstrained platform control, financial audits, user management & system settings.',
     canEdit: true,
   },
   {
-    role: 'Admin',
+    role: 'Operations Admin',
     title: 'Operations Admin',
     badgeColor: '#3b6185',
-    description: 'Regional operations, employee directory, inventory verification & compliance.',
+    description: 'Property/land inventory, employee directory, audit logs & operational verification.',
     canEdit: true,
   },
   {
-    role: 'Lead Management Team',
+    role: 'Lead Management Executive',
     title: 'Lead Management Executive',
     badgeColor: '#904474',
     description: 'AI qualification triage, lead routing, status overrides & prospect follow-ups.',
     canEdit: true,
   },
   {
-    role: 'Sales Manager',
+    role: 'Sales Territory Manager',
     title: 'Sales Territory Manager',
     badgeColor: '#2e7d32',
-    description: 'Team performance, deal approvals, commission oversight & pipeline health.',
+    description: 'Authorised team oversight, deal approvals, visit management & team performance.',
     canEdit: true,
   },
   {
-    role: 'Sales Agent',
-    title: 'Sales Portfolio Consultant',
+    role: 'Sales & Growth Executive',
+    title: 'Sales & Growth Executive',
     badgeColor: '#e65100',
-    description: 'Direct prospect engagement, site visits, matching proposals & deal execution.',
-    canEdit: false,
-  },
-  {
-    role: 'Marketing Executive',
-    title: 'Growth & Campaigns Executive',
-    badgeColor: '#7b1fa2',
-    description: 'Campaign tracking, lead source attribution & audience conversion reports.',
+    description: 'Assigned leads, customer engagement, property matching, site visits & sales activities.',
     canEdit: false,
   },
 ];
@@ -105,7 +97,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'core',
     icon: 'LayoutDashboard',
     description: 'Executive KPIs, lead velocity, active deals, closed revenue and team performance.',
-    allowedRoles: ['Super Admin', 'Admin', 'Lead Management Team', 'Sales Manager', 'Sales Agent', 'Marketing Executive'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Lead Management Executive', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
   {
     id: 'leads',
@@ -113,7 +105,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'core',
     icon: 'Users',
     description: 'Chatbot & voice qualification stream, HOT/WARM triage, scoring & assignment.',
-    allowedRoles: ['Super Admin', 'Admin', 'Lead Management Team', 'Sales Manager', 'Sales Agent', 'Marketing Executive'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Lead Management Executive', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
   {
     id: 'customers',
@@ -121,7 +113,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'core',
     icon: 'UserCheck',
     description: 'Client profiles, lifetime requirements, linked conversations & verified contacts.',
-    allowedRoles: ['Super Admin', 'Admin', 'Lead Management Team', 'Sales Manager', 'Sales Agent'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Lead Management Executive', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
 
   // ── Inventory & AI
@@ -131,7 +123,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'inventory',
     icon: 'Building2',
     description: 'Luxury villas, penthouses, apartments, gallery uploads & verification status.',
-    allowedRoles: ['Super Admin', 'Admin', 'Sales Manager', 'Sales Agent'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
   {
     id: 'land',
@@ -139,7 +131,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'inventory',
     icon: 'Trees',
     description: 'Plots, agricultural, commercial & coastal land with cents, acres & grounds units.',
-    allowedRoles: ['Super Admin', 'Admin', 'Sales Manager', 'Sales Agent'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
   {
     id: 'ai-listing',
@@ -147,7 +139,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'inventory',
     icon: 'Sparkles',
     description: 'Raw text to structured property listing extraction with human validation workflow.',
-    allowedRoles: ['Super Admin', 'Admin', 'Sales Manager', 'Sales Agent'],
+    allowedRoles: ['Super Admin', 'Operations Admin'],
   },
   {
     id: 'matching',
@@ -155,7 +147,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'inventory',
     icon: 'GitCompare',
     description: 'Database-backed requirement-to-inventory matching with transparent scoring.',
-    allowedRoles: ['Super Admin', 'Admin', 'Lead Management Team', 'Sales Manager', 'Sales Agent'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Lead Management Executive', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
 
   // ── Sales Operations
@@ -165,7 +157,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'sales',
     icon: 'KanbanSquare',
     description: 'Visual stage progression: New → Contacted → Qualified → Site Visit → Won/Lost.',
-    allowedRoles: ['Super Admin', 'Admin', 'Lead Management Team', 'Sales Manager', 'Sales Agent'],
+    allowedRoles: ['Super Admin', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
   {
     id: 'site-visits',
@@ -173,7 +165,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'sales',
     icon: 'CalendarClock',
     description: 'Customer property inspection scheduling, agent assignment & visit feedback.',
-    allowedRoles: ['Super Admin', 'Admin', 'Sales Manager', 'Sales Agent'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
   {
     id: 'tasks',
@@ -181,7 +173,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'sales',
     icon: 'CheckSquare',
     description: 'Assigned employee follow-ups, overdue alerts, priorities & completion records.',
-    allowedRoles: ['Super Admin', 'Admin', 'Lead Management Team', 'Sales Manager', 'Sales Agent'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Lead Management Executive', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
   {
     id: 'deals',
@@ -189,7 +181,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'sales',
     icon: 'Banknote',
     description: 'Negotiation tracking, agreed deal values, actual closed revenue & payment status.',
-    allowedRoles: ['Super Admin', 'Admin', 'Sales Manager', 'Sales Agent'],
+    allowedRoles: ['Super Admin', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
 
   // ── Team & Performance
@@ -199,7 +191,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'team',
     icon: 'Briefcase',
     description: 'Staff directory, territory allocation, reporting hierarchies & employment status.',
-    allowedRoles: ['Super Admin', 'Admin', 'Sales Manager'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Sales Territory Manager'],
   },
   {
     id: 'teams',
@@ -207,7 +199,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'team',
     icon: 'Network',
     description: 'Departmental groupings, manager hierarchies & team workload distributions.',
-    allowedRoles: ['Super Admin', 'Admin', 'Sales Manager'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Sales Territory Manager'],
   },
   {
     id: 'performance',
@@ -215,7 +207,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'team',
     icon: 'Award',
     description: 'Conversion rates, target vs actual revenue, site visit metrics & leaderboards.',
-    allowedRoles: ['Super Admin', 'Admin', 'Sales Manager', 'Sales Agent'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
   {
     id: 'rewards',
@@ -223,7 +215,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'team',
     icon: 'Trophy',
     description: 'Immutable points transaction ledger, qualification bonuses & leaderboard.',
-    allowedRoles: ['Super Admin', 'Admin', 'Sales Manager', 'Sales Agent'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Lead Management Executive', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
   {
     id: 'commissions',
@@ -231,7 +223,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'team',
     icon: 'Percent',
     description: 'Deterministic commission calculations, tier rates & verified sales payouts.',
-    allowedRoles: ['Super Admin', 'Admin', 'Sales Manager'],
+    allowedRoles: ['Super Admin', 'Sales Territory Manager'],
   },
 
   // ── Growth & Insights
@@ -241,7 +233,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'growth',
     icon: 'Megaphone',
     description: 'Source channels (Meta, Google, Portals), spend, leads generated & ROI.',
-    allowedRoles: ['Super Admin', 'Admin', 'Marketing Executive'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Sales & Growth Executive'],
   },
   {
     id: 'communications',
@@ -249,7 +241,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'growth',
     icon: 'MessageSquareText',
     description: 'Unified omnichannel audit: AI chatbot turns, voice transcripts & agent logs.',
-    allowedRoles: ['Super Admin', 'Admin', 'Lead Management Team', 'Sales Manager', 'Sales Agent'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
   {
     id: 'reports',
@@ -257,7 +249,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'growth',
     icon: 'BarChart3',
     description: 'Revenue trends, property demand breakdowns, lost reason analysis & CSV exports.',
-    allowedRoles: ['Super Admin', 'Admin', 'Sales Manager', 'Marketing Executive'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Sales Territory Manager'],
   },
 
   // ── Governance & Settings
@@ -267,7 +259,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'admin',
     icon: 'Bell',
     description: 'HOT lead alerts, upcoming site visits, assignment notices & task reminders.',
-    allowedRoles: ['Super Admin', 'Admin', 'Lead Management Team', 'Sales Manager', 'Sales Agent', 'Marketing Executive'],
+    allowedRoles: ['Super Admin', 'Operations Admin', 'Lead Management Executive', 'Sales Territory Manager', 'Sales & Growth Executive'],
   },
   {
     id: 'users',
@@ -283,7 +275,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'admin',
     icon: 'Settings',
     description: 'Currencies, measurement units, lead scoring rules, organization configuration.',
-    allowedRoles: ['Super Admin', 'Admin'],
+    allowedRoles: ['Super Admin'],
   },
   {
     id: 'audit-logs',
@@ -291,7 +283,7 @@ export const CRM_MODULES: CrmModuleMeta[] = [
     category: 'admin',
     icon: 'FileText',
     description: 'Security log of database record creation, modifications, assignments & exports.',
-    allowedRoles: ['Super Admin', 'Admin'],
+    allowedRoles: ['Super Admin', 'Operations Admin'],
   },
 ];
 

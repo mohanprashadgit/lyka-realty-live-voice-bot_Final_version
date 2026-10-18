@@ -36,15 +36,15 @@ const QUICK_PROMPTS = [
   },
   {
     label: 'தமிழ்: 2 மணி நேரம் கழிச்சு கூப்பிடுங்க',
-    text: 'நான் மோகன், ஜானோட தம்பி பேசுறேன். அண்ணன் வெளிய போயிருக்காரு, ஒரு 2 மணி நேரம் கழிச்சு கூப்பிடுங்க திரும்ப பேசலாம்.',
+    text: 'நான் தம்பி பேசுறேன். அண்ணன் வெளிய போயிருக்காரு, ஒரு 2 மணி நேரம் கழிச்சு கூப்பிடுங்க திரும்ப பேசலாம்.',
   },
   {
     label: 'தமிழ்: இப்போதைக்கு வேண்டாம்',
     text: 'இப்போதைக்கு வீடு வாங்குற எண்ணம் இல்லைங்க, வேண்டாம் நன்றி.',
   },
   {
-    label: 'EN: Yes Mohan speaking',
-    text: 'Yes, this is Mohan speaking. What is this call regarding?',
+    label: 'EN: Yes, speaking',
+    text: 'Yes, speaking. What is this call regarding?',
   },
   {
     label: 'EN: 3BHK Flat $800k in 2 months',

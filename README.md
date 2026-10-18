@@ -33,13 +33,24 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
       5. `Zubenelgenubi` (Preferred male voice / primary audio-quality reference)
     - **Live Mid-Session Voice Switching**: Changing voice during an active phone or browser call seamlessly transitions the session in real-time. Halts current audio playback to prevent overlap, connects a fresh Gemini Live session with the new voice, preserves context, and continues naturally without duplicate greetings.
     - **Compact Voice Sample Demo Buttons ("Preview Voice")**: Compact speaker button beside each of the 5 voices. Plays consistent sample sentence (*"Vanakkam sir! Eppadi irukkeenga? Naan Lyka Realty AI assistant. Ungalukku eppadi help panna mudiyum?"*) generated from authentic golden WAV reference audio cached in `voice/` or dynamically generated with `gemini-2.5-flash-preview-tts` and converted to standard 24kHz WAV. Completely isolated from live call audio, transcripts, and microphone.
-  - **Natural Conversation, Dynamic Pitch & Emotional Intelligence**:
-    - **Customer Name Integrity Protocol (Bug Fix)**: Never assumes customer name or uses hardcoded defaults (e.g., "Mohan"). Never shortens, rearranges, splits by spaces, or guesses a customer's name (resolves the bug where `"M. Perkumar"` was erroneously transformed to `"Kumar sir"`). Greets naturally and asks name (*"Vanakkam sir! Naan Priya, Lyka Realty-la irundhu pesuren. Unga name therinjukkalama sir?"*). When provided, acknowledges accurately (*"Nice to meet you! Eppadi irukkeenga sir?"*). If uncertain, asks politely (*"Sorry sir, unga name correct-ah purinjukkittena? Ungala eppadi koopidanum sir?"*). Maintains two distinct fields: `customer_name_raw` and `customer_preferred_name`.
-    - **Everyday Tamil Nadu Tanglish**: Agent speaks authentic spoken Tanglish mixing Tamil in English script with everyday English words (e.g., *"Seri nga!"*, *"Aaaah, okay okay, puriyudhu sir!"*, *"Ohhh, appadiya? Super nga!"*, *"No problem, neenga comfortable-ah sollunga"*). Avoids textbook/literary Tamil translations.
+  - **Natural Conversation, Subtle Appreciation & Emotional Intelligence**:
+    - **Natural Greeting Protocol (Do Not Ask Name at Start)**: Agent starts with a warm, natural greeting (*"Vanakkam sir! Eppadi irukkeenga? Naan Priya, Lyka Realty-la irundhu pesuren."*). Does NOT begin with a checklist interrogation or ask for the customer's name immediately. When customer responds (*"I'm good"*), acknowledges warmly (*"Super sir, happy to hear that! Sollunga sir, eppadi help panna mudiyum?"*). Always answers direct property inquiries first.
+    - **Customer Name Integrity Protocol**: Never assumes customer name or uses hardcoded defaults (e.g., "Mohan"). Never shortens, rearranges, splits by spaces, or guesses a customer's name (resolves the bug where `"M. Perkumar"` was erroneously transformed to `"Kumar sir"`). Asks name later when conversation naturally allows (*"By the way sir, unga name therinjukkalama?"*). Acknowledges accurately (*"Nice to meet you! Thanks nga."*). Maintains two distinct fields: `customer_name_raw` and `customer_preferred_name`.
+    - **Subtle Appreciation — Never Overpraise**: Light, genuine expressions (*"Super sir!"*, *"Okay nga, puriyudhu"*, *"Ohh, appadiya?"*, *"Seri sir, nalla irukku"*, *"Aaaah, okay okay!"*, *"Correct sir, got it"*, *"Thanks for sharing, sir"*). Avoids fake excitement, excessive praise, or repetitive generic compliments.
+    - **Natural City / Location Acknowledgment**: Responds naturally when a customer mentions their city (e.g. Thoothukudi, Chennai, Coimbatore, Dubai) with relevant, conversational observations (*"Ohh, Thoothukudi-ah sir! Nice nga. Appo neenga anga irundhu property options paakureengala, illa vera location-la interest irukka?"*). Never invents facts or claims personal visits.
+    - **Gradual 7-Field Lead Information Collection**: Gathers 7 core lead fields one question at a time across the dialogue without presenting a checklist:
+      1. Customer Name (asked later when naturally suitable)
+      2. Phone Number (asked when follow-up is relevant; respects caller choice)
+      3. Current Location (city & country)
+      4. How Heard / Lead Source (social media, website, referral, ads)
+      5. Purpose of Enquiry (buying, selling, investing, renting, exploring)
+      6. Preferred Contact Method (Phone, WhatsApp, Email)
+      7. Best Time to Contact Again (convenient time for follow-up)
+    - **Everyday Tamil Nadu Tanglish**: Spoken Tanglish mixing Tamil in English script with everyday English words (e.g., *"Seri nga!"*, *"Aaaah, okay okay, puriyudhu sir!"*, *"Ohhh, appadiya? Super nga!"*, *"No problem, neenga comfortable-ah sollunga"*). Avoids textbook/literary Tamil translations.
     - **Context-Aware Emotional Expression & Pitch Variation**: Dynamic pitch and delivery tailored to customer mood (Happy/Positive, Curious, Understanding, Reassuring, Frustrated/Angry with sincere empathy, and Appreciative). Natural conversational speed with short pauses.
     - **Balanced Conversation**: One question at a time, listens completely, remembers previously shared details, answers customer questions before qualifying, respects busy callers, and ends gracefully without pushy tactics.
     - **Lyka Realty Company & Social Channels**: Explains services in India and Dubai, verified website (`https://lykarealty.com`), email (`contact@lykarealty.com`), and transparently explains that social channels are undergoing verification.
-  - Extracted Prospect Profile Panel: Real-time display of captured customer name, buyer/investor type, territory (India/Dubai), property type, budget, timeline, and qualification status (`HOT`, `WARM`, `COLD`) without fabricating unconfirmed details.
+  - Extracted Prospect Profile Panel: Real-time display of all 7 captured lead fields (Customer Name, Phone, Location, Source, Purpose, Contact Method, Best Time to Contact) plus property specifications (type, budget, timeline, score) without fabricating unconfirmed details.
   - Pre-call / live qualification form fields: `Customer Name`, `Phone`, `City / Location` (e.g., Chennai, Dubai), `Language` (Tamil Nadu Tanglish, English, Tamil), and `Reason for call`.
   - High-visibility action pill button: `📞 Start new call with Priya/Harish` / `🔴 End call` + Mic Mute + Barge-in Interrupt.
   - Mode toggle: `Live voice` with browser microphone permissions and echo-safe audio streaming.
@@ -235,7 +246,7 @@ The CRM database (`lyka_crm`) runs on MySQL with connection pooling and idempote
    - Columns: `full_name`, `customer_name_raw` (verbatim customer name as spoken/provided), `customer_preferred_name` (form of address explicitly confirmed by customer), `phone`, `phone_normalized`, `email`, `current_location`, `preferred_contact`, timestamps.
 2. **`leads`**: Real estate property inquiries (captured via AI chatbot, voice agent, or CRM manual entry).
    - Primary key: `id` (UUID), Foreign key: `customer_id` → `customers.id`.
-   - Columns: `guest_session_id`, `customer_name_raw`, `customer_preferred_name`, `lead_source`, `intent`, `property_type`, `country`, `state_province`, `city`, `locality`, `postal_code`, `budget_min`, `budget_max`, `currency`, `property_size`, `area_unit`, `bedrooms`, `bathrooms`, `amenities`, `timeline`, `temperature` (`HOT`, `WARM`, `COLD`), `pipeline_status` (`new`, `contacted`, `qualified`, `property matching`, `site visit`, `negotiation`, `won`, `lost`), `assigned_agent` → `employees.id`, `notes`.
+   - Columns: `guest_session_id`, `customer_name_raw`, `customer_preferred_name`, `phone`, `email`, `preferred_contact_method` (Phone, WhatsApp, Email), `best_time_to_contact` (convenient follow-up time), `lead_source` (how heard), `intent` (purpose), `property_type`, `country`, `state_province`, `city`, `locality`, `postal_code`, `budget_min`, `budget_max`, `currency`, `property_size`, `area_unit`, `bedrooms`, `bathrooms`, `amenities`, `timeline`, `temperature` (`HOT`, `WARM`, `COLD`), `pipeline_status` (`new`, `contacted`, `qualified`, `property matching`, `site visit`, `negotiation`, `won`, `lost`), `assigned_agent` → `employees.id`, `notes`.
 3. **`conversations`**: Audit log of all guest sessions and channels.
    - Primary key: `id`, Foreign keys: `lead_id`, `customer_id`.
    - Columns: `session_id`, `channel` (`text`, `voice`), `language`, `started_at`, `ended_at`.
@@ -688,6 +699,18 @@ Verified Test Results:
   23. Chatbot text (`/api/chat`) and health regression
   24. Zero vector database dependencies; 100% deterministic SQL
   25. Production build and TypeScript type-check validation
+- **Final Update Regression Suite (`scratch/test_final_update_suite.ts`)**: **ALL PASSED (100% VERIFIED)**:
+  - **Natural Greeting Protocol**: Verified Turn 0 greeting (*"Vanakkam sir! Eppadi irukkeenga? Naan Priya, Lyka Realty-la irundhu pesuren."*). Agent strictly avoids asking for the customer's name at the start.
+  - **Subtle Appreciation & City Response**: Agent acknowledged *"Thoothukudi, Tamil Nadu"* naturally (*"Ohh, Thoothukudi-la irukkeengala sir! Seri nga..."*) without inventing facts or overpraising.
+  - **Gradual 7-Field Lead Information Collection**: Multi-turn dialogue verified progressive capture of all 7 required lead fields:
+    1. Customer Name (`customer_name_raw`: "M. Perkumar" preserved with zero shortening to Kumar)
+    2. Phone Number (`phone`: "+91 98400 12345")
+    3. Current Location (`city`: "Thoothukudi")
+    4. How Heard / Lead Source (`lead_source`: "instagram")
+    5. Purpose of Enquiry (`intent`: "invest")
+    6. Preferred Contact Method (`preferred_contact_method`: "WhatsApp")
+    7. Best Time to Contact Again (`best_time_to_contact`: "Evening 6 PM")
+  - **Live MySQL Database Verification**: Queried live `lyka_crm.leads` record and verified all 7 fields were persisted accurately.
 - **Master Prompt Tanglish Voice Agent Regression Suite (`scratch/test_master_prompt_suite.ts`)**: **ALL PASSED (100% VERIFIED)**:
   - **5 Voice Preview Endpoints**: All 5 voices (`Sulafat`, `Callirrhoe`, `Aoede`, `Achird`, `Zubenelgenubi`) returned HTTP 200 with authentic 24kHz golden WAV samples.
   - **Customer Name Integrity**: 5 test cases verified (`M. Perkumar`, `Perkumar`, `Kumar`, `S. K. Raman`, `Anand Sundaram`). System strictly preserved original names without substring truncation or space splitting.

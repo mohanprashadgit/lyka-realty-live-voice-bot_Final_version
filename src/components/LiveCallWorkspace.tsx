@@ -1068,7 +1068,7 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
 
             <div className="grid grid-cols-2 gap-2 text-[11px]">
               <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">Customer Name</span>
+                <span className="text-[10px] text-slate-400 block font-medium">1. Customer Name</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
                   {leadData?.customer_preferred_name
                     ? `${leadData.customer_preferred_name} (Raw: ${leadData?.customer_name_raw || leadData?.name})`
@@ -1077,37 +1077,51 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
               </div>
 
               <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">Buyer / Investor Type</span>
+                <span className="text-[10px] text-slate-400 block font-medium">2. Phone Number</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
-                  {leadData?.buyer_type || 'Investor / Buyer'}
+                  {leadData?.phone || leadPhone || 'Pending consent'}
                 </span>
               </div>
 
               <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">Interest Territory</span>
+                <span className="text-[10px] text-slate-400 block font-medium">3. Current Location</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
-                  {leadData?.country || 'India & Dubai'}
+                  {leadData?.city || leadData?.location || leadCity || 'Not provided'}
                 </span>
               </div>
 
               <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">Property Type</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
-                  {leadData?.property_type || 'Not provided'}
+                <span className="text-[10px] text-slate-400 block font-medium">4. How Heard / Source</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block capitalize">
+                  {leadData?.lead_source || 'Not asked yet'}
                 </span>
               </div>
 
               <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">Budget &amp; Currency</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block font-mono">
-                  {leadData?.budget || 'Not provided'}
+                <span className="text-[10px] text-slate-400 block font-medium">5. Purpose of Enquiry</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block capitalize">
+                  {leadData?.intent || leadData?.buyer_type || 'Exploring'}
                 </span>
               </div>
 
               <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">Purchase Timeline</span>
+                <span className="text-[10px] text-slate-400 block font-medium">6. Contact Method</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
-                  {leadData?.timeline || 'Exploring'}
+                  {leadData?.preferred_contact_method || 'To be confirmed'}
+                </span>
+              </div>
+
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
+                <span className="text-[10px] text-slate-400 block font-medium">7. Best Time to Contact</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
+                  {leadData?.best_time_to_contact || 'Flexible'}
+                </span>
+              </div>
+
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
+                <span className="text-[10px] text-slate-400 block font-medium">Property &amp; Budget</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
+                  {leadData?.property_type || 'Property'} {leadData?.budget ? `· ${leadData.budget}` : ''}
                 </span>
               </div>
             </div>
@@ -1162,7 +1176,7 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
                   </div>
 
                   <p className="text-[13px] sm:text-sm leading-relaxed text-slate-800 dark:text-slate-100">
-                    "{leadName ? `Vanakkam ${leadName} sir! Eppadi irukkeenga? Naan ${persona.name}, Lyka Realty-la irundhu pesuren. Ungalukku eppadi help panna mudiyum sir?` : `Vanakkam sir! Naan ${persona.name}, Lyka Realty-la irundhu pesuren. Unga name therinjukkalama sir?`}"
+                    "{leadName ? `Vanakkam ${leadName} sir! Eppadi irukkeenga? Naan ${persona.name}, Lyka Realty-la irundhu pesuren.` : `Vanakkam sir! Eppadi irukkeenga? Naan ${persona.name}, Lyka Realty-la irundhu pesuren.`}"
                   </p>
 
                   <div className="flex items-center justify-between gap-3 pt-1 text-[10px] text-slate-400 font-mono">

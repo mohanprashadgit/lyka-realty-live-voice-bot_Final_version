@@ -6,12 +6,17 @@ export interface LeadData {
   customer_preferred_name?: string;
   phone?: string;
   email?: string;
+  lead_source?: string;
+  intent?: string;
+  preferred_contact_method?: string;
+  best_time_to_contact?: string;
   interest: string;
   buyer_type: string;
   property_type: string;
   budget: string;
   currency?: string;
   location: string;
+  city?: string;
   country?: string;
   timeline: string;
   qualification_status: LeadQualificationStatus;

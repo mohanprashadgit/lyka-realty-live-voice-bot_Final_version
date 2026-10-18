@@ -54,7 +54,7 @@ export default function App() {
       speaker: 'agent',
       role: 'agent',
       agentName: 'Priya',
-      text: 'Vanakkam sir! Naan Lyka Realty-la irundhu Priya pesuren. Unga name therinjukkalama sir?',
+      text: 'Vanakkam sir! Eppadi irukkeenga? Naan Priya, Lyka Realty-la irundhu pesuren.',
       timestamp: new Date().toISOString(),
       timeFormatted: '00:00',
       isComplete: true,
@@ -107,8 +107,8 @@ export default function App() {
     setTranscript((prev) => {
       if (prev.length <= 1 && prev[0]?.id === 'turn-init') {
         const greetingText = leadData.name
-          ? `Vanakkam ${leadData.name} sir! Naan ${newPersona.name}, Lyka Realty-la irundhu pesuren. Eppadi irukkeenga sir?`
-          : `Vanakkam sir! Naan ${newPersona.name}, Lyka Realty-la irundhu pesuren. Unga name therinjukkalama sir?`;
+          ? `Vanakkam ${leadData.name} sir! Eppadi irukkeenga? Naan ${newPersona.name}, Lyka Realty-la irundhu pesuren.`
+          : `Vanakkam sir! Eppadi irukkeenga? Naan ${newPersona.name}, Lyka Realty-la irundhu pesuren.`;
         return [
           {
             id: 'turn-init',
@@ -147,8 +147,8 @@ export default function App() {
     setTranscript((prev) => {
       if (prev.length <= 1 && prev[0]?.id === 'turn-init') {
         const greetingText = leadData.name
-          ? `Vanakkam ${leadData.name} sir! Naan ${resolvedPersona.name}, Lyka Realty-la irundhu pesuren. Eppadi irukkeenga sir?`
-          : `Vanakkam sir! Naan ${resolvedPersona.name}, Lyka Realty-la irundhu pesuren. Unga name therinjukkalama sir?`;
+          ? `Vanakkam ${leadData.name} sir! Eppadi irukkeenga? Naan ${resolvedPersona.name}, Lyka Realty-la irundhu pesuren.`
+          : `Vanakkam sir! Eppadi irukkeenga? Naan ${resolvedPersona.name}, Lyka Realty-la irundhu pesuren.`;
         return [
           {
             id: 'turn-init',

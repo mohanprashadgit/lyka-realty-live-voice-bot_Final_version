@@ -102,6 +102,8 @@ export async function initSchema(): Promise<void> {
       customer_preferred_name VARCHAR(255),
       phone VARCHAR(50),
       email VARCHAR(255),
+      preferred_contact_method VARCHAR(50) DEFAULT 'phone',
+      best_time_to_contact VARCHAR(100),
       notes TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -806,7 +808,20 @@ export async function initSchema(): Promise<void> {
       await db.query('ALTER TABLE customers ADD COLUMN customer_preferred_name VARCHAR(255) NULL AFTER customer_name_raw');
     }
 
-    console.log('[DB] Role migration, authentication seed accounts, customer schema, customer name integrity fields, and recommendation engine tables verified.');
+    // ── 7 Required Lead Fields Migration (Section 4) ──
+    const [leadExtraCols] = await db.query(`
+      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'leads' AND COLUMN_NAME IN ('preferred_contact_method', 'best_time_to_contact')
+    `) as any;
+    const existingLeadExtraCols = (leadExtraCols || []).map((c: any) => c.COLUMN_NAME);
+    if (!existingLeadExtraCols.includes('preferred_contact_method')) {
+      await db.query("ALTER TABLE leads ADD COLUMN preferred_contact_method VARCHAR(50) DEFAULT 'phone' AFTER email");
+    }
+    if (!existingLeadExtraCols.includes('best_time_to_contact')) {
+      await db.query('ALTER TABLE leads ADD COLUMN best_time_to_contact VARCHAR(100) NULL AFTER preferred_contact_method');
+    }
+
+    console.log('[DB] Role migration, authentication seed accounts, customer schema, customer name integrity fields, 7 lead fields, and recommendation engine tables verified.');
   } catch (migErr) {
     console.error('[DB] Auth/Recommendation migration notice:', migErr);
   }

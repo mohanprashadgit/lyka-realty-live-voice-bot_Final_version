@@ -19,6 +19,8 @@ export interface LeadPayload {
   current_city?: string;
   country?: string;
   lead_source?: string;
+  preferred_contact_method?: string;
+  best_time_to_contact?: string;
   // Intent
   intent?: string;
   // Property
@@ -193,6 +195,8 @@ export async function upsertLead(
         customer_preferred_name: preferredName,
         phone: clean.phone,
         email: clean.email,
+        preferred_contact_method: clean.preferred_contact_method,
+        best_time_to_contact: clean.best_time_to_contact,
         notes: clean.notes,
       };
 
@@ -232,8 +236,9 @@ export async function upsertLead(
           country, state_province, city, locality, original_location,
           property_size, area_unit, budget_min, budget_max, currency,
           rental_period, bedrooms, bathrooms, amenities, timeline,
-          temperature, full_name, customer_name_raw, customer_preferred_name, phone, email, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          temperature, full_name, customer_name_raw, customer_preferred_name, phone, email,
+          preferred_contact_method, best_time_to_contact, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           leadId, sessionId, clean.lead_source || null,
           clean.intent || clean.buyer_type || null,
@@ -259,6 +264,8 @@ export async function upsertLead(
           preferredName || null,
           clean.phone || null,
           clean.email || null,
+          clean.preferred_contact_method || null,
+          clean.best_time_to_contact || null,
           clean.notes || null,
         ]
       );

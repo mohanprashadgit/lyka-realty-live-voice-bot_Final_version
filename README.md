@@ -709,7 +709,7 @@ This application is ready for 1-click deployment on [Render](https://render.com)
    - **Region**: Singapore / Oregon / Frankfurt (closest to your users)
    - **Branch**: `main` (or your active branch)
    - **Runtime**: `Node`
-   - **Build Command**: `npm install && npm run build`
+   - **Build Command**: `npm install --legacy-peer-deps && npm run build`
    - **Start Command**: `npm start`
    - **Plan**: `Free` or `Starter`
 4. In the **Environment Variables** section, add:

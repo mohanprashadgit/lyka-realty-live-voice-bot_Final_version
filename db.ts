@@ -55,6 +55,8 @@ export async function initSchema(): Promise<void> {
     CREATE TABLE IF NOT EXISTS customers (
       id VARCHAR(36) PRIMARY KEY,
       full_name VARCHAR(255),
+      customer_name_raw VARCHAR(255),
+      customer_preferred_name VARCHAR(255),
       phone VARCHAR(50),
       phone_normalized VARCHAR(50),
       email VARCHAR(255),
@@ -96,6 +98,8 @@ export async function initSchema(): Promise<void> {
       assigned_agent VARCHAR(36),
       additional_prefs TEXT,
       full_name VARCHAR(255),
+      customer_name_raw VARCHAR(255),
+      customer_preferred_name VARCHAR(255),
       phone VARCHAR(50),
       email VARCHAR(255),
       notes TEXT,
@@ -777,7 +781,32 @@ export async function initSchema(): Promise<void> {
       console.log('[DB] Realistic Chennai land inventory seeded successfully.');
     }
 
-    console.log('[DB] Role migration, authentication seed accounts, customer schema, and recommendation engine tables verified.');
+    // ── Customer Name Integrity Migration (Section 6 & 16) ──
+    const [nameColsLeads] = await db.query(`
+      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'leads' AND COLUMN_NAME IN ('customer_name_raw', 'customer_preferred_name')
+    `) as any;
+    const existingNameColsLeads = (nameColsLeads || []).map((c: any) => c.COLUMN_NAME);
+    if (!existingNameColsLeads.includes('customer_name_raw')) {
+      await db.query('ALTER TABLE leads ADD COLUMN customer_name_raw VARCHAR(255) NULL AFTER full_name');
+    }
+    if (!existingNameColsLeads.includes('customer_preferred_name')) {
+      await db.query('ALTER TABLE leads ADD COLUMN customer_preferred_name VARCHAR(255) NULL AFTER customer_name_raw');
+    }
+
+    const [nameColsCust] = await db.query(`
+      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME IN ('customer_name_raw', 'customer_preferred_name')
+    `) as any;
+    const existingNameColsCust = (nameColsCust || []).map((c: any) => c.COLUMN_NAME);
+    if (!existingNameColsCust.includes('customer_name_raw')) {
+      await db.query('ALTER TABLE customers ADD COLUMN customer_name_raw VARCHAR(255) NULL AFTER full_name');
+    }
+    if (!existingNameColsCust.includes('customer_preferred_name')) {
+      await db.query('ALTER TABLE customers ADD COLUMN customer_preferred_name VARCHAR(255) NULL AFTER customer_name_raw');
+    }
+
+    console.log('[DB] Role migration, authentication seed accounts, customer schema, customer name integrity fields, and recommendation engine tables verified.');
   } catch (migErr) {
     console.error('[DB] Auth/Recommendation migration notice:', migErr);
   }

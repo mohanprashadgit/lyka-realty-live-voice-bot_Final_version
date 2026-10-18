@@ -12,6 +12,8 @@ import { getPool } from './db.js';
 export interface LeadPayload {
   // Identity
   name?: string;
+  customer_name_raw?: string;
+  customer_preferred_name?: string;
   phone?: string;
   email?: string;
   current_city?: string;
@@ -163,6 +165,9 @@ export async function upsertLead(
       const updates: string[] = [];
       const params: any[] = [];
 
+      const rawName = clean.customer_name_raw || clean.name;
+      const preferredName = clean.customer_preferred_name;
+
       const fieldMap: Record<string, any> = {
         lead_source: clean.lead_source,
         intent: clean.intent || clean.buyer_type,
@@ -183,7 +188,9 @@ export async function upsertLead(
         amenities: clean.amenities,
         timeline: clean.timeline,
         temperature: clean.qualification_status?.toUpperCase(),
-        full_name: clean.name,
+        full_name: rawName,
+        customer_name_raw: rawName,
+        customer_preferred_name: preferredName,
         phone: clean.phone,
         email: clean.email,
         notes: clean.notes,
@@ -216,6 +223,8 @@ export async function upsertLead(
       // CREATE new lead
       const leadId = uuidv4();
       const phoneNorm = normalizePhone(clean.phone);
+      const rawName = clean.customer_name_raw || clean.name;
+      const preferredName = clean.customer_preferred_name;
 
       await db.query(
         `INSERT INTO leads (
@@ -223,8 +232,8 @@ export async function upsertLead(
           country, state_province, city, locality, original_location,
           property_size, area_unit, budget_min, budget_max, currency,
           rental_period, bedrooms, bathrooms, amenities, timeline,
-          temperature, full_name, phone, email, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          temperature, full_name, customer_name_raw, customer_preferred_name, phone, email, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           leadId, sessionId, clean.lead_source || null,
           clean.intent || clean.buyer_type || null,
@@ -245,7 +254,9 @@ export async function upsertLead(
           clean.amenities || null,
           clean.timeline || null,
           clean.qualification_status?.toUpperCase() || 'WARM',
-          clean.name || null,
+          rawName || null,
+          rawName || null,
+          preferredName || null,
           clean.phone || null,
           clean.email || null,
           clean.notes || null,

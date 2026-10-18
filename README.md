@@ -22,15 +22,21 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
     - Dynamic harmonic coronal energy flaring: while the agent is speaking (`voiceState === 'speaking'`), particles ripple outwards with frequency waves proportional to `audioEnergy`, alongside multi-ring shockwaves.
     - 16 dynamic studio audio spectrum equalizer bars below the orb bouncing in real-time with agent audio and microphone energy.
     - 16 dynamic studio audio spectrum equalizer bars below the orb bouncing in real-time with agent audio and microphone energy.
-  - Voice Persona Selector: Seamless toggle between **Priya (Female)** and **Harish (Male)**.
+  - Voice Persona Selector: Seamless toggle between **Priya (Female)** and **Harish (Male)** (the legacy name 'Kayal' has been completely removed).
   - Exactly 5 Selectable Voice Presets (Grouped by Gender in Dropdown):
-    - **Female**: `Sulafat` (Default preferred Tanglish), `Callirrhoe` (Empathetic & professional), `Aoede` (Lively & conversational).
-    - **Male**: `Achird` (Default male confident), `Zubenelgenubi` (Calm senior advisor).
+    - **Female**:
+      1. `Sulafat` (Default female voice / primary audio-quality reference)
+      2. `Callirrhoe` (Empathetic & professional)
+      3. `Aoede` (Lively & conversational)
+    - **Male**:
+      4. `Achird` (Confident & clear)
+      5. `Zubenelgenubi` (Preferred male voice / primary audio-quality reference)
     - **Live Mid-Session Voice Switching**: Changing voice during an active phone or browser call seamlessly transitions the session in real-time. Halts current audio playback to prevent overlap, connects a fresh Gemini Live session with the new voice, preserves context, and continues naturally without duplicate greetings.
-    - **Compact Voice Sample Demo Buttons ("Preview Voice")**: Compact speaker button beside each of the 5 voices. Plays sample sentence (*"Vanakkam! Naan Lyka Realty AI assistant. Ungalukku eppadi help panna mudiyum?"*) generated with `gemini-2.5-flash-preview-tts` and converted to standard 24kHz WAV, cached for instant 10ms re-auditioning. Completely isolated from live call audio, transcripts, and microphone.
-  - **Natural Conversation & Emotional Intelligence**:
-    - **Customer Name Protocol**: Never assumes customer name or uses hardcoded defaults (e.g. "Mohan"). Greets naturally and asks name (*"Vanakkam sir! Naan Lyka Realty-la irundhu Priya pesuren. Unga name therinjukkalama sir?"*). When provided, greets warmly (*"Nice to meet you, [Name]! Eppadi irukkeenga?"*). Continues politely if name is not shared without repeating questions.
-    - **Emotional Intelligence & Sincere Apologies**: Detects customer sentiment. If angry, frustrated, or disappointed, acknowledges concerns and apologizes with genuine empathy without arguing or defensiveness. Responds warmly to excitement, and neutrally when uncertain (never apologizing unnecessarily).
+    - **Compact Voice Sample Demo Buttons ("Preview Voice")**: Compact speaker button beside each of the 5 voices. Plays consistent sample sentence (*"Vanakkam sir! Eppadi irukkeenga? Naan Lyka Realty AI assistant. Ungalukku eppadi help panna mudiyum?"*) generated from authentic golden WAV reference audio cached in `voice/` or dynamically generated with `gemini-2.5-flash-preview-tts` and converted to standard 24kHz WAV. Completely isolated from live call audio, transcripts, and microphone.
+  - **Natural Conversation, Dynamic Pitch & Emotional Intelligence**:
+    - **Customer Name Integrity Protocol (Bug Fix)**: Never assumes customer name or uses hardcoded defaults (e.g., "Mohan"). Never shortens, rearranges, splits by spaces, or guesses a customer's name (resolves the bug where `"M. Perkumar"` was erroneously transformed to `"Kumar sir"`). Greets naturally and asks name (*"Vanakkam sir! Naan Priya, Lyka Realty-la irundhu pesuren. Unga name therinjukkalama sir?"*). When provided, acknowledges accurately (*"Nice to meet you! Eppadi irukkeenga sir?"*). If uncertain, asks politely (*"Sorry sir, unga name correct-ah purinjukkittena? Ungala eppadi koopidanum sir?"*). Maintains two distinct fields: `customer_name_raw` and `customer_preferred_name`.
+    - **Everyday Tamil Nadu Tanglish**: Agent speaks authentic spoken Tanglish mixing Tamil in English script with everyday English words (e.g., *"Seri nga!"*, *"Aaaah, okay okay, puriyudhu sir!"*, *"Ohhh, appadiya? Super nga!"*, *"No problem, neenga comfortable-ah sollunga"*). Avoids textbook/literary Tamil translations.
+    - **Context-Aware Emotional Expression & Pitch Variation**: Dynamic pitch and delivery tailored to customer mood (Happy/Positive, Curious, Understanding, Reassuring, Frustrated/Angry with sincere empathy, and Appreciative). Natural conversational speed with short pauses.
     - **Balanced Conversation**: One question at a time, listens completely, remembers previously shared details, answers customer questions before qualifying, respects busy callers, and ends gracefully without pushy tactics.
     - **Lyka Realty Company & Social Channels**: Explains services in India and Dubai, verified website (`https://lykarealty.com`), email (`contact@lykarealty.com`), and transparently explains that social channels are undergoing verification.
   - Extracted Prospect Profile Panel: Real-time display of captured customer name, buyer/investor type, territory (India/Dubai), property type, budget, timeline, and qualification status (`HOT`, `WARM`, `COLD`) without fabricating unconfirmed details.
@@ -226,10 +232,10 @@ The CRM database (`lyka_crm`) runs on MySQL with connection pooling and idempote
 
 1. **`customers`**: Verified client relationship profiles.
    - Primary key: `id` (UUID).
-   - Columns: `full_name`, `phone`, `phone_normalized`, `email`, `current_location`, `preferred_contact`, timestamps.
+   - Columns: `full_name`, `customer_name_raw` (verbatim customer name as spoken/provided), `customer_preferred_name` (form of address explicitly confirmed by customer), `phone`, `phone_normalized`, `email`, `current_location`, `preferred_contact`, timestamps.
 2. **`leads`**: Real estate property inquiries (captured via AI chatbot, voice agent, or CRM manual entry).
    - Primary key: `id` (UUID), Foreign key: `customer_id` → `customers.id`.
-   - Columns: `guest_session_id`, `lead_source`, `intent`, `property_type`, `country`, `state_province`, `city`, `locality`, `postal_code`, `budget_min`, `budget_max`, `currency`, `property_size`, `area_unit`, `bedrooms`, `bathrooms`, `amenities`, `timeline`, `temperature` (`HOT`, `WARM`, `COLD`), `pipeline_status` (`new`, `contacted`, `qualified`, `property matching`, `site visit`, `negotiation`, `won`, `lost`), `assigned_agent` → `employees.id`, `notes`.
+   - Columns: `guest_session_id`, `customer_name_raw`, `customer_preferred_name`, `lead_source`, `intent`, `property_type`, `country`, `state_province`, `city`, `locality`, `postal_code`, `budget_min`, `budget_max`, `currency`, `property_size`, `area_unit`, `bedrooms`, `bathrooms`, `amenities`, `timeline`, `temperature` (`HOT`, `WARM`, `COLD`), `pipeline_status` (`new`, `contacted`, `qualified`, `property matching`, `site visit`, `negotiation`, `won`, `lost`), `assigned_agent` → `employees.id`, `notes`.
 3. **`conversations`**: Audit log of all guest sessions and channels.
    - Primary key: `id`, Foreign keys: `lead_id`, `customer_id`.
    - Columns: `session_id`, `channel` (`text`, `voice`), `language`, `started_at`, `ended_at`.
@@ -280,7 +286,7 @@ The CRM database (`lyka_crm`) runs on MySQL with connection pooling and idempote
 | Method | Endpoint | Description |
 |---|---|---|
 | `WS` | `/api/live-ws` | Low-latency full-duplex WebSocket stream for Gemini Live (`gemini-3.8-live`). Handles 16kHz PCM audio streaming, live neural transcription, tool calling (`update_lead_info`), and live mid-session voice switching (`change_voice`). |
-| `POST` | `/api/voice-preview` | Serves authentic golden 24kHz WAV audio samples (*"Vanakkam! Eppadi irukkeenga? Naan Lyka Realty-la irundhu pesuren. Aaaah, okay nga! Actually, neenga property investment pathi interested-ah irukkeengala? Ohhh, appadiya? Super nga!..."*) directly from `voice/` for any of the 5 supported voices (`Sulafat`, `Aoede`, `Callirrhoe`, `Achird`, `Zubenelgenubi`) with in-memory caching and dynamic TTS fallback. |
+| `POST` | `/api/voice-preview` | Serves authentic golden 24kHz WAV audio samples (*"Vanakkam sir! Eppadi irukkeenga? Naan Lyka Realty AI assistant. Ungalukku eppadi help panna mudiyum?"*) directly from `voice/` for any of the 5 supported voices (`Sulafat`, `Callirrhoe`, `Aoede`, `Achird`, `Zubenelgenubi`) with in-memory caching and dynamic TTS fallback. |
 | `GET` | `/api/health` | Service health status, Gemini model, API key configuration, and default voice preset (`Sulafat`). |
 | `GET` | `/api/health/db` | MySQL connection status and database heartbeat. |
 | `GET` | `/api/config` | Returns supported voices, agent personas, and language configuration. |
@@ -682,6 +688,15 @@ Verified Test Results:
   23. Chatbot text (`/api/chat`) and health regression
   24. Zero vector database dependencies; 100% deterministic SQL
   25. Production build and TypeScript type-check validation
+- **Master Prompt Tanglish Voice Agent Regression Suite (`scratch/test_master_prompt_suite.ts`)**: **ALL PASSED (100% VERIFIED)**:
+  - **5 Voice Preview Endpoints**: All 5 voices (`Sulafat`, `Callirrhoe`, `Aoede`, `Achird`, `Zubenelgenubi`) returned HTTP 200 with authentic 24kHz golden WAV samples.
+  - **Customer Name Integrity**: 5 test cases verified (`M. Perkumar`, `Perkumar`, `Kumar`, `S. K. Raman`, `Anand Sundaram`). System strictly preserved original names without substring truncation or space splitting.
+  - **Live Gemini Live Session & Audio Dialogue**:
+    - Turn 0 initial greeting received without hardcoding customer names.
+    - Customer name `"M. Perkumar"` acknowledged accurately (*"Nice to meet you! Eppadi irukkeenga sir?"*) with zero shortening to `"Kumar"`.
+    - Live mid-session voice switch to `Zubenelgenubi` succeeded cleanly without duplicate greetings.
+    - Spoken Tamil Nadu Tanglish response received for English queries with emotional pacing.
+    - Graceful conversation close confirmed.
 - **5-Role RBAC & Global Assistant Test Suite**: **43/43 PASSED** across all 5 seed accounts, 5 role dashboard payloads, zero-trust token authentication, query scoping (assigned leads and department staff), and role-grounded RAG context.
 - **Comprehensive 20-Point Engine Suite**: **112/112 PASSED** across all 20 test categories.
 - **Matching Service Unit Tests**: **39/39 PASSED**.

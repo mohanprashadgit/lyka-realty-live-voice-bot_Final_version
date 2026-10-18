@@ -2,6 +2,8 @@ export type LeadQualificationStatus = 'HOT' | 'WARM' | 'COLD' | 'PENDING' | 'REA
 
 export interface LeadData {
   name?: string;
+  customer_name_raw?: string;
+  customer_preferred_name?: string;
   phone?: string;
   email?: string;
   interest: string;
@@ -56,16 +58,16 @@ export interface AgentPersona {
 }
 
 export const SUPPORTED_VOICES: Array<{ id: string; name: string; gender: 'female' | 'male'; tone: string; description: string }> = [
-  { id: 'Sulafat', name: 'Sulafat (Primary)', gender: 'female', tone: 'Expressive Tanglish, lively pitch variation & warm conversational rhythm', description: 'Reference female voice preset for Lyka Realty' },
-  { id: 'Aoede', name: 'Aoede', gender: 'female', tone: 'Warm adult conversational delivery, flexible pitch & engaging tone', description: 'Alternative female relationship manager' },
-  { id: 'Callirrhoe', name: 'Callirrhoe', gender: 'female', tone: 'Warm adult conversational delivery, empathetic & friendly', description: 'Alternative female executive voice' },
-  { id: 'Achird', name: 'Achird (Primary)', gender: 'male', tone: 'Natural male character, confident Tanglish conversation & pauses', description: 'Preferred male portfolio executive' },
-  { id: 'Zubenelgenubi', name: 'Zubenelgenubi', gender: 'male', tone: 'Natural male character, emotional variation & clear emphasis', description: 'Alternative male senior advisor' },
+  { id: 'Sulafat', name: 'Sulafat (Default)', gender: 'female', tone: 'Expressive Tanglish, lively pitch variation & warm conversational rhythm', description: 'Primary female reference voice preset for Lyka Realty' },
+  { id: 'Callirrhoe', name: 'Callirrhoe', gender: 'female', tone: 'Warm adult conversational delivery, empathetic & friendly', description: 'Female relationship manager' },
+  { id: 'Aoede', name: 'Aoede', gender: 'female', tone: 'Warm adult conversational delivery, flexible pitch & engaging tone', description: 'Female portfolio manager' },
+  { id: 'Achird', name: 'Achird', gender: 'male', tone: 'Natural male character, confident Tanglish conversation & pauses', description: 'Male portfolio executive' },
+  { id: 'Zubenelgenubi', name: 'Zubenelgenubi (Preferred Male)', gender: 'male', tone: 'Natural male character, emotional variation & clear emphasis', description: 'Primary male reference voice preset for Lyka Realty' },
 ];
 
 export function getAgentPersona(gender: 'female' | 'male', language: string = 'bilingual', voiceId?: string): AgentPersona {
   const isFemale = gender === 'female';
-  const resolvedVoice = (voiceId as any) || (isFemale ? 'Sulafat' : 'Achird');
+  const resolvedVoice = (voiceId as any) || (isFemale ? 'Sulafat' : 'Zubenelgenubi');
 
   if (isFemale) {
     return {

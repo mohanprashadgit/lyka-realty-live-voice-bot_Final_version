@@ -100,15 +100,15 @@ export default function App() {
   // When gender switches, update initial greeting if it's the only turn
   const handleGenderChange = (newGender: 'female' | 'male') => {
     setGender(newGender);
-    const newPersona = getAgentPersona(newGender, selectedLanguage);
-    const defaultVoice = newGender === 'female' ? 'Sulafat' : 'Achird';
+    const defaultVoice = newGender === 'female' ? 'Sulafat' : 'Zubenelgenubi';
     setSelectedVoice(defaultVoice);
+    const newPersona = getAgentPersona(newGender, selectedLanguage, defaultVoice);
 
     setTranscript((prev) => {
       if (prev.length <= 1 && prev[0]?.id === 'turn-init') {
         const greetingText = leadData.name
-          ? `Vanakkam ${leadData.name} sir! Naan Lyka Realty-la irundhu ${newPersona.name} pesuren. Eppadi irukkeenga sir?`
-          : `Vanakkam sir! Naan Lyka Realty-la irundhu ${newPersona.name} pesuren. Unga name therinjukkalama sir?`;
+          ? `Vanakkam ${leadData.name} sir! Naan ${newPersona.name}, Lyka Realty-la irundhu pesuren. Eppadi irukkeenga sir?`
+          : `Vanakkam sir! Naan ${newPersona.name}, Lyka Realty-la irundhu pesuren. Unga name therinjukkalama sir?`;
         return [
           {
             id: 'turn-init',
@@ -147,8 +147,8 @@ export default function App() {
     setTranscript((prev) => {
       if (prev.length <= 1 && prev[0]?.id === 'turn-init') {
         const greetingText = leadData.name
-          ? `Vanakkam ${leadData.name} sir! Naan Lyka Realty-la irundhu ${resolvedPersona.name} pesuren. Eppadi irukkeenga sir?`
-          : `Vanakkam sir! Naan Lyka Realty-la irundhu ${resolvedPersona.name} pesuren. Unga name therinjukkalama sir?`;
+          ? `Vanakkam ${leadData.name} sir! Naan ${resolvedPersona.name}, Lyka Realty-la irundhu pesuren. Eppadi irukkeenga sir?`
+          : `Vanakkam sir! Naan ${resolvedPersona.name}, Lyka Realty-la irundhu pesuren. Unga name therinjukkalama sir?`;
         return [
           {
             id: 'turn-init',
@@ -371,12 +371,14 @@ export default function App() {
             if (msg.lead) {
               setLeadData((prev: any) => ({
                 ...prev,
-                name: msg.lead.name?.value || prev.name,
-                phone: msg.lead.phone?.value || prev.phone,
-                location: msg.lead.location?.value || prev.location,
-                property_type: msg.lead.property_type?.value || prev.property_type,
-                budget: msg.lead.budget?.value || prev.budget,
-                timeline: msg.lead.timeline?.value || prev.timeline,
+                name: msg.lead.name?.value || msg.lead.name || prev.name,
+                customer_name_raw: msg.lead.customer_name_raw?.value || msg.lead.customer_name_raw || msg.lead.name?.value || msg.lead.name || prev.customer_name_raw,
+                customer_preferred_name: msg.lead.customer_preferred_name?.value || msg.lead.customer_preferred_name || prev.customer_preferred_name,
+                phone: msg.lead.phone?.value || msg.lead.phone || prev.phone,
+                location: msg.lead.location?.value || msg.lead.location || prev.location,
+                property_type: msg.lead.property_type?.value || msg.lead.property_type || prev.property_type,
+                budget: msg.lead.budget?.value || msg.lead.budget || prev.budget,
+                timeline: msg.lead.timeline?.value || msg.lead.timeline || prev.timeline,
               }));
             }
           } else if (msg.type === 'interrupted') {

@@ -811,13 +811,13 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
                 className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium"
               >
                 <optgroup label="Female Voices — Agent Priya">
-                  <option value="Sulafat">Sulafat (Default — Expressive Tanglish)</option>
-                  <option value="Aoede">Aoede (Warm &amp; Conversational)</option>
+                  <option value="Sulafat">Sulafat (Default Female — Expressive Tanglish)</option>
                   <option value="Callirrhoe">Callirrhoe (Empathetic &amp; Friendly)</option>
+                  <option value="Aoede">Aoede (Warm &amp; Conversational)</option>
                 </optgroup>
                 <optgroup label="Male Voices — Agent Harish">
-                  <option value="Achird">Achird (Default Male — Confident Natural)</option>
-                  <option value="Zubenelgenubi">Zubenelgenubi (Calm Senior Advisor)</option>
+                  <option value="Achird">Achird (Confident Natural Character)</option>
+                  <option value="Zubenelgenubi">Zubenelgenubi (Preferred Male — Calm Senior Advisor)</option>
                 </optgroup>
               </select>
 
@@ -1070,7 +1070,9 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
               <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
                 <span className="text-[10px] text-slate-400 block font-medium">Customer Name</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
-                  {leadData?.name || leadName || 'Not provided'}
+                  {leadData?.customer_preferred_name
+                    ? `${leadData.customer_preferred_name} (Raw: ${leadData?.customer_name_raw || leadData?.name})`
+                    : leadData?.customer_name_raw || leadData?.name || leadName || 'Not provided'}
                 </span>
               </div>
 
@@ -1160,7 +1162,7 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
                   </div>
 
                   <p className="text-[13px] sm:text-sm leading-relaxed text-slate-800 dark:text-slate-100">
-                    "Vanakkam {leadName}! Eppadi irukkeenga? Naan Lyka Realty-la irundhu {persona.name} pesuren. Actually, neenga India-la property vaanga interested-ah irukkeengala, illa Dubai-la investment panna plan irukka?"
+                    "{leadName ? `Vanakkam ${leadName} sir! Eppadi irukkeenga? Naan ${persona.name}, Lyka Realty-la irundhu pesuren. Ungalukku eppadi help panna mudiyum sir?` : `Vanakkam sir! Naan ${persona.name}, Lyka Realty-la irundhu pesuren. Unga name therinjukkalama sir?`}"
                   </p>
 
                   <div className="flex items-center justify-between gap-3 pt-1 text-[10px] text-slate-400 font-mono">

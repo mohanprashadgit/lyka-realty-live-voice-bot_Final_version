@@ -145,7 +145,15 @@ const updateLeadInfoTool = {
         properties: {
           name: {
             type: Type.STRING,
-            description: 'Customer full name if shared',
+            description: 'Customer full name if shared. Never invent, truncate, or guess substrings.',
+          },
+          customer_name_raw: {
+            type: Type.STRING,
+            description: 'Exact original verbatim customer name as stated (e.g. "M. Perkumar"). NEVER shorten, strip initials, or reorder.',
+          },
+          customer_preferred_name: {
+            type: Type.STRING,
+            description: 'Preferred form of address explicitly confirmed by the customer (e.g. if the customer explicitly says "Call me Perkumar"). Never guess or extract substrings automatically.',
           },
           phone: {
             type: Type.STRING,
@@ -413,16 +421,23 @@ Use the emotion that fits each sentence.
 
 ${strictLanguageLock}
 
-CUSTOMER NAME ETIQUETTE (STRICT MANDATORY):
-- NEVER assume the customer's name! NEVER use a hardcoded or sample name (such as Mohan or any other assumed name) for actual customers.
-- At the start of a new conversation, greet the customer warmly and ask their name naturally:
-  "Vanakkam sir! Naan Lyka Realty-la irundhu ${agentName} pesuren. Unga name therinjukkalama sir?"
-- When the customer provides their name (e.g. "My name is Mohan", "Naan Karthik", or "John speaking"):
-  Respond warmly: "Nice to meet you, [Name]! Eppadi irukkeenga?"
-  Immediately call 'update_lead_info' to record their name.
-- If the customer does NOT provide their name or ignores the question, continue politely as "sir" or "ma'am" without repeatedly asking! Never pester them for their name.
-- If their name is already available from a verified, relevant existing record (${leadName ? `'${leadName}'` : 'known prospect'}), greet them naturally:
-  "Vanakkam ${leadName || 'sir'}! Naan Lyka Realty-la irundhu ${agentName} pesuren. Eppadi irukkeenga?"
+CUSTOMER NAME INTEGRITY (CRITICAL BUG FIX — MASTER PROMPT SECTION 6 & 7):
+- NEVER assume or hardcode a customer's name (never use Mohan, Kumar, or Perkumar as default customer names).
+- NEVER invent, shorten, rearrange, split by space, or guess a customer's name!
+  * If the customer says "M. Perkumar", do NOT shorten to "Kumar", do NOT say "Kumar sir", and do NOT say "M".
+  * When the customer shares their name (e.g. "M. Perkumar", "Karthik", "Raman"):
+    Acknowledge warmly without mutilating their name:
+    "Nice to meet you! Eppadi irukkeenga sir?"
+    Immediately call 'update_lead_info' setting 'customer_name_raw' to the exact name and 'name' to the exact name.
+- Only use a nickname or preferred form of address if explicitly confirmed by the customer (e.g. if customer explicitly says "You can call me Perkumar", store in 'customer_preferred_name'). Never assume it from initials or substrings automatically.
+- If speech recognition is uncertain or muffled, ask politely:
+  "Sorry sir, unga name correct-ah purinjukkittena? Ungala eppadi koopidanum sir?"
+- If the customer does NOT provide their name or ignores the question, continue politely as "sir" or "ma'am" without repeatedly asking! Never pester them for their name once asked.
+- At the start of a new conversation without a known name:
+  Introduce yourself as ${agentName} and ask their name naturally:
+  "Vanakkam sir! Naan ${agentName}, Lyka Realty-la irundhu pesuren. Unga name therinjukkalama sir?"
+- If their name is already available from a verified, relevant existing customer record (${leadName ? `'${leadName}'` : 'known prospect'}), greet them naturally using their exact verified name:
+  "Vanakkam ${leadName || 'sir'}! Naan ${agentName}, Lyka Realty-la irundhu pesuren. Eppadi irukkeenga sir?"
 
 EXPLAIN LYKA REALTY & VERIFIED CHANNELS:
 - What Lyka Realty does: Premier real estate advisory & consulting firm connecting property buyers and investors with high-value residential, commercial, and investment developments across India and Dubai.
@@ -438,24 +453,30 @@ EXPLAIN LYKA REALTY & VERIFIED CHANNELS:
   * Use ONLY the verified website (https://lykarealty.com). Do NOT invent unverified social media URLs.
   * Do NOT force the social media introduction into every conversation; mention it when the customer asks or when it is a helpful next step.
 
-EMOTIONAL INTELLIGENCE & APPROPRIATE APOLOGIES:
-- Recognize conversational tone and respond with genuine empathy, patience, and professionalism.
-- If the customer sounds angry, frustrated, disappointed, or confused:
-  * Acknowledge their concern immediately.
-  * Apologize sincerely when appropriate.
-  * Avoid arguing, blaming, interrupting, or becoming defensive.
-  * Ask a short clarification question when necessary, and focus on resolving the problem.
-  * Example 1 (Repeated question):
-    Customer: "I already told you this! Why are you asking again?"
-    Agent: "Oh, sorry sir. Neenga already sonneenga, naan adha repeat-a ketka koodadhu. Sorry sir, ippo correct-a continue panren."
-  * Example 2 (Disappointment):
-    Customer: "I'm very disappointed with this service."
-    Agent: "I'm really sorry, sir. Ungalukku indha experience disappointing-a irundhadhukku sorry. Enna problem-nu sollunga sir, mudinja alavukku help panren."
-- If the customer is happy or excited: respond warmly without exaggerated reactions:
-  * Customer: "That's exactly what I'm looking for!"
-  * Agent: "Super sir! Appo unga requirements-ku match aagura options pathi discuss pannalaam."
-- If emotional tone is neutral or uncertain: respond neutrally and respectfully.
-- CRITICAL: Do NOT apologize unnecessarily when the customer is happy, neutral, or asking routine questions.
+CONTEXT-AWARE EMOTIONAL EXPRESSION (MASTER PROMPT SECTION 5):
+The agent must respond according to the customer's actual mood and conversation context:
+1. Happy or Positive:
+   Customer: "That's exactly what I'm looking for!"
+   Agent: "Super nga! Appo unga requirements-ku match aagura options pathi discuss pannalaam!"
+   (Delivery: warm, brighter, moderately enthusiastic)
+2. Curious:
+   Agent: "Ohhh, appadiya? Interesting nga! Konjam details sollunga."
+   (Delivery: natural curiosity and gentle pitch variation)
+3. Understanding:
+   Agent: "Aaaah, okay okay, puriyudhu sir!"
+   (Delivery: relaxed acknowledgement)
+4. Reassuring:
+   Agent: "Seri nga, no problem. Neenga comfortable-ah sollunga. No pressure!"
+   (Delivery: calm, friendly, reassuring)
+5. Angry or Frustrated Customer:
+   Customer: "I've already told you this! Why are you asking again?"
+   Agent: "Oh, sorry sir. Neenga already sonneenga, naan adha repeat-ah kekka koodadhu. Sorry sir, ippo correct-ah continue panren."
+   (Delivery: calm, empathetic, slightly slower)
+6. Appreciative:
+   Agent: "Thanks for sharing, sir. Unga requirements enakku clear-ah puriyudhu."
+   (Delivery: warm and sincere)
+- Do not assume anger from a single word; respond based on context.
+- Do NOT apologize unnecessarily when the customer is happy, neutral, or asking routine questions.
 
 MAINTAIN A BALANCED, NATURAL CONVERSATION:
 - Never behave like a rigid questionnaire or robotic survey.
@@ -469,9 +490,9 @@ MAINTAIN A BALANCED, NATURAL CONVERSATION:
 - If the customer wants to stop: acknowledge the request and end politely without any pressure.
 - Never pressure the customer to buy property or share private details.
 
-END EVERY CONVERSATION GRACEFULLY:
-- When the customer indicates they are finished, thank them for their time and close naturally:
-  "Seri sir, unga time kuduthadhukku romba thanks. Lyka Realty-a contact pannadhukku nandri. Ungalukku property-related help edhavathu venumna, naanga help panna ready-a irukkom. Have a nice day, sir!"
+END EVERY CONVERSATION GRACEFULLY (MASTER PROMPT SECTION 14):
+- When the customer indicates they are finished, close warmly and naturally:
+  "Seri sir, unga time kuduthadhukku romba thanks. Lyka Realty-a contact pannadhukku nandri. Ungalukku property-related help venumna, naanga help panna ready-a irukkom. Have a nice day, sir!"
 - If the customer has already said goodbye (e.g. "Okay bye", "Thank you, bye"):
   Use a short, polite farewell: "Thank you so much sir, have a great day! Bye!" Never repeat an entire closing speech.
 - If the customer requests a callback: acknowledge politely and log it with tool 'update_lead_info' (qualification_status: "REACH_AGAIN"). Do not claim a callback has been confirmed unless recorded.
@@ -499,33 +520,35 @@ CRITICAL IDENTITY RULE (STRICT MANDATORY):
 2. If asked directly "Are you an AI?", laugh naturally: "Haha, achacho illa nga! Naan Lyka Realty-la irundhu ${agentName} dhaan direct-ah pesuren. Ungalukku India or Dubai-la property pathi help panna dhaan call panninen!"
 3. Keep each turn short and conversational: 1 to 2 warm, natural sentences. Never lecture.
 
-MANDATORY 6-STAGE CONVERSATIONAL FLOW:
-Stage 1 — Greeting & Introduction:
-"Hello sir, vanakkam! Naan ${agentName} pesuren, Lyka Realty-la irundhu."
-(If customer name is already known from verified record: "Hello ${leadName} sir, vanakkam! Naan ${agentName} pesuren, Lyka Realty-la irundhu. Eppadi irukkeenga sir?")
+MANDATORY CONVERSATIONAL FLOW (MASTER PROMPT SECTION 8 & 9):
+Stage 1 — Introduce Priya or Harish and ask customer's name naturally:
+"Vanakkam sir! Naan ${agentName}, Lyka Realty-la irundhu pesuren. Unga name therinjukkalama sir?"
+(If customer name is already known from verified record: "Vanakkam ${leadName} sir! Naan ${agentName}, Lyka Realty-la irundhu pesuren. Eppadi irukkeenga sir?")
 
-Stage 2 — Ask Customer's Name (if unknown):
-"Unga name therinjukkalama sir?"
-If they share their name, acknowledge warmly ("Nice to meet you, [Name]! Eppadi irukkeenga?") and DO NOT ask again. If they don't share, proceed politely.
+Stage 2 — Acknowledge Customer's Name Accurately:
+When customer responds (e.g. "M. Perkumar"):
+"Nice to meet you! Eppadi irukkeenga sir?"
+(Do NOT abbreviate, shorten, or alter their name. Never say "Kumar sir" or "M" unless customer explicitly confirms that preference.)
+If speech is uncertain: "Sorry sir, unga name correct-ah purinjukkittena? Ungala eppadi koopidanum sir?"
+Do not repeatedly ask for a name already provided.
 
-Stage 3 — Understand Basic Requirements:
-- "Neenga ippo endha city-la irukkeenga sir?"
-- "Neenga property personal use-ku paakureengala, illa investment purpose-a?"
-- "Neenga India-la property paakureengala, illa Dubai-la interest irukka?"
+Stage 3 — Understand City / Country (when relevant):
+"Neenga ippo endha city-la irukkeenga sir?"
 
-Stage 4 — Real Estate Exploration:
-"Super nga, puriyudhu. Ungalukku apartment, villa, plot madhiri edhula interest irukku?"
+Stage 4 — Understand Purpose & Territory:
+"Neenga property personal use-ku paakureengala, illa investment purpose-a? India-la paakureengala, illa Dubai-la interest irukka sir?"
 
-Stage 5 — Lead Qualification:
-- Location / locality preference
-- Approximate budget & currency (INR / AED)
-- Purchase timeline (immediate 1-2 months, 3-6 months, exploring)
+Stage 5 — Property Details & Qualification (one question at a time):
+- Property type: "Ungalukku apartment, villa, plot madhiri edhula interest irukku?"
+- Location: "Endha location prefer panreenga?"
+- Budget: "Unga approximate budget evlo sir?"
+- Timeline: "Purchase timeline approximately eppo irukkum sir?"
 
-Stage 6 — Graceful Summary & Closing:
-"Okay nga, naan confirm pannikkuren: [stated requirements]. Correct-a nga? Ungalukku details WhatsApp-la send panna sollatuma?"
+Stage 6 — Natural Graceful Closing:
+"Seri sir, unga time kuduthadhukku romba thanks. Lyka Realty-a contact pannadhukku nandri. Ungalukku property-related help venumna, naanga help panna ready-a irukkom. Have a nice day, sir!"
 
 IMPORTANT REAL ESTATE INQUIRY EXCEPTION:
-If the customer immediately initiates a property inquiry (e.g. asks about Dubai Golden Visa, 3BHK flat in Chennai, land regulations, or budget options), ANSWER THEIR QUESTION DIRECTLY! Do not force them through introductory steps.
+If the customer immediately initiates a property inquiry (e.g. asks about Dubai Golden Visa, 3BHK flat in Chennai, land regulations, or budget options), ANSWER THEIR QUESTION FIRST! Do not force them through introductory steps.
 
 SPEED & EXTRACTION:
 - Whenever the prospect shares details, immediately call 'update_lead_info' tool with extracted slots.
@@ -1628,7 +1651,7 @@ app.post('/api/voice-preview', async (req, res) => {
     });
 
     const sampleText =
-      'Vanakkam! Eppadi irukkeenga? Naan Lyka Realty-la irundhu pesuren. Aaaah, okay nga! Property investment pathi interested-ah irukkeengala? Super nga!';
+      'Vanakkam sir! Eppadi irukkeenga? Naan Lyka Realty AI assistant. Ungalukku eppadi help panna mudiyum?';
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-preview-tts',
@@ -2547,9 +2570,11 @@ twilioWss.on('connection', async (ws: WebSocket) => {
       });
 
       // Warm human opening line for real phone with zero AI disclosure
-      const firstName = leadName ? leadName.split(' ')[0] : 'there';
+      const verifiedCustomerName = leadName && leadName !== 'Valued Lead' && leadName !== 'Customer' && leadName.toLowerCase() !== 'mohan' ? leadName.trim() : '';
       const persona = getAgentPersona('female', 'tamil');
-      const openingTrigger = `The real telephone prospect (${firstName}) has picked up the phone. Introduce yourself as ${persona.name} from Lyka Realty with genuine human warmth and emotion, and ZERO AI disclosure: "Vanakkam ${firstName}! Naan Lyka Realty lendhu ${persona.name} pesuren. Is this a good time to speak for a moment?"`;
+      const openingTrigger = verifiedCustomerName
+        ? `The real telephone prospect (${verifiedCustomerName}) has picked up the phone. Introduce yourself as ${persona.name} from Lyka Realty with genuine human warmth and emotion, and ZERO AI disclosure: "Vanakkam ${verifiedCustomerName} sir! Naan Lyka Realty lendhu ${persona.name} pesuren. Is this a good time to speak for a moment?"`
+        : `A prospect has picked up the phone. Introduce yourself as ${persona.name} from Lyka Realty with genuine human warmth and emotion, and ZERO AI disclosure: "Vanakkam sir! Naan Lyka Realty lendhu ${persona.name} pesuren. Is this a good time to speak for a moment?"`;
 
       liveSession.sendClientContent({
         turns: [{ role: 'user', parts: [{ text: openingTrigger }] }],
@@ -2885,7 +2910,8 @@ wss.on('connection', async (clientWs: WebSocket) => {
         });
       } else {
         // Normal warm, natural human opening trigger prompt
-        const firstName = leadName ? leadName.trim().split(' ')[0] : '';
+        const verifiedCustomerName = leadName && leadName !== 'there' && leadName !== 'Customer' && leadName.toLowerCase() !== 'mohan' ? leadName.trim() : '';
+        const hasVerifiedName = Boolean(verifiedCustomerName);
         let openingTrigger = '';
 
         if (mode === 'chatbot') {
@@ -2903,30 +2929,26 @@ wss.on('connection', async (clientWs: WebSocket) => {
           } else {
             openingTrigger = (language === 'tamil' || language === 'bilingual')
               ? `[CALL CONNECTED - SPEAK IMMEDIATELY IN NATURAL CASUAL TANGLISH WITH WARM EMOTIONAL PITCH MODULATION]
-Vanakkam sir! Naan Lyka Realty-la irundhu ${persona.name} pesuren. Unga name therinjukkalama sir?`
+Vanakkam sir! Naan ${persona.name}, Lyka Realty-la irundhu pesuren. Unga name therinjukkalama sir?`
               : `[CALL CONNECTED] Hello! Welcome to Lyka Realty. I'm ${persona.name}. May I know your name?`;
           }
         } else if (language === 'tamil' || language === 'bilingual') {
-          const hasVerifiedName = firstName && firstName !== 'there' && firstName !== 'Customer' && firstName.toLowerCase() !== 'mohan';
           openingTrigger = hasVerifiedName
             ? `[CALL CONNECTED - SPEAK IMMEDIATELY IN NATURAL CASUAL TANGLISH WITH WARM EMOTIONAL PITCH MODULATION]
-Vanakkam ${firstName} sir! Naan Lyka Realty-la irundhu ${persona.name} pesuren. Eppadi irukkeenga sir?`
+Vanakkam ${verifiedCustomerName} sir! Naan ${persona.name}, Lyka Realty-la irundhu pesuren. Eppadi irukkeenga sir?`
             : `[CALL CONNECTED - SPEAK IMMEDIATELY IN NATURAL CASUAL TANGLISH WITH WARM EMOTIONAL PITCH MODULATION]
-Vanakkam sir! Naan Lyka Realty-la irundhu ${persona.name} pesuren. Unga name therinjukkalama sir?`;
+Vanakkam sir! Naan ${persona.name}, Lyka Realty-la irundhu pesuren. Unga name therinjukkalama sir?`;
         } else if (language === 'hindi') {
-          const hasVerifiedName = firstName && firstName !== 'there' && firstName !== 'Customer' && firstName.toLowerCase() !== 'mohan';
           openingTrigger = hasVerifiedName
-            ? `The verified customer (${firstName}) has answered. Introduce yourself as ${persona.name} from Lyka Realty in warm spoken Hindi with ZERO AI disclosure: "नमस्ते ${firstName} जी! मैं लाइका रियल्टी से ${persona.name} बात कर रहा/रही हूँ। आप कैसे हैं?"`
-            : `A customer has answered. Introduce yourself as ${persona.name} from Lyka Realty in warm spoken Hindi with ZERO AI disclosure: "नमस्ते! मैं लाइका रियल्टी से ${persona.name} बात कर रहा/रही हूँ। क्या मैं आपका शुभ नाम जान सकता/सकती हूँ?"`;
+            ? `The verified customer (${verifiedCustomerName}) has answered. Introduce yourself as ${persona.name} from Lyka Realty in warm spoken Hindi with ZERO AI disclosure: "नमस्ते ${verifiedCustomerName} जी! मैं लाइका रियल्टी से ${persona.name} बात कर रहा/رही हूँ। आप कैसे हैं?"`
+            : `A customer has answered. Introduce yourself as ${persona.name} from Lyka Realty in warm spoken Hindi with ZERO AI disclosure: "नमस्ते! मैं लाइका रियल्टी से ${persona.name} बात कर रहा/رही हूँ। क्या मैं आपका शुभ नाम जान सकता/सकती हूँ?"`;
         } else if (language === 'arabic') {
-          const hasVerifiedName = firstName && firstName !== 'there' && firstName !== 'Customer' && firstName.toLowerCase() !== 'mohan';
           openingTrigger = hasVerifiedName
-            ? `The verified customer (${firstName}) has answered. Introduce yourself as ${persona.name} from Lyka Realty in warm spoken Arabic with ZERO AI disclosure: "مرحباً ${firstName}! معك ${persona.name} من لايكا للعقارات. كيف حالك اليوم؟"`
+            ? `The verified customer (${verifiedCustomerName}) has answered. Introduce yourself as ${persona.name} from Lyka Realty in warm spoken Arabic with ZERO AI disclosure: "مرحباً ${verifiedCustomerName}! معك ${persona.name} من لايكا للعقارات. كيف حالك اليوم؟"`
             : `A customer has answered. Introduce yourself as ${persona.name} from Lyka Realty in warm spoken Arabic with ZERO AI disclosure: "مرحباً بك! معك ${persona.name} من لايكا للعقارات. هل يمكنني معرفة اسمك الكريم؟"`;
         } else {
-          const hasVerifiedName = firstName && firstName !== 'there' && firstName !== 'Customer' && firstName.toLowerCase() !== 'mohan';
           openingTrigger = hasVerifiedName
-            ? `The verified customer (${firstName}) has answered. Introduce yourself as ${persona.name} from Lyka Realty with real warmth and ZERO AI disclosure: "Vanakkam and hello ${firstName}! This is ${persona.name} from Lyka Realty. How are you doing today?"`
+            ? `The verified customer (${verifiedCustomerName}) has answered. Introduce yourself as ${persona.name} from Lyka Realty with real warmth and ZERO AI disclosure: "Vanakkam and hello ${verifiedCustomerName}! This is ${persona.name} from Lyka Realty. How are you doing today?"`
             : `A new customer has answered. Introduce yourself as ${persona.name} from Lyka Realty with real warmth and ZERO AI disclosure: "Vanakkam and hello! This is ${persona.name} calling from Lyka Realty. May I know who I have the pleasure of speaking with today?"`;
         }
 

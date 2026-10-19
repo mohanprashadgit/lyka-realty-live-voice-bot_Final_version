@@ -1,6 +1,50 @@
 # Lyka Realty — AI Voice Calling Agent & Property Assistant MVP Architecture 🏗️🎙️✨
 
-A production-grade, human-sounding conversational AI voice calling agent and property assistant built with **Google Gemini Live Native Audio (`gemini-2.0-flash-exp` / `gemini-3.8-live`)**, **Google Gemini Flash (`gemini-2.5-flash`)**, **Twilio Voice PSTN Telephony**, **MySQL Persistence**, an **Express full-stack Node.js backend**, and a minimalist **React 19 + TypeScript + Tailwind CSS v4** clean white interface.
+A production-grade, human-sounding conversational AI voice calling agent and property assistant built with **Google Gemini Live Native Audio (`gemini-3.8-live`)**, **Google Gemini Flash (`gemini-2.5-flash`)**, **Twilio Voice PSTN Telephony**, **MySQL Persistence**, an **Express full-stack Node.js backend**, and a minimalist **React 19 + TypeScript + Tailwind CSS v4** clean white interface.
+
+> **⚠️ Important**: Voice agent functionality requires a valid Google Gemini API key with available billing quota. See troubleshooting section below.
+
+---
+
+## 🔧 Latest Updates & Improvements (October 2026)
+
+### Critical Bug Fix: Gemini Live API Model Configuration
+**Issue Resolved**: Voice agent was not speaking due to incorrect model name configuration.
+
+**What Was Fixed**:
+- ✅ **Corrected Model Name**: Updated from incorrect `gemini-2.0-flash-exp` to the proper **`gemini-3.8-live`** model
+- ✅ **Verified Against Documentation**: Confirmed `gemini-3.8-live` is the official Live API model for low-latency voice experiences (as of October 2026)
+- ✅ **All Audio Paths Updated**: Fixed model references in:
+  - Browser WebSocket connections (`/api/live-ws`)
+  - Twilio telephony streams (`/api/twilio/media`)
+  - Voice preview generation
+  - API health endpoints
+
+**Technical Details**:
+- The Gemini Live API uses `gemini-3.8-live` for bidirectional audio streaming (bidiGenerateContent)
+- Alternative model: `gemini-3.8-live-extended-thinking` available for high-reasoning voice interactions
+- Previous incorrect model name (`gemini-2.0-flash-exp`) caused WebSocket error: `"models/gemini-2.0-flash-exp is not found for API version v1beta, or is not supported for bidiGenerateContent"`
+
+**Files Modified**:
+- `server.ts` - All Live API connection configurations (lines 1254, 1573, 1624, 2554, 2803, 2967)
+- `test_voice_quality.mjs` - Voice quality test script
+- Documentation updates (README.md, MVP.md)
+
+### Troubleshooting Voice Agent Issues
+
+If the voice agent is not speaking, check these common issues:
+
+1. **API Quota Exceeded**
+   - Error: `"Your project has exceeded its monthly spending cap"`
+   - Solution: Visit [Google AI Studio](https://aistudio.google.com/app/apikey) to check billing and increase quota
+   
+2. **Invalid API Key**
+   - Verify `GEMINI_API_KEY` in `.env` file is correct and active
+   - Test with diagnostic script: `node test_audio_pipeline.mjs`
+
+3. **Model Configuration**
+   - Ensure server is using `gemini-3.8-live` (not deprecated model names)
+   - Check console logs for connection errors
 
 ---
 
@@ -29,7 +73,7 @@ A production-grade, human-sounding conversational AI voice calling agent and pro
                  │                      │
                  ▼                      ▼
       [ Google Gemini API ]    [ MySQL Database (db.ts & leadService.ts) ]
-        • gemini-2.0-flash-exp   • customers (identity & contacts)
+        • gemini-3.8-live        • customers (identity & contacts)
         • gemini-2.5-flash       • leads (22+ qualification slots)
         • Function Calling       • conversations & conversation_messages
                                  • properties, land_listings, deals

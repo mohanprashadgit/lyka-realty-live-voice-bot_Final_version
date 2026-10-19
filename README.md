@@ -1,8 +1,10 @@
 # Lyka Realty — AI Voice Calling Agent & Property Assistant 🎙️🏡✨
 
-A production-grade, human-sounding real estate AI voice calling agent and conversational property assistant powered by **Google Gemini Live Native Audio (`gemini-2.0-flash-exp` / `gemini-3.8-live`)**, **Google Gemini Flash (`gemini-2.5-flash`)**, **Twilio Voice PSTN Telephony**, **MySQL Persistence**, and a minimalist, ultra-clean **React 19 + TypeScript + Tailwind CSS v4** interface styled in a clean white aesthetic.
+A production-grade, human-sounding real estate AI voice calling agent and conversational property assistant powered by **Google Gemini Live Native Audio (`gemini-3.8-live`)**, **Google Gemini Flash (`gemini-2.5-flash`)**, **Twilio Voice PSTN Telephony**, **MySQL Persistence**, and a minimalist, ultra-clean **React 19 + TypeScript + Tailwind CSS v4** interface styled in a clean white aesthetic.
 
 The application opens directly into the **Lyka Realty AI Voice Calling Agent** workspace, featuring a starry particle voice orb, real-time qualification form, Tanglish live transcript with latency metrics, verified India & Dubai real estate knowledge base, prospect lead records, and telephone dialer.
+
+> **⚠️ Important Note**: The voice agent requires a valid Google Gemini API key with available quota. Ensure your API key has billing enabled and sufficient credits at [Google AI Studio](https://aistudio.google.com/app/apikey).
 
 ---
 
@@ -20,7 +22,6 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
     - Physics-based interactive drag and hover rotation with smooth damping inertia (`Move3d`).
     - 200 Fibonacci sphere particles + 2 concentric tilted orbital rings (22° and -40°).
     - Dynamic harmonic coronal energy flaring: while the agent is speaking (`voiceState === 'speaking'`), particles ripple outwards with frequency waves proportional to `audioEnergy`, alongside multi-ring shockwaves.
-    - 16 dynamic studio audio spectrum equalizer bars below the orb bouncing in real-time with agent audio and microphone energy.
     - 16 dynamic studio audio spectrum equalizer bars below the orb bouncing in real-time with agent audio and microphone energy.
   - Voice Persona Selector: Seamless toggle between **Priya (Female)** and **Harish (Male)** (the legacy name 'Kayal' has been completely removed).
   - Exactly 5 Selectable Voice Presets (Grouped by Gender in Dropdown):

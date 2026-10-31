@@ -2781,7 +2781,7 @@ wss.on('connection', async (clientWs: WebSocket) => {
         })
         .catch((error) => {
           console.error('[Objection] Do-not-call save failed:', error);
-          safeSend({ type: 'error', message: 'Do-not-call status could not be saved.' });
+          safeSend({ type: 'notice', message: 'Do-not-call status could not be saved to database.' });
         });
     }
   };
@@ -3297,8 +3297,16 @@ Hello sir! Eppadi irukkeenga? Naan ${persona.name}, Lyka Realty-la irundhu pesur
         wsLeadPhone = typeof msg.phone === 'string' ? msg.phone.trim() : '';
         try {
           wsConversationId = await createConversation(wsSessionId, 'voice', msg.language || selectedLanguage || 'bilingual');
-          if (wsConversationId) journal = new CallJournal(wsConversationId, () => safeSend({ type: 'error', message: 'Conversation updates could not be saved. Please check database availability.' }));
-          if (!wsConversationId) safeSend({ type: 'error', message: 'Call history storage is unavailable. This call cannot be saved.' });
+          if (wsConversationId) {
+            journal = new CallJournal(wsConversationId, (err) => {
+              console.warn('[Live WS] CallJournal notice:', err);
+              safeSend({ type: 'notice', message: 'Conversation updates could not be saved to database.' });
+            });
+          }
+          if (!wsConversationId) {
+            console.warn('[Live WS] Call history storage unavailable (no DB connection). Proceeding without database persistence.');
+            safeSend({ type: 'notice', message: 'Call history storage is unavailable. Proceeding without database saving.' });
+          }
         } catch (convErr) {
           console.warn('[Live WS] createConversation notice:', convErr);
         }

@@ -13,6 +13,8 @@ services:
         value: 10000
       - key: GEMINI_API_KEY
         sync: false
+      - key: DATABASE_URL
+        sync: false
       - key: DB_HOST
         sync: false
       - key: DB_USER

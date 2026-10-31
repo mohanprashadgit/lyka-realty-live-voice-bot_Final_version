@@ -755,6 +755,8 @@ export default function App() {
             if (msg.active) {
               setVoiceState('listening');
             }
+          } else if (msg.type === 'notice') {
+            console.warn('[Server Notice]:', msg.message);
           } else if (msg.type === 'error') {
             setErrorMsg(msg.message || 'Voice connection issue');
             setVoiceState('error');

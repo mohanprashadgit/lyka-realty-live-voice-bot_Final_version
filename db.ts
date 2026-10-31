@@ -8,20 +8,40 @@ let pool: mysql.Pool | null = null;
 
 export function getPool(): mysql.Pool {
   if (!pool) {
-    const useSsl = process.env.DB_SSL === 'true' || Boolean(process.env.DATABASE_URL?.includes('ssl'));
-    pool = mysql.createPool({
-      host: process.env.DB_HOST || '127.0.0.1',
-      port: Number(process.env.DB_PORT) || 3306,
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'lyka_crm',
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-      enableKeepAlive: true,
-      keepAliveInitialDelay: 10000,
-      ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
-    });
+    const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.TIDB_DATABASE_URL;
+    const isCloudHost = Boolean(
+      (process.env.DB_HOST || '').includes('tidbcloud.com') ||
+      (process.env.DB_HOST || '').includes('aivencloud.com') ||
+      (dbUrl || '').includes('tidbcloud.com') ||
+      (dbUrl || '').includes('aivencloud.com')
+    );
+    const useSsl = process.env.DB_SSL === 'true' || Boolean(dbUrl?.includes('ssl')) || isCloudHost;
+
+    if (dbUrl) {
+      pool = mysql.createPool({
+        uri: dbUrl,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000,
+        ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+      });
+    } else {
+      pool = mysql.createPool({
+        host: process.env.DB_HOST || '127.0.0.1',
+        port: Number(process.env.DB_PORT) || 3306,
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_NAME || 'lyka_crm',
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000,
+        ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+      });
+    }
   }
   return pool;
 }
@@ -46,7 +66,14 @@ export async function initSchema(): Promise<void> {
   const db = getPool();
 
   // Create database if it doesn't exist (for fresh local installs)
-  const dbName = process.env.DB_NAME || 'lyka_crm';
+  const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.TIDB_DATABASE_URL;
+  let parsedDbName = '';
+  if (dbUrl) {
+    try {
+      parsedDbName = new URL(dbUrl.replace(/^mysql:/, 'http:')).pathname.replace(/^\//, '');
+    } catch {}
+  }
+  const dbName = process.env.DB_NAME || parsedDbName || 'lyka_crm';
   try {
     await db.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
   } catch (err: any) {

@@ -78,6 +78,12 @@ If the voice agent is not speaking or closes immediately upon pressing start cal
    - Probing & Tanglish Transcript Processing: Uses `gemini-3.5-flash` (`gemini-2.5-flash` was deprecated by Google for new users/keys with 404).
    - Rate limit probe safely isolates genuine spending cap / quota errors from standard model updates.
 
+4. **Render Live Hosting Database Storage Setup**
+   - Error: `"Call history storage is unavailable. This call cannot be saved."`
+   - Cause: Render web services run in containers without a local MySQL service on `127.0.0.1`.
+   - Resolution: Configure `DATABASE_URL` in Render Environment Variables pointing to a cloud MySQL provider (such as TiDB Cloud Serverless or Aiven MySQL) with SSL.
+   - Fault Tolerance: The voice assistant (`gemini-3.8-live`) operates with non-blocking fallback—calls proceed in real-time even when MySQL persistence is offline.
+
 ---
 
 ## 📐 System Architecture Diagram

@@ -270,6 +270,7 @@ The backend supports configurable database connections through environment varia
 
 | Variable | Description | Default | Example Remote (Cloud) | Example TiDB Cloud | Example InfinityFree |
 |---|---|---|---|---|---|
+| `DATABASE_URL` | Full MySQL connection URI (Render/Railway/TiDB) | `""` | `mysql://user:pass@host:port/db?ssl=true` | `mysql://[user]:[pass]@gateway01.ap-northeast-1.prod.aws.tidbcloud.com:4000/lyka_crm` | N/A |
 | `DB_HOST` | MySQL hostname / IP | `127.0.0.1` | `mysql-xx.aivencloud.com` | `gateway01.ap-northeast-1.prod.aws.tidbcloud.com` | `sql308.infinityfree.com` |
 | `DB_PORT` | MySQL TCP port | `3306` | `12345` | `4000` | `3306` |
 | `DB_USER` | MySQL database username | `root` | `avnadmin` | `4Faup8bESnMNhmn.root` | `if0_41190104` |
@@ -277,6 +278,20 @@ The backend supports configurable database connections through environment varia
 | `DB_NAME` | Database schema name | `lyka_crm` | `defaultdb` | `lyka_crm` | `if0_41190104_lyka_voice_agent` |
 | `DB_SSL` | Enable TLS/SSL connection | `false` | `true` | `true` | `false` |
 | `CORE_TABLES_ONLY` | Limit schema to 5 core voice/lead tables | `false` | `false` | `true` | `true` |
+
+#### Render Live Hosting Deployment Instructions:
+1. **Web Service Setup**:
+   - Runtime: `Node`
+   - Build Command: `npm install --legacy-peer-deps && npm run build`
+   - Start Command: `npm start`
+2. **Environment Variables**:
+   - `GEMINI_API_KEY`: Your Google Gemini API key (Required for voice streaming).
+   - `DATABASE_URL` or `DB_HOST`/`DB_USER`/`DB_PASSWORD`/`DB_NAME`:
+     - Render runs web services in isolated containers without a local MySQL service on `127.0.0.1`.
+     - To enable persistent call history and CRM lead saving, attach a cloud MySQL database such as **TiDB Cloud Serverless** (free forever 5GB, SSL enabled) or **Aiven for MySQL**.
+     - Set `DATABASE_URL` to your cluster's connection URI (e.g. `mysql://user:pass@gateway01...:4000/lyka_crm?ssl={"rejectUnauthorized":true}`).
+3. **Resilient Non-Blocking Voice Architecture**:
+   - If MySQL is offline or not configured, the AI voice calling assistant (`gemini-3.8-live`) gracefully continues in real-time mode without aborting calls, safeguarding voice interaction and chatbot availability at all times.
 
 #### TiDB Cloud 5 Core Tables Architecture:
 TiDB Cloud (`gateway01.ap-northeast-1.prod.aws.tidbcloud.com:4000`) is configured with strictly the **5 core relational tables** essential for the AI Voice Agent, Call Logging, and Lead Qualification pipeline:

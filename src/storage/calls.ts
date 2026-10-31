@@ -93,7 +93,7 @@ export function computeStatsForDate(
     if (c.outcome === 'HOT') hot++;
     else if (c.outcome === 'WARM') warm++;
     else if (c.outcome === 'COLD') cold++;
-    else if (c.outcome === 'OPT_OUT') optOut++;
+    else if (c.outcome === 'OPT_OUT' || c.outcome === 'UNWANTED') optOut++;
   });
 
   const total = filteredCalls.length;
@@ -140,11 +140,11 @@ export function computeDashboardStats(
     if (!outcome) {
       const leadCalls = calls.filter((c) => c.leadId === l.id);
       if (leadCalls.length > 0) {
-        outcome = leadCalls[leadCalls.length - 1].outcome;
+        outcome = [...leadCalls].sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0].outcome;
       }
     }
 
-    if (l.isOptedOut || outcome === 'OPT_OUT') {
+    if (l.isOptedOut || outcome === 'OPT_OUT' || outcome === 'UNWANTED') {
       optOut++;
       notInterested++;
     } else if (

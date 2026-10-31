@@ -6,7 +6,7 @@
  * - Multi-device support: Default, Bluetooth headsets/AirPods, USB mics, etc.
  */
 
-import { AudioInputDeviceInfo } from '../types/agent';
+import { AudioInputDeviceInfo, AudioOutputDeviceInfo } from '../types/agent';
 
 // Helper to convert base64 to ArrayBuffer
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
@@ -116,12 +116,110 @@ export async function getAvailableMicrophones(): Promise<AudioInputDeviceInfo[]>
         label,
         isBluetooth,
         isDefault,
+        groupId: d.groupId || '',
       };
     });
   } catch (err) {
     console.warn('[Audio] Failed to enumerate audio devices:', err);
     return [{ deviceId: 'default', label: 'Default Microphone', isBluetooth: false, isDefault: true }];
   }
+}
+
+function classifyBluetooth(label: string): boolean {
+  const lower = (label || '').toLowerCase();
+  return (
+    lower.includes('bluetooth') ||
+    lower.includes('airpod') ||
+    lower.includes('headset') ||
+    lower.includes('earbuds') ||
+    lower.includes('buds') ||
+    lower.includes('hands-free') ||
+    lower.includes('wireless') ||
+    lower.includes('bt')
+  );
+}
+
+/**
+ * Enumerate available audio OUTPUT devices (speakers / headphones / Bluetooth headset output).
+ */
+export async function getAvailableSpeakers(): Promise<AudioOutputDeviceInfo[]> {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      return [{ deviceId: 'default', label: 'Default Speaker', isBluetooth: false, isDefault: true }];
+    }
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const outputs = devices.filter((d) => d.kind === 'audiooutput');
+
+    if (outputs.length === 0) {
+      return [{ deviceId: 'default', label: 'Default Speaker', isBluetooth: false, isDefault: true }];
+    }
+
+    return outputs.map((d, index) => {
+      const label = d.label || `Speaker ${index + 1}`;
+      return {
+        deviceId: d.deviceId,
+        label,
+        isBluetooth: classifyBluetooth(label),
+        isDefault: d.deviceId === 'default' || label.toLowerCase().includes('default'),
+        groupId: d.groupId || '',
+      };
+    });
+  } catch (err) {
+    console.warn('[Audio] Failed to enumerate audio outputs:', err);
+    return [{ deviceId: 'default', label: 'Default Speaker', isBluetooth: false, isDefault: true }];
+  }
+}
+
+/**
+ * Given a chosen INPUT device, find the matching OUTPUT device so both routes to the
+ * same physical hardware (e.g. one Bluetooth headset's mic + speaker).
+ * Preference order: same groupId → name similarity → default output.
+ */
+export function findMatchingOutputDevice(
+  input: AudioInputDeviceInfo | undefined,
+  outputs: AudioOutputDeviceInfo[]
+): AudioOutputDeviceInfo | undefined {
+  if (!input || !outputs.length) return undefined;
+
+  // 1. Exact physical-device match via groupId (browser groups a headset's mic + speaker together)
+  if (input.groupId) {
+    const byGroup = outputs.find((o) => o.groupId === input.groupId && o.deviceId !== 'default');
+    if (byGroup) return byGroup;
+  }
+
+  // 2. Name-based match (strip common mic-side suffixes Windows/Chrome append)
+  const cleanName = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/\s*\(avrcp\)/g, '')
+      .replace(/\s*microphone\b/g, '')
+      .replace(/\s*mic\b/g, '')
+      .replace(/\s* Hands-Free.*$/g, '')
+      .replace(/\s*\(hands-free\).*$/g, '')
+      .replace(/\s*communications?$/g, '')
+      .replace(/\s*input$/g, '')
+      .replace(/\s*/g, ' ')
+      .trim();
+
+  const inputKey = cleanName(input.label);
+  if (inputKey) {
+    const byName = outputs.find((o) => {
+      if (o.deviceId === 'default') return false;
+      const outKey = cleanName(o.label);
+      return outKey === inputKey || outKey.includes(inputKey) || inputKey.includes(outKey);
+    });
+    if (byName) return byName;
+  }
+
+  // 3. If the input is Bluetooth, prefer any Bluetooth output (same headset profile)
+  if (input.isBluetooth) {
+    const btOut = outputs.find((o) => o.isBluetooth && o.deviceId !== 'default');
+    if (btOut) return btOut;
+  }
+
+  // 4. Fall back to the system default output
+  return outputs.find((o) => o.isDefault || o.deviceId === 'default') || outputs[0];
 }
 
 export class LiveAudioPlayer {
@@ -131,6 +229,9 @@ export class LiveAudioPlayer {
   public isPlaying: boolean = false;
   private onPlayStateChange?: (playing: boolean) => void;
   private onAudioEnergy?: (energy: number) => void;
+  private stopHangoverTimer: any = null;
+  // Output routing — send the agent's voice to the same physical device as the mic
+  private outputDeviceId: string = 'default';
 
   constructor(
     onPlayStateChange?: (playing: boolean) => void,
@@ -145,14 +246,44 @@ export class LiveAudioPlayer {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       this.ctx = new AudioCtx({ sampleRate: 24000 });
       this.nextPlayTime = 0;
+      // Re-apply output routing on a freshly created context
+      this.applyOutputDevice();
     }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
   }
 
+  /**
+   * Route the agent's speaker audio to a specific output device (default / Bluetooth / USB).
+   * Uses AudioContext.setSinkId (Chrome/Edge 110+). Falls back silently on unsupported browsers.
+   */
+  public setOutputDevice(deviceId: string): boolean {
+    this.outputDeviceId = deviceId || 'default';
+    return this.applyOutputDevice();
+  }
+
+  private applyOutputDevice(): boolean {
+    if (!this.ctx) return false;
+    const ctx = this.ctx as AudioContext & { setSinkId?: (id: string) => Promise<void> };
+    if (typeof ctx.setSinkId !== 'function') return false;
+    try {
+      ctx.setSinkId(this.outputDeviceId).catch((err: any) => {
+        console.warn('[AudioPlayer] setSinkId failed (device may be gone):', err?.message || err);
+      });
+      return true;
+    } catch (err) {
+      console.warn('[AudioPlayer] setSinkId threw:', err);
+      return false;
+    }
+  }
+
   public playChunk(base64Pcm24k: string) {
     try {
+      if (this.stopHangoverTimer) {
+        clearTimeout(this.stopHangoverTimer);
+        this.stopHangoverTimer = null;
+      }
       this.initContext();
       if (!this.ctx) return;
 
@@ -177,9 +308,9 @@ export class LiveAudioPlayer {
       source.connect(this.ctx.destination);
 
       const currentTime = this.ctx.currentTime;
-      // Small 80ms jitter buffer on fresh start
+      // Small 50ms jitter buffer (raise to 80ms if audio stutters on weak networks) on fresh start
       if (this.nextPlayTime <= currentTime) {
-        this.nextPlayTime = currentTime + 0.08;
+        this.nextPlayTime = currentTime + 0.05;
       }
 
       const startTime = this.nextPlayTime;
@@ -195,9 +326,14 @@ export class LiveAudioPlayer {
           this.activeSources.splice(index, 1);
         }
         if (this.activeSources.length === 0) {
-          this.updatePlayingState(false);
-          this.onAudioEnergy?.(0);
-          this.nextPlayTime = 0;
+          if (this.stopHangoverTimer) clearTimeout(this.stopHangoverTimer);
+          this.stopHangoverTimer = setTimeout(() => {
+            if (this.activeSources.length === 0) {
+              this.updatePlayingState(false);
+              this.onAudioEnergy?.(0);
+              this.nextPlayTime = 0;
+            }
+          }, 200);
         }
       };
     } catch (err) {
@@ -213,6 +349,10 @@ export class LiveAudioPlayer {
   }
 
   public stopAndClear() {
+    if (this.stopHangoverTimer) {
+      clearTimeout(this.stopHangoverTimer);
+      this.stopHangoverTimer = null;
+    }
     for (const src of this.activeSources) {
       try {
         src.stop();
@@ -250,6 +390,10 @@ export class LiveMicRecorder {
   private ambientFloor: number = 0.008;
   private consecutiveSpeechFrames: number = 0;
   private speechHangoverFrames: number = 0;
+  // Rolling ~400ms pre-roll so the first syllables of a barge-in are not lost
+  private preRoll: string[] = [];
+  private readonly PRE_ROLL_MAX = 8;
+  private wasTransmitting: boolean = false;
   private onAudioChunk: (base64Chunk: string) => void;
   private onEnergy?: (energy: number) => void;
   private onUserTranscript?: (text: string, isFinal: boolean) => void;
@@ -257,6 +401,7 @@ export class LiveMicRecorder {
   public deviceId: string;
 
   private isMuted: boolean = false;
+  private echoDrainUntil: number = 0;
 
   constructor(
     onAudioChunk: (base64Chunk: string) => void,
@@ -277,6 +422,10 @@ export class LiveMicRecorder {
   }
 
   public setAgentSpeaking(speaking: boolean) {
+    if (this.isAgentSpeaking && !speaking) {
+      // 350ms echo drain period: suppress room acoustic reflection of the agent's last syllables
+      this.echoDrainUntil = Date.now() + 350;
+    }
     this.isAgentSpeaking = speaking;
   }
 
@@ -338,9 +487,11 @@ export class LiveMicRecorder {
         //    Stream audio continuously so Gemini Live's neural server VAD receives the user's
         //    complete utterance including trailing silence to trigger immediate response!
         let shouldTransmitAudio = false;
+        const now = Date.now();
+        const isEchoDraining = now < this.echoDrainUntil;
 
-        if (this.isAgentSpeaking) {
-          const bargeInThreshold = Math.max(0.038, this.ambientFloor * 3.2);
+        if (this.isAgentSpeaking || isEchoDraining) {
+          const bargeInThreshold = Math.max(0.040, this.ambientFloor * 3.5);
           if (rms >= bargeInThreshold) {
             this.consecutiveSpeechFrames++;
           } else {
@@ -357,11 +508,21 @@ export class LiveMicRecorder {
           shouldTransmitAudio = true;
         }
 
+        const downsampled = downsampleBuffer(inputData, this.ctx!.sampleRate, 16000);
+        const base64Chunk = arrayBufferToBase64(float32ToInt16(downsampled).buffer);
+
         if (shouldTransmitAudio && !this.isMuted) {
-          const downsampled = downsampleBuffer(inputData, this.ctx!.sampleRate, 16000);
-          const int16Array = float32ToInt16(downsampled);
-          const base64Chunk = arrayBufferToBase64(int16Array.buffer);
+          // Flush buffered audio first when speech just started (gated -> transmitting)
+          if (!this.wasTransmitting && this.preRoll.length > 0) {
+            for (const c of this.preRoll) this.onAudioChunk(c);
+            this.preRoll = [];
+          }
+          this.wasTransmitting = true;
           this.onAudioChunk(base64Chunk);
+        } else {
+          this.wasTransmitting = false;
+          this.preRoll.push(base64Chunk);
+          if (this.preRoll.length > this.PRE_ROLL_MAX) this.preRoll.shift();
         }
       };
 
@@ -375,72 +536,8 @@ export class LiveMicRecorder {
 
       this.isRecording = true;
 
-      // Start client-side speech recognition for instant real-time transcript inside chat
-      const SpeechRecognitionClass =
-        (window as any).SpeechRecognition ||
-        (window as any).webkitSpeechRecognition;
-
-      if (SpeechRecognitionClass) {
-        try {
-          this.recognition = new SpeechRecognitionClass();
-          this.recognition.continuous = true;
-          this.recognition.interimResults = true;
-          this.recognition.maxAlternatives = 1;
-          this.recognition.lang =
-            this.language === 'tamil' || this.language === 'bilingual'
-              ? 'ta-IN'
-              : this.language === 'hindi'
-              ? 'hi-IN'
-              : this.language === 'arabic'
-              ? 'ar-SA'
-              : 'en-US';
-
-          this.recognition.onresult = (event: any) => {
-            if (!this.isRecording) return;
-            let interimTranscript = '';
-            let finalTranscript = '';
-
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-              const res = event.results[i];
-              if (res.isFinal) {
-                finalTranscript += res[0].transcript;
-              } else {
-                interimTranscript += res[0].transcript;
-              }
-            }
-
-            const speechText = (finalTranscript || interimTranscript).trim();
-            if (speechText) {
-              this.onUserTranscript?.(speechText, Boolean(finalTranscript));
-            }
-          };
-
-          let restartTimeout: any = null;
-          this.recognition.onerror = (event: any) => {
-            if (event?.error === 'network' || event?.error === 'no-speech' || event?.error === 'aborted') {
-              return;
-            }
-            console.warn('[LiveMicRecorder] Speech recognition notice:', event?.error);
-          };
-
-          this.recognition.onend = () => {
-            if (this.isRecording && this.recognition) {
-              if (restartTimeout) clearTimeout(restartTimeout);
-              restartTimeout = setTimeout(() => {
-                if (this.isRecording && this.recognition) {
-                  try {
-                    this.recognition.start();
-                  } catch {}
-                }
-              }, 1000);
-            }
-          };
-
-          this.recognition.start();
-        } catch (e) {
-          console.warn('[LiveMicRecorder] Could not start speech recognition:', e);
-        }
-      }
+      // NOTE: browser SpeechRecognition (ta-IN) was removed on purpose. It mangles Tanglish and
+      // competes for the mic. Transcripts now come only from Gemini Live (inputAudioTranscription).
 
       return true;
     } catch (err) {

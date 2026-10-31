@@ -379,10 +379,9 @@ export function evaluateCallOutcome(
   const mergedLocation = leadData.location || extracted.location || '';
   const mergedTimeline = leadData.timeline || extracted.timeline || '';
 
-  // Positive intent indicators
+  // Positive intent indicators - only check customer speech (userText) to avoid false positives from agent prompts
   const hasPositiveIntent =
     checkIsPositive(userText) ||
-    checkIsPositive(fullConversation) ||
     Boolean(mergedInterest && !mergedInterest.toLowerCase().includes('not interested')) ||
     Boolean(mergedPropertyType) ||
     Boolean(mergedBudget);
@@ -476,14 +475,14 @@ export function evaluateCallOutcome(
   }
   // Check 4: WARM Lead
   // Criteria:
-  // - Positive or receptive interest
-  // - Answered at least 1 qualification slot (e.g. gave property type, or location, or general budget, or exploratory interest)
+  // - Verified customer property requirement (property type, budget, or location with positive intent)
+  // - OR positive customer engagement with at least 2 answered qualification slots
+  // - Disconnecting or ending a call without concrete requirements does NOT qualify as WARM
   else if (
-    sentiment === 'positive' ||
-    hasPropertyType ||
-    hasBudget ||
-    mergedLocation ||
-    answeredSlots >= 1
+    (hasPropertyType && (Boolean(mergedLocation) || sentiment === 'positive')) ||
+    (hasBudget && (Boolean(mergedLocation) || sentiment === 'positive')) ||
+    (hasPropertyType && hasBudget) ||
+    (sentiment === 'positive' && answeredSlots >= 2)
   ) {
     outcome = 'WARM';
     nextAction = 'Follow-up via WhatsApp brochure & scheduled callback in 2-3 weeks.';

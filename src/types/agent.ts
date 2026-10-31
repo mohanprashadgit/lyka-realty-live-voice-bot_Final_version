@@ -1,3 +1,5 @@
+import type { AcquisitionSourceKey } from '../utils/acquisitionSource';
+
 export type LeadQualificationStatus = 'HOT' | 'WARM' | 'COLD' | 'PENDING' | 'REACH_AGAIN' | 'OPT_OUT';
 
 export interface LeadData {
@@ -58,7 +60,7 @@ export interface AgentPersona {
   gender: 'female' | 'male';
   language: 'tamil' | 'english' | 'hindi' | 'arabic' | 'bilingual';
   title: string;
-  voiceId: 'Sulafat' | 'Callirrhoe' | 'Aoede' | 'Achird' | 'Zubenelgenubi';
+  voiceId: 'Sulafat' | 'Callirrhoe' | 'Aoede' | 'Puck' | 'Achird' | 'Zubenelgenubi';
   tagline: string;
 }
 
@@ -66,13 +68,14 @@ export const SUPPORTED_VOICES: Array<{ id: string; name: string; gender: 'female
   { id: 'Sulafat', name: 'Sulafat (Default)', gender: 'female', tone: 'Expressive Tanglish, lively pitch variation & warm conversational rhythm', description: 'Primary female reference voice preset for Lyka Realty' },
   { id: 'Callirrhoe', name: 'Callirrhoe', gender: 'female', tone: 'Warm adult conversational delivery, empathetic & friendly', description: 'Female relationship manager' },
   { id: 'Aoede', name: 'Aoede', gender: 'female', tone: 'Warm adult conversational delivery, flexible pitch & engaging tone', description: 'Female portfolio manager' },
+  { id: 'Puck', name: 'Puck (Preferred Male)', gender: 'male', tone: 'Upbeat, expressive, real-human male delivery with natural breaks and breaths', description: 'Primary male reference voice preset (Alex Rivera sample)' },
   { id: 'Achird', name: 'Achird', gender: 'male', tone: 'Natural male character, confident Tanglish conversation & pauses', description: 'Male portfolio executive' },
-  { id: 'Zubenelgenubi', name: 'Zubenelgenubi (Preferred Male)', gender: 'male', tone: 'Natural male character, emotional variation & clear emphasis', description: 'Primary male reference voice preset for Lyka Realty' },
+  { id: 'Zubenelgenubi', name: 'Zubenelgenubi', gender: 'male', tone: 'Natural male character, emotional variation & clear emphasis', description: 'Calm senior advisor' },
 ];
 
 export function getAgentPersona(gender: 'female' | 'male', language: string = 'bilingual', voiceId?: string): AgentPersona {
   const isFemale = gender === 'female';
-  const resolvedVoice = (voiceId as any) || (isFemale ? 'Sulafat' : 'Zubenelgenubi');
+  const resolvedVoice = (voiceId as any) || (isFemale ? 'Sulafat' : 'Puck');
 
   if (isFemale) {
     return {
@@ -116,6 +119,15 @@ export interface AudioInputDeviceInfo {
   label: string;
   isBluetooth: boolean;
   isDefault: boolean;
+  groupId?: string;
+}
+
+export interface AudioOutputDeviceInfo {
+  deviceId: string;
+  label: string;
+  isBluetooth: boolean;
+  isDefault: boolean;
+  groupId?: string;
 }
 
 export type LeadCallStatus =
@@ -132,6 +144,7 @@ export type LeadOutcome =
   | 'WARM'
   | 'COLD'
   | 'OPT_OUT'
+  | 'UNWANTED'
   | 'NO_ANSWER'
   | 'WRONG_NUMBER'
   | 'REACH_AGAIN'
@@ -154,11 +167,16 @@ export interface LeadScoreBreakdown {
 }
 
 export interface LeadRecord {
+  intent?: string;
+  preferred_contact_method?: string;
+  best_time_to_contact?: string;
   id: string;
   name: string;
   phone: string;
   email?: string;
   source: string;
+  lead_source?: string;
+  acquisitionSource?: AcquisitionSourceKey;
   consent: boolean;
   callStatus: LeadCallStatus;
   outcome?: LeadOutcome;
@@ -231,6 +249,7 @@ export interface CallRecord {
   outcome: LeadOutcome;
   score?: number;
   summary: string;
+  endReason?: string; // Server termination reason e.g. 'unwanted_speech', 'out_of_scope'
   transcript: TranscriptTurn[];
   nextAction: string;
 }
@@ -257,7 +276,8 @@ export interface ApiUsageData {
   provider: string;
   model: string;
   tier: string;
-  quotaStatus: 'HEALTHY' | 'WARNING' | 'EXHAUSTED';
+  quotaStatus: 'HEALTHY' | 'WARNING' | 'EXHAUSTED' | 'SPENDING_CAP_EXCEEDED' | 'NO_API_KEY' | 'ERROR';
+  statusMessage?: string;
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
@@ -294,4 +314,4 @@ export interface ApiUsageData {
   timestamp: string;
 }
 
-export type MainAppTab = 'live' | 'leads' | 'dial' | 'usage';
+export type MainAppTab = 'dashboard' | 'live' | 'leads' | 'dial' | 'usage';

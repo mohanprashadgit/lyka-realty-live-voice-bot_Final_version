@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  LayoutDashboard,
   PhoneCall,
   Users,
   Phone,
@@ -7,8 +8,10 @@ import {
   Sun,
   Moon,
   Monitor,
+  Mic,
+  Bluetooth,
 } from 'lucide-react';
-import { CallStatus, MainAppTab } from '../types/agent';
+import { CallStatus, MainAppTab, AudioInputDeviceInfo } from '../types/agent';
 
 interface HeaderProps {
   activeTab: MainAppTab;
@@ -23,7 +26,9 @@ interface HeaderProps {
   agentName?: string;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
-  serverStatus: 'checking' | 'ok' | 'error';
+  micDevices?: AudioInputDeviceInfo[];
+  selectedMicDeviceId?: string;
+  onMicDeviceChange?: (deviceId: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -39,16 +44,18 @@ export const Header: React.FC<HeaderProps> = ({
   agentName,
   theme,
   onToggleTheme,
-  serverStatus,
+  micDevices = [],
+  selectedMicDeviceId = 'default',
+  onMicDeviceChange,
 }) => {
   const isCallActive = callStatus !== 'idle' && callStatus !== 'ended' && callStatus !== 'error';
   const effectiveAgentName = agentName || (agentGender === 'male' ? 'Harish' : 'Priya');
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 xl:max-w-none xl:grid xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] xl:gap-4">
         {/* Brand & Identity matching Stitch design specifications */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 xl:min-w-0 xl:justify-self-start">
           <div className="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center p-1 font-bold font-serif text-sm shadow-sm ring-1 ring-slate-900/10">
             <span>Lyka</span>
           </div>
@@ -69,7 +76,22 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Center Navigation Tabs (Pills) matching reference screenshot */}
-        <nav className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs">
+        <nav
+          className="flex max-w-full items-center gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1 text-xs [scrollbar-width:none] dark:bg-slate-800 xl:justify-self-center [&::-webkit-scrollbar]:hidden"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          <button
+            onClick={() => onSelectTab('dashboard')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+              activeTab === 'dashboard'
+                ? 'bg-white dark:bg-slate-900 text-slate-950 dark:text-white shadow-sm font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
+            }`}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5 text-violet-600" />
+            <span>Dashboard</span>
+          </button>
+
           <button
             onClick={() => onSelectTab('live')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
@@ -120,37 +142,60 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
 
         {/* Right Area: Screen indicator, Theme toggle, Status dot */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 xl:min-w-0 xl:justify-end">
           {/* Responsive screen badge matching screenshot */}
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 text-slate-600 dark:text-slate-300 text-[11px] font-mono">
+          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 text-slate-600 dark:text-slate-300 text-[11px] font-mono xl:shrink-0">
             <Monitor className="w-3 h-3 text-slate-400" />
             <span>Desktop</span>
+          </div>
+
+          {/* ── Microphone Input Device Selector (Default / Bluetooth / USB / Built-in) ── */}
+          <div
+            className="relative flex items-center xl:min-w-0"
+            title="Select microphone input device"
+          >
+            <Mic className="pointer-events-none absolute left-2.5 w-3.5 h-3.5 text-slate-400" />
+            <select
+              value={selectedMicDeviceId}
+              onChange={(e) => onMicDeviceChange?.(e.target.value)}
+              className="appearance-none pl-8 pr-7 py-1.5 max-w-[210px] truncate rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 text-slate-700 dark:text-slate-200 text-[11px] font-medium hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:border-violet-400 dark:focus:border-violet-600 transition-colors cursor-pointer xl:min-w-0"
+            >
+              {micDevices.length === 0 && (
+                <option value="default">Default Microphone</option>
+              )}
+              {micDevices.map((d) => (
+                <option key={d.deviceId} value={d.deviceId}>
+                  {d.isDefault ? 'Default' : d.isBluetooth ? 'Bluetooth' : 'Mic'} — {d.label}
+                </option>
+              ))}
+            </select>
+            {/* Bluetooth indicator dot */}
+            {micDevices.some((d) => d.deviceId === selectedMicDeviceId && d.isBluetooth) && (
+              <Bluetooth className="pointer-events-none absolute right-7 w-3 h-3 text-sky-500" />
+            )}
+            {/* Dropdown caret */}
+            <svg
+              className="pointer-events-none absolute right-2 w-3 h-3 text-slate-400"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </div>
 
           {/* Theme Toggle */}
           <button
             onClick={onToggleTheme}
             title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
-            className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer xl:shrink-0"
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
           </button>
 
-          {/* Connection status dot */}
-          <div className="flex items-center gap-1.5 pl-1">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                serverStatus === 'ok'
-                  ? 'bg-emerald-500 animate-pulse'
-                  : serverStatus === 'checking'
-                  ? 'bg-amber-500'
-                  : 'bg-rose-500'
-              }`}
-            />
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 hidden sm:inline">
-              {serverStatus === 'ok' ? 'Ready' : 'Checking'}
-            </span>
-          </div>
         </div>
       </div>
     </header>

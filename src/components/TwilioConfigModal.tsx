@@ -124,59 +124,59 @@ export const TwilioConfigModal: React.FC<TwilioConfigModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-100 max-h-[92vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100 max-h-[92vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+            <div className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-500/30">
               <Phone className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <span>Twilio Real Phone Calling Setup</span>
                 {isTrial && (
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                  <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
                     Trial Account
                   </span>
                 )}
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 PSTN mobile dialing to real physical phones
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Credentials & Live Twilio Diagnostic Banner */}
-        <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-2.5 text-xs">
+        <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-2.5 text-xs text-slate-800 dark:text-slate-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-slate-300">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span className="font-semibold">Twilio Credentials:</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-emerald-400 font-mono font-semibold">Connected</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-mono font-semibold">Connected</span>
               <button
                 type="button"
                 onClick={fetchAccountInfo}
                 disabled={isCheckingAccount}
                 title="Refresh Twilio Account Status"
-                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <RefreshCw className={`w-3 h-3 ${isCheckingAccount ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
 
-          <div className="font-mono text-[11px] text-slate-400 flex items-center justify-between bg-slate-900/60 p-2 rounded border border-slate-800">
+          <div className="font-mono text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between bg-white dark:bg-slate-900/60 p-2 rounded border border-slate-200 dark:border-slate-800">
             <span>Account SID:</span>
-            <span className="text-slate-200">{accountSidMasked || 'ACc184...35b2'}</span>
+            <span className="text-slate-800 dark:text-slate-200">{accountSidMasked || 'ACc184...35b2'}</span>
           </div>
 
           {/* Diagnostic Alert: Trial Account Number Check */}
@@ -228,13 +228,13 @@ export const TwilioConfigModal: React.FC<TwilioConfigModalProps> = ({
         <form onSubmit={handleSave} className="space-y-3.5 text-xs">
           {/* Twilio Outbound Phone Number */}
           <div>
-            <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
-              <span>Twilio Caller Number (From): <span className="text-rose-400">*</span></span>
+            <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1 flex items-center justify-between">
+              <span>Twilio Caller Number (From): <span className="text-rose-500">*</span></span>
               <a
                 href="https://console.twilio.com/us1/develop/phone-numbers/manage/incoming"
                 target="_blank"
                 rel="noreferrer"
-                className="text-[10px] text-cyan-400 hover:underline flex items-center gap-1"
+                className="text-[10px] text-cyan-600 dark:text-cyan-400 hover:underline flex items-center gap-1"
               >
                 <span>Find in Twilio Console</span>
                 <ExternalLink className="w-2.5 h-2.5" />
@@ -246,32 +246,32 @@ export const TwilioConfigModal: React.FC<TwilioConfigModalProps> = ({
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               placeholder="+12025550199 (Virtual number from Twilio Console)"
-              className="w-full text-xs font-mono bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500"
+              className="w-full text-xs font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-amber-500"
             />
-            <p className="text-[11px] text-slate-400 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Must be your virtual Twilio number in <strong>+E.164</strong> format (e.g. +1...), <strong>not</strong> your personal mobile phone.
             </p>
           </div>
 
           {/* Public Base URL (for webhooks) */}
-          <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
+          <div className="bg-slate-50 dark:bg-slate-950/70 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-slate-300 flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Public Webhook Base URL:</span>
               </span>
-              <span className="text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
                 ✓ Auto-Configured
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
               Automatically points to your live Cloud Run webhook address. No changes needed.
             </p>
             <input
               type="text"
               readOnly
               value={publicBaseUrl}
-              className="w-full text-xs font-mono bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-400 cursor-not-allowed"
+              className="w-full text-xs font-mono bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-500 dark:text-slate-400 cursor-not-allowed"
             />
           </div>
 
@@ -280,25 +280,25 @@ export const TwilioConfigModal: React.FC<TwilioConfigModalProps> = ({
             <div
               className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 ${
                 statusMessage.type === 'success'
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                  : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300'
               }`}
             >
               {statusMessage.type === 'success' ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
               ) : (
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0" />
               )}
               <span>{statusMessage.text}</span>
             </div>
           )}
 
           {/* Submit Actions */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
               Close
             </button>

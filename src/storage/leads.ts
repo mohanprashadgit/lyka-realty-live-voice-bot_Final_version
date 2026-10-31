@@ -74,31 +74,22 @@ export const INITIAL_SEED_LEADS: LeadRecord[] = [
 export function getLeads(): LeadRecord[] {
   try {
     const raw = localStorage.getItem(LEADS_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(INITIAL_SEED_LEADS));
-      return INITIAL_SEED_LEADS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      // Ensure Mohan (+919944406813) is available as top lead for instant testing
-      const hasVerifiedMohan = parsed.some((l: LeadRecord) => l.phone.includes('9944406813'));
-      if (!hasVerifiedMohan) {
-        parsed.unshift(INITIAL_SEED_LEADS[0]);
-        localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(parsed));
-      }
-      return parsed;
-    }
-    return INITIAL_SEED_LEADS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch (err) {
     console.error('[Storage] Error reading leads:', err);
-    return INITIAL_SEED_LEADS;
+    return [];
   }
 }
 
 export function saveLead(lead: LeadRecord): void {
   try {
     const current = getLeads();
-    const updated = [lead, ...current.filter((l) => l.id !== lead.id)];
+    const phone = lead.phone.replace(/\D/g, '');
+    const existing = current.find(l => l.id === lead.id) || current.find(l => phone && l.phone.replace(/\D/g, '') === phone);
+    const record = existing ? { ...existing, ...lead, id: existing.id, createdAt: existing.createdAt } : lead;
+    const updated = [record, ...current.filter(l => l.id !== record.id)];
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
   } catch (err) {
     console.error('[Storage] Error saving lead:', err);
@@ -166,10 +157,10 @@ export function importLeads(
     }
 
     // Check duplicate phone in current import or existing records
-    const cleanPhone = phone.replace(/[\s()-]/g, '');
+    const cleanPhone = phone.replace(/\D/g, '');
     const isDuplicate =
-      current.some((c) => c.phone.replace(/[\s()-]/g, '') === cleanPhone) ||
-      validRecords.some((v) => v.phone.replace(/[\s()-]/g, '') === cleanPhone);
+      current.some((c) => c.phone.replace(/\D/g, '') === cleanPhone) ||
+      validRecords.some((v) => v.phone.replace(/\D/g, '') === cleanPhone);
 
     if (isDuplicate) {
       errors.push(`Row ${rowNum}: Phone ${phone} is already in the database.`);

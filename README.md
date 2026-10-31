@@ -37,7 +37,27 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
   - **Natural Conversation, Subtle Appreciation & Emotional Intelligence**:
     - **Natural Greeting Protocol (Do Not Ask Name at Start)**: Agent starts with a warm, natural greeting (*"Vanakkam sir! Eppadi irukkeenga? Naan Priya, Lyka Realty-la irundhu pesuren."*). Does NOT begin with a checklist interrogation or ask for the customer's name immediately. When customer responds (*"I'm good"*), acknowledges warmly (*"Super sir, happy to hear that! Sollunga sir, eppadi help panna mudiyum?"*). Always answers direct property inquiries first.
     - **Customer Name Integrity Protocol**: Never assumes customer name or uses hardcoded defaults (e.g., "Mohan"). Never shortens, rearranges, splits by spaces, or guesses a customer's name (resolves the bug where `"M. Perkumar"` was erroneously transformed to `"Kumar sir"`). Asks name later when conversation naturally allows (*"By the way sir, unga name therinjukkalama?"*). Acknowledges accurately (*"Nice to meet you! Thanks nga."*). Maintains two distinct fields: `customer_name_raw` and `customer_preferred_name`.
-    - **Subtle Appreciation — Never Overpraise**: Light, genuine expressions (*"Super sir!"*, *"Okay nga, puriyudhu"*, *"Ohh, appadiya?"*, *"Seri sir, nalla irukku"*, *"Aaaah, okay okay!"*, *"Correct sir, got it"*, *"Thanks for sharing, sir"*). Avoids fake excitement, excessive praise, or repetitive generic compliments.
+    - **Advanced Natural Voice Tuning & Real South Indian Spoken Cadence**: Authentic Tamil Nadu phone conversational expressions with respectful gender-neutral `-nga` marker rotated with `sir/madam` across 10 conversational categories:
+      * *Acknowledgement & Listening*: *"Hmm..."*, *"Mmmmm, seri nga..."*, *"Aah, okay nga."*, *"Right, right..."*, *"Ohhh, appadiya sir?"*, *"Achaaa, ippo puriyudhu."*, *"Seri nga, got it."*, *"Correct nga, puriyudhu."*
+      * *Warmth & Friendliness*: *"Super nga!"*, *"Nice, that's good to hear!"*, *"Oh, that's great!"*, *"Semma nga!"*, *"Happy to help nga."*, *"Nalla choice nga!"*, *"That's actually a good option."*
+      * *Empathy & Understanding*: *"Hmm, puriyudhu nga."*, *"I can understand nga."*, *"Aama nga, that makes sense."*, *"Seri nga, no problem."*, *"I understand your concern."*, *"Parava illa nga, we can check that."*
+      * *Apologies & Concern*: *"Achooo, sorry nga!"*, *"Ayyo, sorry sir!"*, *"Oh, sorry about that."*, *"My apologies nga."*, *"No worries nga, let me help you with that."*
+      * *Thinking & Hesitation*: *"Hmm, let me check that."*, *"One second nga..."*, *"Actually..."*, *"Konjam check pannuren nga."*, *"Oru second nga, I'll explain."*
+      * *Curiosity & Interest*: *"Ohh, really nga?"*, *"Appadiya sir? Tell me more."*, *"Seri nga, neenga sollunga."*, *"May I know your preference nga?"*
+      * *Reassurance & Guidance*: *"Sure nga, I'll help you understand the options."*, *"Don't worry nga, let's take it step by step."*, *"Seri nga, we'll look at the available options."*
+      * *Natural Transitions*: *"Okay nga, moving on..."*, *"Seri, one more thing..."*, *"Coming to your budget..."*, *"Based on that, let's look at the options."*
+      * *Polite Waiting & Pacing*: *"Konjam wait pannunga nga."*, *"Just a moment nga."*, *"One second, let me check."*, *"I'll walk you through it."*
+      * *Natural Closing*: *"Seri nga, anything else you'd like to know?"*, *"Happy to help nga!"*, *"Super nga, thanks for sharing those details."*
+      * *Pitch & Cadence Modulation*: Natural South Indian phone call vocal delivery using slightly higher, engaged pitch on greetings and curiosity, and slower, relaxed tempo with realistic pauses (`...`) when explaining, reassuring, or waiting. Strict prohibition of raw XML/bracketed tags (`<laugh>`, `<softly>`, etc.) ensures seamless text-to-audio synthesis without code or tags leaking into transcripts.
+    - **Sentence Anti-Repetition Filter**: Strictly prevents repeating sentences or doubled phrases ("seri seri", "okay okay") during speaking. Removes internal consecutive sentence repeats and deduplicates turn beginnings.
+    - **3-Attempt Objection Handling Protocol**: When a customer declines ("no" / "not interested"):
+      1. *First decline*: Acknowledges warmly (*"Seri sir, puriyudhu."*) and pivots to a referral or brief value point (*"Unga friends or family-la Dubai property pathi interest irukka?"*).
+      2. *Second decline*: Respects their stance and offers a low-pressure next step (*"Future-la property need irundha Lyka Realty-a nenachukonga. WhatsApp-la brochure share pannalama sir?"*).
+      3. *Third decline*: Gracefully accepts, thanks the caller warmly, and leaves immediately (*"Puriyudhu sir. Unga time-ku romba thanks. Have a wonderful day! Bye."*). Never pushes on a fourth attempt.
+    - **Cumulative Multi-Location Memory**: Retains and displays ALL cities and locations mentioned across the dialogue in chronological order (e.g. if the caller mentions *Madurai* first and later *Thoothukudi*, both are captured as *"Madurai, Thoothukudi"*).
+    - **Cumulative Conversation Notes & Special Expectations**: The AI automatically records special expectations, property preferences, concerns, family context, and follow-up requests into a cumulative conversation summary that updates live and persists to the database.
+    - **Synchronous Customer Transcript Stream**: Eliminates UI turn mismatches by rendering user speech immediately without blocking for async transliteration, ensuring customer turns always appear before agent responses.
+    - **Full Conversation Persistence & Call History**: Automatically creates conversation records, links leads, and streams turn-by-turn messages into `conversation_messages`, allowing the Leads & Call Records tab to display authentic full call transcripts.
     - **Natural City / Location Acknowledgment**: Responds naturally when a customer mentions their city (e.g. Thoothukudi, Chennai, Coimbatore, Dubai) with relevant, conversational observations (*"Ohh, Thoothukudi-ah sir! Nice nga. Appo neenga anga irundhu property options paakureengala, illa vera location-la interest irukka?"*). Never invents facts or claims personal visits.
     - **Gradual 7-Field Lead Information Collection**: Gathers 7 core lead fields one question at a time across the dialogue without presenting a checklist:
       1. Customer Name (asked later when naturally suitable)
@@ -77,46 +97,29 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
   - Regulatory guides for TNRERA / MahaRERA and Dubai Land Department (DLD 4% fee, Freehold eligibility, UAE 10-Year Golden Visa at AED 2M+).
   - India vs Dubai comparative market matrix (tax implications, rental yields: 7-9% Dubai vs 2.5-3.5% India, capital appreciation).
   - Spoken Tanglish FAQs covering common NRI and buyer questions.
-- **Leads & Calls Tab**:
-  - Searchable list of qualified prospects with outcome badges (`HOT`, `WARM`, `COLD`), score indicators, budget, property type, and city.
-  - Complete call history records with duration, timestamp, channel (`browser` / `twilio`), and interactive modal displaying full turn-by-turn Tanglish transcripts.
+- **Leads & Calls Tab** (`LeadsAndCallsTab.tsx`):
+  - Compact single-view layout: call history, summary, and transcript actions are accessible directly from each lead row with zero train-like accordion nesting or separate Call History tables.
+  - Searchable list of qualified prospects with outcome badges (`HOT`, `WARM`, `COLD`, `UNWANTED`), budget, property type, location, and call summary preview snippet.
+  - **Persisted Numerical Lead Score**: Displays the persisted 100-point deterministic score (`Score: {score}/100`) directly on each customer row and inside the Customer Profile conversation modal, refreshing after calls.
+  - **Top Call Date Filters**: Top pills for `All calls`, `Today`, `Last 7 Days`, `Last 30 Days`, and `Custom date range` (with `From` and `To` date pickers). Filters records based on actual call timestamp (`startedAt`), preserving individual timestamps for multi-call customers and providing invalid date range validation (`From > To`).
+  - **Single-Click Conversation Modal**: Clicking **View** on any lead row immediately opens a focused, theme-responsive conversation modal showing the complete chronological dialogue between the AI agent and the customer.
+  - **Full Light & Dark Theme Support**: Modal seamlessly responds to theme switching. Light theme renders clean light surfaces (`bg-white`), subtle borders (`border-slate-200`), and high-contrast dark text (`text-slate-900`), while Dark theme retains the royal plum background (`dark:bg-slate-900`) and champagne gold accents.
+  - **Centered Viewport Alignment Below Navbar**: Padded backdrop (`pt-16 sm:pt-20`) ensures the modal is centered cleanly within the browser viewport without clipping or overlapping the sticky top navigation bar. Background page scroll is locked (`overflow: hidden`) while the modal is open.
+  - **High-Capacity Transcript Area**: Header intelligence (call duration, timestamp, status, sentiment, and qualification slots) and automated summary are packed into a compact top strip, allocating 60–70% of the modal height (`flex-1 min-h-0`) to the message stream so 10–15 turns are visible simultaneously.
+  - **Distinct Message Bubbles with Word-Wrap**: Customer turns appear on the right in amber cream/gold bubbles (`bg-amber-50 dark:bg-amber-500/20 text-slate-900 dark:text-amber-100 border border-amber-200 dark:border-amber-500/30`), and agent turns on the left in white/slate bubbles (`bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60`) with speaker headers, lowercase timestamps, and text wrap (`break-words`).
+  - **Isolated Scroll Area**: Conversation transcript scrolls inside its container with `overscroll-contain`, preventing modal and parent page scroll chaining. The `Close Details` button remains pinned and visible at the bottom.
+  - **Multi-Call Selector**: When a customer has multiple calls, a compact pill switcher inside the modal header allows toggling between calls without leaving the modal.
+  - **Neatly Aligned Action Buttons**: `Call`, `View`, `Summary`, and `Delete` buttons are standardized to `h-7` height with uniform padding, spacing, and border radius across all rows.
+  - **Compact Delete Confirmation Modal**: Centered `max-w-sm` modal with clear selected item count and neatly aligned Cancel and Confirm Delete buttons.
 - **Telephone Dial Tab**:
   - Interactive dialpad (0-9, *, #) supporting direct phone dialing via Twilio PSTN with fallback guidance.
 - **API Usage Tab & Modal**:
-  - Transparent usage tracking: Google AI Studio token counts, audio seconds sent/received, daily request limits, and cost approximations.
-
-### 2. Aura Privé Real Estate CRM Platform (`src/crm/`)
-- **Simplified 5-Role Access Control (`permissions.ts`)**: 5 streamlined enterprise roles:
-  1. `Super Admin`: Full system administration, user accounts, CRM settings, and audit trails.
-  2. `Operations Admin`: Property and land inventory management, employee directory, and operational verification.
-  3. `Lead Management Executive`: Inbound lead registration, qualification, assignment, and initial follow-up tracking.
-  4. `Sales Territory Manager`: Authorized team oversight, deal pipeline, site visit supervision, purchase approvals, and performance tracking.
-  5. `Sales & Growth Executive`: Assigned lead portfolio, customer engagement, property matching, sales activities, and permitted campaigns.
-- **Unified Employee Authentication (`EmployeeLoginPage.tsx`)**: Dedicated enterprise login page with official `/logo.png` branding, Employee ID / Email credentials, show/hide password, forgot password modal, and mandatory first-login password change. Uses PBKDF2 hashing (`authHelper.ts`) and HMAC-SHA256 session tokens.
-- **Global Floating AI Assistant (`GlobalAIAssistant.tsx`)**: Omnipresent floating assistant anchored at the bottom-right of the CRM shell. Features closed launcher pill with champagne glow and live role badge, compact expanded chat console with minimizer, role- and page-aware contextual prompt chips (e.g., triage commands on Leads, verification queries on Inventory, quota tracking on Pipeline), speech-to-text dictation, and strict per-user sessionStorage isolation preventing private transcript leaks.
-- **Role-Aware Dashboard Dispatcher (`RoleDashboard.tsx`)**: Server-verified dashboard renderer tailored to all 5 authoritative employee roles with zero-flash loading skeletons:
-  1. *Super Admin*: Executive command console with company-wide pipeline, verified revenue, staff directory, employee performance leaderboard, and security audit log events.
-  2. *Operations Admin*: Inventory operations console with live available/reserved/sold counts, pending verification queue, incomplete listings missing photos, operational tasks, and inspection workload.
-  3. *Lead Management Executive*: Inbound triage center with unassigned prospect queue, leads awaiting details, overdue follow-ups, unmatched requirements (< 50% score), and quick registration shortcuts.
-  4. *Sales Territory Manager*: Regional sales command with direct team roster, points balances, territory pipeline vs quota target, team deals, site visits, and deal approvals queue (self-approval prohibited).
-  5. *Sales & Growth Executive*: Personal portfolio command with assigned prospects, personal tasks due today & overdue, scheduled client visits, active deals, quota progress bar, and bonus points ledger.
-- **Zero-Trust Backend RBAC & Anti-Spoofing**: Cryptographically signed HMAC-SHA256 tokens are exclusively authoritative. Arbitrary headers (`x-user-role`, `?role=`) are rejected without valid tokens. Record-level scoping enforces that Sales Executives only receive their assigned leads and Territory Managers receive only their team members.
-- **Employee-Aware AI Chatbot**: When an authenticated employee opens the assistant, the chatbot identifies them from server-verified tokens and greets them naturally (*"Hi Mohan! Welcome back to Lyka Realty. What would you like to do today?"*), providing employee quick actions and attributing prospect leads to their employee ID (`assigned_agent: CO1`) without re-asking employee identity. Guest mode and multi-language support remain 100% protected.
-- **Image-Led Property & Land Inventory (`PropertiesView.tsx` & `LandManagementView.tsx`)**: Responsive image-led card grid with data table view toggle, multi-image upload via `POST /api/crm/uploads`, image previews, fallback placeholders, survey numbers, land measurement units (cents/acres), and safety guard preventing manual "Sold" status assignment.
-- **Idempotent Purchase Verification & Points Ledger (`POST /api/crm/deals/:id/verify-purchase`)**: Authorizes Super Admins and Territory Managers to verify purchases, updating linked inventory to 'sold', preventing self-approval, and idempotently awarding 500 conversion points recorded in an auditable `reward_ledger`.
-- **Reliable Application Shell (`CrmLayout.tsx`)**: Full viewport layout (`h-screen w-screen overflow-hidden flex font-sans`) with a dedicated two-column structure: fixed desktop sidebar (`w-72 shrink-0`) and main content area (`min-w-0 flex-1 overflow-y-auto min-h-0`). Content is wrapped in a centered max-width container (`max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6`). Destructive `overflow-x-hidden` masking is strictly eliminated.
-- **Tailwind CSS v4 Layer Architecture (`index.css`)**: Global universal reset `*, *::before, *::after` is strictly wrapped in `@layer base` alongside `@source "../index.html"` and `@source "../src"`, ensuring Tailwind v4 utility classes (`p-5`, `p-6`, `px-4`, etc.) maintain proper cascade priority and are never overridden to 0px.
-- **Independent Dual-Scrolling Strategy**: Sidebar navigation (`min-h-0 overflow-y-auto`) and main viewport scroll independently. Header and sidebar remain fixed in view while dashboard or module views scroll smoothly vertically without nested scroll contention.
-- **Stable Sidebar Navigation (`Sidebar.tsx`)**: Explicit `w-72` (288px) width with `shrink-0` ensures navigation labels, counts, and accordion headers never clip on the left margin. Standardized item padding (`px-3.5 py-2.5`), aligned icons, and official local `/logo.png` branding.
-- **Responsive Top Header (`CrmHeader.tsx`)**: Responsive flex layout with dynamic breadcrumbs (`min-w-0 shrink truncate`), keyboard-driven search (`Ctrl + K`) hidden on small viewports (`hidden xl:block`), compact role preview selector, and fixed action buttons (`shrink-0 whitespace-nowrap`).
-- **100% Real MySQL Database Integration**: Zero mock data. All KPIs, leads, customers, pipelines, activities, and tasks link directly to live MySQL queries.
-- **Responsive KPI Metrics Grid**: Dynamic CSS grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4`) providing generous 20px padding (`p-5`), preventing text clipping and border collisions across 1024px, 1366px, and 1440px viewports.
-- **Readable 8-Stage Pipeline Funnel**: Multi-row responsive stage grid (`grid-cols-2 sm:grid-cols-4 2xl:grid-cols-8 gap-3`) displaying 4 wide columns in 2 rows on standard screens (or 8 on 2xl), guaranteeing full readability for all 8 stages ("1. New" through "6. Negotiation", "7. Deal Closed", "8. Disqualified") without label truncating.
-- **Scroll-Protected Data Tables**: Wide data tables (Recent Leads `min-w-[880px]`, Customer Directory `min-w-[1080px]`, Lead Management `min-w-[1250px]`) wrapped in `overflow-x-auto` containers with dedicated column widths and reachable Actions columns.
-- **7-Tab Unified Customer Profile (`CustomerDetailModal.tsx`)**: Complete view of customer overview, linked leads, conversation history, scheduled follow-ups, property interests, deals, and activity timeline.
-- **Aura Privé Luxury Visual Design**: Graphite charcoal surfaces (`#0B0A0C`, `#141217`, `#18161B`, `#28232D`), warm ivory text, and muted champagne-gold accents (`#d8a868`, `#f0be7c`), with dark and light theme support.
-
----
+  - Accurate, verified usage tracking backed directly by live MySQL database records (`conversations`, `conversation_messages`, `lead_interactions`) and live Google Gemini API status probes.
+  - Displays true historical sessions, dialogue turns, CRM lead tool extractions, total voice minutes streamed, token consumption estimates, and real-time spending cap alerts with 1-click Google AI Studio management links.
+  - Distinguishes verified database counts from provider-level quotas; clearly displays "Unavailable from provider" for live credit balances unexposed by Google AI Studio API without Cloud Billing service credentials.
+  - Supports both standard `AIzaSy...` and newer `AQ....` Gemini developer keys with hot-reloading from `.env`.
+  - Probes live status via `gemini-3.5-flash` to ensure compatibility with Google API account policies, avoiding false positive spending cap warnings.
+  - Dynamic local time zone display (`Intl.DateTimeFormat().resolvedOptions().timeZone`) and daily reset timestamp (`00:00:00 UTC`).
 
 ## 🗂️ Complete Directory Structure & File Usage
 
@@ -127,7 +130,6 @@ lyka-chatbot/
 ├── MVP.md                            # Comprehensive MVP architecture & requirements
 ├── README.md                         # Project documentation, setup, APIs, & architecture
 ├── authHelper.ts                     # PBKDF2 password hashing & HMAC-SHA256 session token manager
-├── crmRoutes.ts                      # Dedicated modular CRM Express router (30+ REST endpoints)
 ├── db.ts                             # MySQL connection pool, idempotent schema migration, seed accounts
 ├── index.html                        # HTML5 entry point with metadata, viewport, and favicon
 ├── leadService.ts                    # Shared lead upsert service for voice, chat, and CRM
@@ -160,12 +162,10 @@ lyka-chatbot/
     │   ├── ArchitectureCard.tsx      # System architecture visualization
     │   ├── CallControls.tsx          # Microphone selector, mute toggle, visualizer meter
     │   ├── CallHistoryView.tsx       # Past call records and transcripts
-    │   ├── CustomerPortalView.tsx    # Customer self-service portal (profile, inquiries, saved interested properties)
-    │   ├── DashboardStatsView.tsx    # Chatbot qualification KPIs & statistics
+        │   ├── DashboardStatsView.tsx    # Chatbot qualification KPIs & statistics
     │   ├── DateLeadVisualization.tsx # Date-filtered Hot/Warm/Cold charts
     │   ├── EditLeadModal.tsx         # Prospect editing form & status override
-    │   ├── EmployeeLoginPage.tsx     # Single unified employee login screen with password reveal & fast-fill
-    │   ├── ExportModal.tsx           # JSON/CSV export modal
+        │   ├── ExportModal.tsx           # JSON/CSV export modal
     │   ├── Header.tsx                # Chatbot header, persona switcher, language selector
     │   ├── ImportLeadsModal.tsx      # CSV lead importer
     │   ├── IncomingCallScreen.tsx    # Vivo full-screen phone call UI with synthesized ringtone
@@ -173,11 +173,7 @@ lyka-chatbot/
     │   ├── LeadReportExportModal.tsx # Filtered report export (Excel CSV, PDF, JSON)
     │   ├── LeadTable.tsx             # Chatbot leads table
     │   ├── LiveConnectInspector.tsx  # Live call slot extraction inspector
-    │   ├── PropertyDetailModal.tsx   # Comprehensive property view with photo gallery & criteria score breakdown
-    │   ├── PropertyRecommendationCard.tsx # Image-led recommendation card with score badge & "Why it matches"
-    │   ├── RequirementConfirmationCard.tsx # Natural language requirement confirmation & search trigger
-    │   ├── ScheduleSiteVisitModal.tsx # Viewing appointment booking modal with agent task creation
-    │   ├── SimulatedCallScreen.tsx   # Outbound calling console with waveforms
+                    │   ├── SimulatedCallScreen.tsx   # Outbound calling console with waveforms
     │   ├── StageTracker.tsx          # Visual qualification progress tracker
     │   ├── TranscriptView.tsx        # Live conversation turns stream
     │   └── TwilioConfigModal.tsx     # Twilio SID & Token configuration modal
@@ -198,6 +194,16 @@ lyka-chatbot/
     │   ├── context/
     │   │   └── CrmContext.tsx        # Global CRM state provider (auth session, tokens, authFetch, active role, theme)
     │   ├── modules/
+    │   │   ├── dashboard/                # Analytics Dashboard visualization subcomponents
+    │   │   │   ├── ActivityFeed.tsx      # Real-time CRM event feed with temperature badges & timestamps
+    │   │   │   ├── DashboardKpiGrid.tsx  # 16-card responsive KPI grid (Leads, Calls, Deals, Tasks)
+    │   │   │   ├── DateRangePicker.tsx   # Interactive date filter (Today, 7d, 30d, 90d, Custom Range)
+    │   │   │   ├── HotLeadsPanel.tsx     # High-priority hot leads card list with direct triage actions
+    │   │   │   ├── LeadFunnelViz.tsx     # 7-stage qualification funnel with progression percentages
+    │   │   │   ├── LeadSourceChart.tsx   # Lead source analytics (donut chart & stacked bar chart)
+    │   │   │   ├── LeadTrendChart.tsx    # SVG lead & call activity growth trend chart with series toggles
+    │   │   │   ├── RateRingsViz.tsx      # 4 radial progress rings (Qualification, Hot, Answer, Conversion)
+    │   │   │   └── dashboardExport.ts    # Multi-format CSV exporter for trend, source, and funnel reports
     │   │   ├── AuditLogsView.tsx         # Security audit log view with actor, action, and IP tracking
     │   │   ├── CampaignsManagementView.tsx # Digital marketing campaigns, spend ROI, and lead attribution
     │   │   ├── CustomerManagementView.tsx # Dedicated customer directory with search, 3 filters, pagination, and modal triggers
@@ -207,7 +213,7 @@ lyka-chatbot/
     │   │   ├── LeadManagementView.tsx    # Lead tracking table with 9 filters & pagination (min-w-[1250px])
     │   │   ├── ModuleDispatcher.tsx      # Central view router dispatching active module according to permissions
     │   │   ├── NotificationsView.tsx     # In-app operational notifications and assignment alerts
-    │   │   ├── OverviewDashboard.tsx     # Responsive dashboard (auto-fit KPIs, 8-stage pipeline, Recent Leads, Tasks)
+    │   │   ├── OverviewDashboard.tsx     # Full analytics dashboard (16 KPIs, trend/source charts, funnel, hot leads, reports)
     │   │   ├── PerformanceRewardsView.tsx # Live employee performance scorecard, staff leaderboard, and points ledger
     │   │   ├── PropertiesView.tsx        # Responsive image cards & data table for property inventory with multi-image upload
     │   │   ├── RoadmapModuleView.tsx     # Honest roadmap status view for upcoming modules
@@ -238,57 +244,57 @@ lyka-chatbot/
 
 ## 🗄️ Database Architecture (`db.ts`)
 
-The CRM database (`lyka_crm`) runs on MySQL with connection pooling and idempotent schema migrations (`CREATE TABLE IF NOT EXISTS`). Existing tables and production rows are never dropped or truncated.
+The Lyka Realty AI Voice Agent database (`lyka_crm`) runs on MySQL / TiDB Cloud with connection pooling and idempotent schema migrations (`CREATE TABLE IF NOT EXISTS`). Unwanted CRM entities have been completely purged, leaving strictly the **5 core relational tables** essential for the AI Voice Agent, Call Logging, and Lead Qualification pipeline:
 
-### Core Tables & Relationships:
+### 5 Core Tables & Relationships:
 
-1. **`customers`**: Verified client relationship profiles.
+1. **`customers`**: Verified client relationship profiles and identity.
    - Primary key: `id` (UUID).
-   - Columns: `full_name`, `customer_name_raw` (verbatim customer name as spoken/provided), `customer_preferred_name` (form of address explicitly confirmed by customer), `phone`, `phone_normalized`, `email`, `current_location`, `preferred_contact`, timestamps.
-2. **`leads`**: Real estate property inquiries (captured via AI chatbot, voice agent, or CRM manual entry).
+   - Columns: `full_name`, `customer_name_raw`, `customer_preferred_name`, `phone`, `phone_normalized`, `email`, `current_location`, `preferred_contact`, timestamps.
+2. **`leads`**: Real estate property inquiries captured via AI voice agent or chatbot.
    - Primary key: `id` (UUID), Foreign key: `customer_id` → `customers.id`.
-   - Columns: `guest_session_id`, `customer_name_raw`, `customer_preferred_name`, `phone`, `email`, `preferred_contact_method` (Phone, WhatsApp, Email), `best_time_to_contact` (convenient follow-up time), `lead_source` (how heard), `intent` (purpose), `property_type`, `country`, `state_province`, `city`, `locality`, `postal_code`, `budget_min`, `budget_max`, `currency`, `property_size`, `area_unit`, `bedrooms`, `bathrooms`, `amenities`, `timeline`, `temperature` (`HOT`, `WARM`, `COLD`), `pipeline_status` (`new`, `contacted`, `qualified`, `property matching`, `site visit`, `negotiation`, `won`, `lost`), `assigned_agent` → `employees.id`, `notes`.
-3. **`conversations`**: Audit log of all guest sessions and channels.
+   - Columns: `guest_session_id`, `customer_name_raw`, `customer_preferred_name`, `phone`, `email`, `preferred_contact_method` (Phone, WhatsApp, Email), `best_time_to_contact`, `lead_source`, `intent`, `property_type`, `country`, `state_province`, `city`, `locality`, `budget_min`, `budget_max`, `currency`, `bedrooms`, `bathrooms`, `timeline`, `temperature` (`HOT`, `WARM`, `COLD`), `pipeline_status` (`new`, `contacted`, `qualified`), `notes`.
+3. **`conversations`**: Audit log of all guest sessions and telephony channels.
    - Primary key: `id`, Foreign keys: `lead_id`, `customer_id`.
    - Columns: `session_id`, `channel` (`text`, `voice`), `language`, `started_at`, `ended_at`.
 4. **`conversation_messages`**: Turn-by-turn dialogue history between prospect and AI assistant.
    - Primary key: `id`, Foreign key: `conversation_id`.
    - Columns: `role` (`user`, `assistant`), `content`, `message_type`, `created_at`.
-5. **`lead_interactions`**: Event audit trail for timeline inspection.
+5. **`lead_interactions`**: Event audit trail for timeline inspection and AI extractions.
    - Primary key: `id`, Foreign key: `lead_id`.
    - Columns: `interaction_type`, `summary`, `metadata`, `created_at`.
-6. **`teams`**: Brokerage departments and teams.
-   - Primary key: `id`.
-   - Columns: `name`, `department`, `manager_id`, `description`, `created_at`.
-7. **`employees`**: Staff directory with roles, monthly targets, and reward points.
-   - Primary key: `id` (e.g., `emp-super-admin`, `emp-sales-mgr`, `emp-sales-agent`).
-   - Columns: `full_name`, `email`, `phone`, `department`, `role`, `team_id`, `monthly_target`, `points_balance`, `assigned_territory`.
-8. **`properties`**: Residential and commercial inventory.
-   - Primary key: `id`.
-   - Columns: `title`, `description`, `purpose`, `property_type`, `status`, `city`, `price`, `currency`, `bedrooms`, `bathrooms`, `built_up_area`, `amenities`, `cover_image_url`, `assigned_agent_id`, `metro_distance_km` (DECIMAL 6,2 proximity in km), `locality_rating` (DECIMAL 3,2 rating out of 5.0).
-9. **`land_listings`**: Agricultural, residential, and commercial land parcels.
-   - Primary key: `id`.
-   - Columns: `title`, `description`, `land_type`, `status`, `city`, `locality`, `survey_number`, `total_area`, `area_unit`, `expected_price`, `currency`, `road_access`, `water_availability`, `electricity_availability`, `zoning`, `metro_distance_km` (DECIMAL 6,2), `locality_rating` (DECIMAL 3,2).
-10. **`deals`**: Commercial transactions, contract tracking, and commissions.
-    - Primary key: `id`, Foreign keys: `lead_id`, `customer_id`, `property_id`, `agent_id`.
-    - Columns: `title`, `transaction_type`, `deal_status`, `deal_value`, `projected_value`, `commission_rate`, `commission_amount`, `expected_close_date`.
-11. **`site_visits`**: Scheduled client property viewings and agent tours.
-    - Primary key: `id`, Foreign keys: `customer_id`, `lead_id`, `property_id`, `employee_id`.
-    - Columns: `visit_date`, `visit_time`, `status`, `feedback`, `outcome`.
-12. **`tasks`**: Daily follow-up reminders and action items for agents.
-    - Primary key: `id`, Foreign keys: `assigned_to` → `employees.id`, `lead_id`, `customer_id`.
-    - Columns: `title`, `description`, `due_date`, `priority` (`high`, `medium`, `low`), `status` (`pending`, `completed`), `completion_notes`.
-13. **`reward_ledger`**: Gamification and incentive point transactions.
-14. **`campaigns`**: Digital marketing campaigns (Meta Ads, Google Ads) with lead generation attribution.
-15. **`crm_notifications`**: In-app operational alerts and assignments.
-16. **`audit_logs`**: Immutable security and event trail.
-17. **`crm_settings`**: Brokerage currency configurations, scoring weights, and company profile.
-18. **`property_recommendations`**: AI matching recommendation sessions and criteria history.
-    - Primary key: `id` (VARCHAR), Foreign keys: `lead_id`, `customer_id`.
-    - Columns: `conversation_id`, `criteria_snapshot` (JSON), `results_snapshot` (JSON), `match_count`, `top_score`, `created_at`.
-19. **`customer_interested_properties`**: Customer bookmarked and shortlisted property inventory.
-    - Primary key: `id` (VARCHAR), Foreign keys: `customer_id`, `lead_id`, `property_id`, `land_id`.
-    - Columns: `notes`, `created_at`.
+
+### Database Connectivity & Hosting Architecture
+
+The backend supports configurable database connections through environment variables (`.env`):
+
+| Variable | Description | Default | Example Remote (Cloud) | Example TiDB Cloud | Example InfinityFree |
+|---|---|---|---|---|---|
+| `DB_HOST` | MySQL hostname / IP | `127.0.0.1` | `mysql-xx.aivencloud.com` | `gateway01.ap-northeast-1.prod.aws.tidbcloud.com` | `sql308.infinityfree.com` |
+| `DB_PORT` | MySQL TCP port | `3306` | `12345` | `4000` | `3306` |
+| `DB_USER` | MySQL database username | `root` | `avnadmin` | `4Faup8bESnMNhmn.root` | `if0_41190104` |
+| `DB_PASSWORD` | MySQL password (secure env) | `""` | `[SECURE]` | `[SECURE]` | `[VPanel Account Password]` |
+| `DB_NAME` | Database schema name | `lyka_crm` | `defaultdb` | `lyka_crm` | `if0_41190104_lyka_voice_agent` |
+| `DB_SSL` | Enable TLS/SSL connection | `false` | `true` | `true` | `false` |
+| `CORE_TABLES_ONLY` | Limit schema to 5 core voice/lead tables | `false` | `false` | `true` | `true` |
+
+#### TiDB Cloud 5 Core Tables Architecture:
+TiDB Cloud (`gateway01.ap-northeast-1.prod.aws.tidbcloud.com:4000`) is configured with strictly the **5 core relational tables** essential for the AI Voice Agent, Call Logging, and Lead Qualification pipeline:
+1. `customers` (verified client identity, name integrity fields `customer_name_raw` & `customer_preferred_name`, phone normalization)
+2. `leads` (all qualification slots, budget, timeline, temperature, intent, source, contact preferences)
+3. `conversations` (voice and text sessions, duration, timestamps, summary)
+4. `conversation_messages` (turn-by-turn dialogue stream, user & agent audio transcripts)
+5. `lead_interactions` (event timeline, call attempts, interaction notes)
+
+All unwanted CRM entities have been removed from TiDB, with `CORE_TABLES_ONLY=true` protecting the database against automatic re-creation during startup. Full backups of purged tables are preserved in `scratch/backup_tidb_unwanted_tables.json`.
+
+#### InfinityFree MySQL Connectivity Audit & Technical Findings:
+1. **Remote Connection Status**: Direct TCP connections to `sql308.infinityfree.com:3306` from external hosts fail with `ENOTFOUND` / DNS failure. InfinityFree's free tier uses an internal private DNS zone that is intentionally not advertised on the public internet, and incoming port 3306 traffic from external IPs is firewalled by design.
+2. **Backend Runtime Compatibility**: The Lyka Realty backend requires **Node.js 20+** and persistent **WebSockets** (`ws://` / `wss://`) for full-duplex 16kHz PCM audio streaming with Gemini Live (`gemini-3.8-live`). InfinityFree is a traditional shared LAMP (PHP/Apache) platform without a Node.js runtime, daemon process manager, or WebSocket streaming capabilities.
+3. **Recommended Deployment Path**:
+   - **Backend Hosting**: Deploy the Express + WebSocket server on a Node.js-compatible cloud host (e.g., **Render**, **Railway**, **Fly.io**, or a **VPS** like DigitalOcean / Hostinger).
+   - **Database Hosting**: Use a remote MySQL database that allows external connections with SSL (e.g., **Aiven for MySQL Free Tier**, **Clever Cloud**, or a **Railway MySQL** instance), or export the existing schema/data from InfinityFree phpMyAdmin and import into the active MySQL host.
+   - **Internal PHP Bridge Alternative**: If the database must reside on InfinityFree, a secure PHP HTTP bridge is provided at `bridge/infinityfree_bridge.php`. Uploading this script to `htdocs/api_bridge.php` allows internal PHP queries to execute locally on InfinityFree and return JSON responses to an authorized external service.
 
 ---
 
@@ -300,106 +306,13 @@ The CRM database (`lyka_crm`) runs on MySQL with connection pooling and idempote
 | `WS` | `/api/live-ws` | Low-latency full-duplex WebSocket stream for Gemini Live (`gemini-3.8-live`). Handles 16kHz PCM audio streaming, live neural transcription, tool calling (`update_lead_info`), and live mid-session voice switching (`change_voice`). |
 | `POST` | `/api/voice-preview` | Serves authentic golden 24kHz WAV audio samples (*"Vanakkam sir! Eppadi irukkeenga? Naan Lyka Realty AI assistant. Ungalukku eppadi help panna mudiyum?"*) directly from `voice/` for any of the 5 supported voices (`Sulafat`, `Callirrhoe`, `Aoede`, `Achird`, `Zubenelgenubi`) with in-memory caching and dynamic TTS fallback. |
 | `GET` | `/api/health` | Service health status, Gemini model, API key configuration, and default voice preset (`Sulafat`). |
+| `POST` | `/api/gemini/config` | Update and validate Gemini API key dynamically at runtime, verifying against Gemini API before persisting to `.env`. |
 | `GET` | `/api/health/db` | MySQL connection status and database heartbeat. |
 | `GET` | `/api/config` | Returns supported voices, agent personas, and language configuration. |
 | `GET` | `/api/knowledge` | Retrieves verified luxury listings, regulatory guides (TNRERA/DLD), and comparative market matrices. |
 | `POST` | `/api/chat` | REST text chat powered by `gemini-2.5-flash` with structured requirement extraction and CRM RAG grounding. |
 | `GET` | `/api/usage` | Real-time API token consumption, audio streaming seconds, RPM/RPD quotas, and refill timers. |
 | `WS` | `/api/twilio/media` | Bi-directional Twilio Media Stream WebSocket with G.711 mu-law ↔ 16kHz PCM transcoding. |
-
-### 2. Aura Privé CRM Endpoints (`crmRoutes.ts`)
-All CRM endpoints enforce Role-Based Access Control (RBAC) via Bearer session tokens (`Authorization: Bearer <token>`). Unauthenticated requests default to `'Unauthenticated'` and return `401 Unauthorized` or `403 Forbidden` on protected endpoints.
-
-#### Authentication, Customer Portal & Uploads
-| Method | Endpoint | RBAC Allowed Roles | Description |
-|---|---|---|---|
-| `POST` | `/api/crm/auth/login` | Public | Authenticates employee by ID (`CO1`, `CO2`, etc.) or email; returns session token & profile |
-| `GET` | `/api/crm/auth/me` | Authenticated | Server-side session verification returning real verified role and permissions |
-| `POST` | `/api/crm/auth/change-password` | Authenticated | Password change with minimum 8 characters validation and `must_change_password` clearing |
-| `POST` | `/api/crm/customer/register` | Public | Customer registration (sign up) with name, phone, email, password, location, budget range & preferred property type |
-| `POST` | `/api/crm/customer/login` | Public | Customer sign in by email/phone & password; returns session token & linked inquiries |
-| `GET` | `/api/crm/customer/me` | Customer | Authenticated customer self-service profile, linked inquiries, and scheduled site visits |
-| `PATCH` | `/api/crm/customer/profile` | Customer | Customer self-service profile update (name, phone, location, budget range, property preferences, notes) |
-| `POST` | `/api/crm/uploads` | All Staff Roles | High-capacity listing image upload (up to 15MB buffer, 50MB server limit, canvas downscaling, safe JSON parse) returning `/uploads/listings/...` path |
-
-#### Leads & Customers
-| Method | Endpoint | RBAC Allowed Roles | Description |
-|---|---|---|---|
-| `GET` | `/api/crm/dashboard` | All authenticated roles | Returns 6 core KPIs, Recent Leads, Follow-ups Today, Pipeline distribution, and Leaderboards |
-| `GET` | `/api/crm/leads` | All authenticated roles | Paginated lead inquiries with filters (`search`, `temperature`, `status`, `unassigned`, `followup_due`, `won`, `lost`) |
-| `POST` | `/api/crm/leads` | All authenticated roles | Create manual lead inquiry with automated customer profile linking |
-| `GET` | `/api/crm/leads/:id` | All authenticated roles | Full lead inspection (details, dialogue turns, tasks, notes, timeline) |
-| `PATCH` | `/api/crm/leads/:id` | All authenticated roles | Update lead qualification slots, pipeline status, or assigned employee |
-| `POST` | `/api/crm/leads/:id/notes` | All authenticated roles | Add notes to a lead |
-| `POST` | `/api/crm/leads/:id/tasks` | All authenticated roles | Schedule follow-up task or viewing appointment |
-| `GET` | `/api/crm/customers` | All authenticated roles | Paginated customer directory with search (`query`) and filters (`has_leads`, `preferred_contact`, `sort`) |
-| `POST` | `/api/crm/customers` | All authenticated roles | Register verified customer profile with server-side validation and duplicate phone detection |
-| `GET` | `/api/crm/customers/:id` | All authenticated roles | 7-tab customer profile data (inquiries, conversations, tasks, deals) |
-| `PATCH` | `/api/crm/customers/:id` | All authenticated roles | Update customer profile details with validation and audit logging |
-
-#### Property & Land Inventory
-| Method | Endpoint | RBAC Allowed Roles | Description |
-|---|---|---|---|
-| `GET` | `/api/crm/properties` | All authenticated roles | Property listings with specs, search, price & bedroom filters |
-| `GET` | `/api/crm/properties/:id` | All authenticated roles | Full property listing record with parsed image URLs and amenities |
-| `POST` | `/api/crm/properties` | Super Admin, Operations Admin | Create property listing with multi-image support (HTTP 201) |
-| `PATCH` | `/api/crm/properties/:id` | Super Admin, Operations Admin | Update listing (Manual "Sold" status prohibited; requires deal purchase verification) |
-| `DELETE` | `/api/crm/properties/:id` | Super Admin, Operations Admin | Soft-archive property listing |
-| `GET` | `/api/crm/land` | All authenticated roles | Land parcels with survey numbers, area units, road access, and zoning |
-| `GET` | `/api/crm/land/:id` | All authenticated roles | Full land listing record with parsed image URLs |
-| `POST` | `/api/crm/land` | Super Admin, Operations Admin | Create land parcel with survey number, area in cents/acres, and pricing (HTTP 201) |
-| `PATCH` | `/api/crm/land/:id` | Super Admin, Operations Admin | Update land parcel (Manual "Sold" status prohibited) |
-| `DELETE` | `/api/crm/land/:id` | Super Admin, Operations Admin | Soft-archive land parcel |
-
-#### Deals, Pipeline & Verification
-| Method | Endpoint | RBAC Allowed Roles | Description |
-|---|---|---|---|
-| `GET` | `/api/crm/deals` | All authenticated roles | Deal pipeline, closed deals, and revenue numbers |
-| `POST` | `/api/crm/deals` | Super Admin, Sales Territory Manager, Sales & Growth Exec | Create sales deal linked to lead, property, or land |
-| `POST` | `/api/crm/deals/:id/verify-purchase` | Super Admin, Sales Territory Manager | Strictly idempotent purchase verification awarding 500 pts to agent, sets inventory to sold, prohibits self-approval |
-| `GET` | `/api/crm/employees/:id/performance` | All authenticated roles | Live performance scorecard (assigned leads, followups, visits, verified purchases, revenue, points balance) |
-| `GET` | `/api/crm/site-visits` | All authenticated roles | Scheduled and completed site visits |
-| `GET` | `/api/crm/tasks` | All authenticated roles | Pending and completed follow-up tasks |
-| `PATCH` | `/api/crm/tasks/:id/complete` | All authenticated roles | Mark task complete with completion notes |
-| `POST` | `/api/crm/tasks` | All authenticated roles | Create task reminder |
-| `GET` | `/api/crm/employees` | Super Admin, Operations Admin, Sales Territory Manager | Staff directory with targets and points balance |
-| `GET` | `/api/crm/teams` | Super Admin, Operations Admin, Sales Territory Manager | Team departments and hierarchy |
-| `GET` | `/api/crm/rewards` | All authenticated roles | Employee reward point transactions ledger |
-| `GET` | `/api/crm/campaigns` | Super Admin, Operations Admin, Sales & Growth Exec | Marketing campaigns and lead counts |
-| `GET` | `/api/crm/notifications` | All authenticated roles | In-app operational alerts |
-| `GET` | `/api/crm/audit-logs` | Super Admin, Operations Admin | Operational system audit events |
-| `POST` | `/api/crm/audit-logs` | Super Admin, Operations Admin | Log operational action |
-| `GET` | `/api/crm/settings` | Super Admin | Brokerage currency, area unit, and scoring settings |
-| `PATCH` | `/api/crm/settings` | Super Admin | Update brokerage configuration settings |
-| `GET` | `/api/crm/users` | Super Admin | System user accounts with email, role, and last login |
-
-#### Unified AI Land & Property Matching & Recommendation Engine
-| Method | Endpoint | RBAC Allowed Roles | Description |
-|---|---|---|---|
-| `POST` | `/api/crm/matching/recommend` | Public / Customer / All staff roles | Runs deterministic 100-point matching against live MySQL inventory (`land_listings` and `properties`). Accepts `category: 'land' \| 'property' \| 'any'`, `search_mode: 'strict' \| 'flexible'`, `lead_id`, `conversation_id`, `limit`, `offset`. Returns ranked listings, match %, score breakdown, data completeness, `strict_matches`, `flexible_matches`, `total_eligible_matches`, and logs session to `property_recommendations` (`v2.0-unified-land-property`). Enforces role scoping for Sales Executives. |
-| `POST` | `/api/crm/matching/interest` | Public / Customer / All roles | Bookmarks/saves land or property into `customer_interested_properties` (with `property_id` or `land_id`) and links to customer profile & Customer Portal |
-| `POST` | `/api/crm/matching/site-visit` | Public / Customer / All roles | Schedules viewing appointment into `site_visits` table (supports `property_id` and `land_id`) and automatically generates high-priority follow-up task for assigned CRM agent |
-| `POST` | `/api/crm/matching/feedback` | Public / All roles | Records user satisfaction feedback on land/property recommendations |
-| `GET` | `/api/crm/matching/history` | All authenticated roles | Retrieves historical recommendation sessions and criteria snapshot for a given lead or customer |
-| `GET` | `/api/crm/matching/unmatched` | All authenticated roles | Fetches unmatched and low-scoring search inquiries (< 50%) for proactive CRM broker follow-up |
-
----
-
-### 🔑 Development Seed Accounts
-
-| Account ID / Login | Display Name | Role / Persona | Default Password | Initial State |
-|---|---|---|---|---|
-| `admin@lyka` | Rajesh K. Varma | Super Admin | `12345678` | Staff session |
-| `CO1` | Mohan | Sales & Growth Executive | `12345678` | Staff session |
-| `CO2` | Kavitha Ramachandran | Operations Admin | `12345678` | Staff session |
-| `CO3` | Arunachalam Sundaram | Sales Territory Manager | `12345678` | Staff session |
-| `CO4` | Deepa Jayakumar | Lead Management Executive | `12345678` | Staff session |
-| `anand.customer@gmail.com` | Anand Swaminathan | Registered Customer | `12345678` | Customer session |
-| *Guest Mode* | Luxury Concierge | Unauthenticated Guest | *No password needed* | Instant exploration |
-
-*Note: Stored using modern PBKDF2 hash with unique salt. Requires password change on first production deployment.*
-
----
 
 ### 🧠 Identity- & Role-Aware RAG Conversational AI (`server.ts`)
 Both the REST text chat (`/api/chat`) and the low-latency Gemini Live WebSocket (`/api/live-ws`) dynamically retrieve live database knowledge (`getRagGroundingContext`) based on the authenticated session:
@@ -573,10 +486,11 @@ GEMINI_API_KEY=your_gemini_api_key_here
 PORT=3000
 
 # MySQL Database Configuration
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=
+DB_HOST=gateway01.ap-northeast-1.prod.aws.tidbcloud.com
+DB_PORT=4000
+DB_USER=4Faup8bESnMNhmn.root
+DB_PASSWORD=mJr7aHVm8EtrtLic
+DB_SSL=true
 DB_NAME=lyka_crm
 
 # Twilio Telephony (Optional for real outbound mobile calls)
@@ -597,9 +511,6 @@ npm run dev
 
 The application will be live at:
 - **Direct AI Chatbot & Voice Assistant**: `http://localhost:3000/` (opens directly into conversational chatbot)
-- **Aura Privé CRM Portal**: `http://localhost:3000/#crm` (or click `🏛️` in the chatbot header)
-- **Employee Login**: `http://localhost:3000/#login`
-- **Customer Self-Service Portal**: `http://localhost:3000/#customer`
 
 ### 3. Production Build & Vercel Deployment
 ```bash

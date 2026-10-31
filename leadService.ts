@@ -1,11 +1,14 @@
+import { normalizeLeadFields } from './src/utils/leadFields.js';
+import { calculateDeterministicLeadScore } from './src/utils/scoring.js';
 /**
  * leadService.ts — Single shared lead service for both /api/chat and /api/live-ws.
  * 
  * Both text and voice call the same functions here. This prevents duplicate
  * leads, inconsistent field saves, or divergent validation.
  */
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 import { getPool } from './db.js';
+import { normalizeAcquisitionSource } from './src/utils/acquisitionSource.js';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -42,6 +45,7 @@ export interface LeadPayload {
   timeline?: string;
   // Qualification
   qualification_status?: string;
+  lead_score?: number;
   stage_reached?: number;
   notes?: string;
   // Buyer type (legacy compat)
@@ -82,13 +86,13 @@ function parseBudget(raw?: string): { min: number | null; max: number | null; cu
   }
 
   // Try to extract numeric range like "1M - 2M" or single value
-  const nums = raw.match(/[\d.]+/g);
+  const nums = raw.replace(/,/g, '').match(/\d+(?:\.\d+)?/g);
   if (!nums) return { min: null, max: null, currency };
 
-  const multiplierMatch = raw.match(/(crore|cr|lakh|million|m|k|billion|b)/i);
+  const multiplierMatch = raw.match(/\b(crore|cr|lakh|million|billion)\b|(?<=\d)\s*(m|k|b)\b/i);
   let multiplier = 1;
   if (multiplierMatch) {
-    const m = multiplierMatch[1].toLowerCase();
+    const m = (multiplierMatch[1] || multiplierMatch[2]).toLowerCase();
     if (m === 'k') multiplier = 1_000;
     else if (m === 'lakh') multiplier = 100_000;
     else if (m === 'm' || m === 'million') multiplier = 1_000_000;
@@ -105,7 +109,7 @@ function parseBudget(raw?: string): { min: number | null; max: number | null; cu
 // ─── Validate & sanitize payload ─────────────────────────────────────
 
 function sanitize(payload: LeadPayload): LeadPayload {
-  const clean = { ...payload };
+  const clean = normalizeLeadFields(payload) as LeadPayload;
   // Trim strings
   for (const key of Object.keys(clean) as (keyof LeadPayload)[]) {
     const val = clean[key];
@@ -116,7 +120,7 @@ function sanitize(payload: LeadPayload): LeadPayload {
   // Validate qualification status
   const validTemps = ['HOT', 'WARM', 'COLD', 'PENDING', 'REACH_AGAIN', 'OPT_OUT'];
   if (clean.qualification_status && !validTemps.includes(clean.qualification_status.toUpperCase())) {
-    clean.qualification_status = 'WARM';
+    delete clean.qualification_status;
   }
   return clean;
 }
@@ -148,17 +152,37 @@ export async function upsertLead(
   payload: LeadPayload,
   conversationId?: string,
 ): Promise<SaveResult> {
-  const db = getPool();
+  const db = await getPool().getConnection();
   const clean = sanitize(payload);
+  let locked = false;
 
   try {
-    // Look for existing lead in this session
+    const [lockRows]: any = await db.query("SELECT GET_LOCK('lyka_lead_upsert', 10) AS acquired");
+    if (lockRows[0].acquired !== 1) throw new Error('Lead save is busy; retry.');
+    locked = true;
+    await db.beginTransaction();
+    // Reuse a known contact across calls without merging by name.
     const [rows] = await db.query(
-      'SELECT id FROM leads WHERE guest_session_id = ? ORDER BY created_at DESC LIMIT 1',
-      [sessionId]
+      `SELECT id, lead_source FROM leads WHERE guest_session_id = ?
+       OR id = (SELECT lead_id FROM conversations WHERE id = ?)
+       OR (? <> '' AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?)
+       ORDER BY (guest_session_id = ?) DESC, created_at DESC LIMIT 1`,
+      [sessionId, conversationId || null, (clean.phone || '').replace(/\D/g, ''), (clean.phone || '').replace(/\D/g, ''), sessionId]
     ) as any;
 
     const existingId = rows?.[0]?.id;
+    const scoreBreakdown = calculateDeterministicLeadScore({
+      timeline: clean.timeline,
+      budget: clean.budget_max ? String(clean.budget_max) : clean.budget,
+      location: clean.location || clean.city,
+      property_type: clean.property_type,
+      buyer_type: clean.intent || clean.buyer_type,
+      phone: clean.phone,
+      notes: clean.notes,
+    });
+    const resolvedScore = typeof clean.lead_score === 'number' ? clean.lead_score : scoreBreakdown.score;
+    const resolvedStatus = clean.qualification_status?.toUpperCase() ||
+      (resolvedScore >= 75 ? 'HOT' : resolvedScore >= 45 ? 'WARM' : 'PENDING');
     const budgetInfo = parseBudget(clean.budget);
     const locationInfo = parseLocation(clean.location);
 
@@ -170,8 +194,16 @@ export async function upsertLead(
       const rawName = clean.customer_name_raw || clean.name;
       const preferredName = clean.customer_preferred_name;
 
+      // A later extraction that returns Unknown must never erase a real source.
+      const existingSource = rows?.[0]?.lead_source as string | null | undefined;
+      const keepExistingSource =
+        !!clean.lead_source &&
+        !!existingSource &&
+        normalizeAcquisitionSource(existingSource) !== 'UNKNOWN' &&
+        normalizeAcquisitionSource(clean.lead_source) === 'UNKNOWN';
+
       const fieldMap: Record<string, any> = {
-        lead_source: clean.lead_source,
+        lead_source: keepExistingSource ? undefined : clean.lead_source,
         intent: clean.intent || clean.buyer_type,
         property_type: clean.property_type,
         country: clean.country || locationInfo.country,
@@ -189,6 +221,7 @@ export async function upsertLead(
         bathrooms: clean.bathrooms,
         amenities: clean.amenities,
         timeline: clean.timeline,
+        lead_score: resolvedScore,
         temperature: clean.qualification_status?.toUpperCase(),
         full_name: rawName,
         customer_name_raw: rawName,
@@ -221,6 +254,8 @@ export async function upsertLead(
         [uuidv4(), existingId, 'ai_extraction', clean.notes || 'Lead updated via AI', JSON.stringify(clean)]
       );
 
+      if (conversationId) await db.query('UPDATE conversations SET lead_id = ? WHERE id = ?', [existingId, conversationId]);
+      await db.commit();
       return { success: true, leadId: existingId, isNew: false };
 
     } else {
@@ -235,12 +270,12 @@ export async function upsertLead(
           id, guest_session_id, lead_source, intent, property_type,
           country, state_province, city, locality, original_location,
           property_size, area_unit, budget_min, budget_max, currency,
-          rental_period, bedrooms, bathrooms, amenities, timeline,
+          rental_period, bedrooms, bathrooms, amenities, timeline, lead_score,
           temperature, full_name, customer_name_raw, customer_preferred_name, phone, email,
           preferred_contact_method, best_time_to_contact, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          leadId, sessionId, clean.lead_source || null,
+          leadId, sessionId, clean.lead_source || 'Unknown / Not Mentioned',
           clean.intent || clean.buyer_type || null,
           clean.property_type || null,
           clean.country || locationInfo.country || null,
@@ -258,7 +293,8 @@ export async function upsertLead(
           clean.bathrooms || null,
           clean.amenities || null,
           clean.timeline || null,
-          clean.qualification_status?.toUpperCase() || 'WARM',
+          resolvedScore,
+          resolvedStatus,
           rawName || null,
           rawName || null,
           preferredName || null,
@@ -278,11 +314,15 @@ export async function upsertLead(
         );
       }
 
+      await db.commit();
       return { success: true, leadId, isNew: true };
     }
   } catch (err: any) {
+    await db.rollback();
     console.error('[LeadService] upsertLead error:', err);
     return { success: false, leadId: '', isNew: false, error: err.message || 'Database write failed' };
+  } finally {
+    try { if (locked) await db.query("SELECT RELEASE_LOCK('lyka_lead_upsert')"); } finally { db.release(); }
   }
 }
 
@@ -295,10 +335,12 @@ export async function createConversation(
   leadId?: string,
 ): Promise<string | null> {
   const db = getPool();
-  const id = uuidv4();
+  const id = uuidv5(channel + ':' + sessionId, uuidv5.URL);
   try {
+    const [existing]: any = await db.query('SELECT id FROM conversations WHERE session_id = ? AND channel = ? ORDER BY started_at LIMIT 1', [sessionId, channel]);
+    if (existing.length) return existing[0].id;
     await db.query(
-      'INSERT INTO conversations (id, lead_id, session_id, channel, language) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO conversations (id, lead_id, session_id, channel, language) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE id = id',
       [id, leadId || null, sessionId, channel, language]
     );
     return id;
@@ -315,12 +357,13 @@ export async function saveMessage(
   role: string,
   content: string,
   messageType: string = 'text',
+  messageId?: string,
 ): Promise<boolean> {
   const db = getPool();
   try {
     await db.query(
-      'INSERT INTO conversation_messages (id, conversation_id, role, content, message_type) VALUES (?, ?, ?, ?, ?)',
-      [uuidv4(), conversationId, role, content, messageType]
+      'INSERT INTO conversation_messages (id, conversation_id, role, content, message_type) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE content = VALUES(content)',
+      [messageId ? uuidv5(conversationId + ':' + messageId, uuidv5.URL) : uuidv4(), conversationId, role, content, messageType]
     );
     return true;
   } catch (err: any) {

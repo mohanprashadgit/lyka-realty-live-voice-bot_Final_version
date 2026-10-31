@@ -106,25 +106,25 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-100 max-h-[92vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100 max-h-[92vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/30">
               <User className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-100">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 Edit Lead Details: {lead.name}
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Update prospect profile, qualification criteria, and CRM status
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -134,16 +134,16 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {/* Section 1: Contact Information */}
           <div className="space-y-2.5">
-            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Tag className="w-3 h-3 text-amber-400" />
+            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <Tag className="w-3 h-3 text-amber-500 dark:text-amber-400" />
               <span>Contact Information</span>
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Full Name */}
               <div>
-                <label className="block text-slate-300 font-medium mb-1">
-                  Full Name <span className="text-amber-400">*</span>
+                <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
+                  Full Name <span className="text-amber-500 dark:text-amber-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -151,15 +151,15 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. John Doe"
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               {/* Phone Number */}
               <div>
-                <label className="block text-slate-300 font-medium mb-1 flex items-center justify-between">
-                  <span>Phone Number (E.164) <span className="text-amber-400">*</span></span>
-                  <span className="text-[10px] text-slate-500 font-mono">+CountryCode</span>
+                <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1 flex items-center justify-between">
+                  <span>Phone Number (E.164) <span className="text-amber-500 dark:text-amber-400">*</span></span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">+CountryCode</span>
                 </label>
                 <input
                   type="text"
@@ -167,13 +167,13 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+971500000001 or +919876543210"
-                  className="w-full text-xs font-mono bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               {/* Email Address */}
               <div>
-                <label className="block text-slate-300 font-medium mb-1">
+                <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
                   Email Address
                 </label>
                 <input
@@ -181,19 +181,19 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="john@example.com"
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               {/* Lead Source */}
               <div>
-                <label className="block text-slate-300 font-medium mb-1">
+                <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
                   Lead Acquisition Source
                 </label>
                 <select
                   value={source}
                   onChange={(e) => setSource(e.target.value)}
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500 cursor-pointer"
+                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500 cursor-pointer"
                 >
                   <option value="Website">Website Form</option>
                   <option value="Campaign">Marketing Campaign</option>
@@ -209,19 +209,19 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
             {/* Consent & DNC Toggles */}
             <div className="flex flex-wrap items-center gap-4 pt-1">
-              <label className="flex items-center gap-2 cursor-pointer bg-slate-950/60 px-3 py-2 rounded-lg border border-slate-800">
+              <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-950/60 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800">
                 <input
                   type="checkbox"
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
                   className="rounded text-amber-500 focus:ring-0 cursor-pointer"
                 />
-                <span className="text-[11px] text-slate-300">
+                <span className="text-[11px] text-slate-700 dark:text-slate-300">
                   Explicit Marketing Consent on file (✓ Opt-in)
                 </span>
               </label>
 
-              <label className="flex items-center gap-2 cursor-pointer bg-rose-950/20 px-3 py-2 rounded-lg border border-rose-500/30">
+              <label className="flex items-center gap-2 cursor-pointer bg-rose-50 dark:bg-rose-950/20 px-3 py-2 rounded-lg border border-rose-200 dark:border-rose-500/30">
                 <input
                   type="checkbox"
                   checked={isOptedOut}
@@ -231,8 +231,8 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   }}
                   className="rounded text-rose-500 focus:ring-0 cursor-pointer"
                 />
-                <span className="text-[11px] text-rose-300 font-semibold flex items-center gap-1">
-                  <ShieldBan className="w-3 h-3 text-rose-400" />
+                <span className="text-[11px] text-rose-700 dark:text-rose-300 font-semibold flex items-center gap-1">
+                  <ShieldBan className="w-3 h-3 text-rose-500 dark:text-rose-400" />
                   <span>Mark as Opt-Out (Do Not Call)</span>
                 </span>
               </label>
@@ -240,16 +240,16 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
           </div>
 
           {/* Section 2: Property Requirements & Qualification Criteria */}
-          <div className="space-y-2.5 pt-2 border-t border-slate-800">
-            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Building className="w-3 h-3 text-cyan-400" />
+          <div className="space-y-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <Building className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
               <span>Real Estate Qualification Requirements</span>
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Interest */}
               <div>
-                <label className="block text-slate-300 font-medium mb-1">
+                <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
                   Interest Intent
                 </label>
                 <input
@@ -257,13 +257,13 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   value={interest}
                   onChange={(e) => setInterest(e.target.value)}
                   placeholder="e.g. Looking to buy, Investor"
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               {/* Buyer Type */}
               <div>
-                <label className="block text-slate-300 font-medium mb-1">
+                <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
                   Buyer Profile
                 </label>
                 <input
@@ -271,13 +271,13 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   value={buyerType}
                   onChange={(e) => setBuyerType(e.target.value)}
                   placeholder="e.g. First-time, Upgrading, NRI"
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               {/* Property Type */}
               <div>
-                <label className="block text-slate-300 font-medium mb-1">
+                <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
                   Property Type
                 </label>
                 <input
@@ -285,13 +285,13 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   value={propertyType}
                   onChange={(e) => setPropertyType(e.target.value)}
                   placeholder="e.g. 2BHK Apartment, Villa"
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               {/* Budget */}
               <div>
-                <label className="block text-slate-300 font-medium mb-1">
+                <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
                   Budget Range
                 </label>
                 <input
@@ -299,13 +299,13 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   value={budget}
                   onChange={(e) => setBudget(e.target.value)}
                   placeholder="e.g. AED 1.5M, ₹1.5 Cr"
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-amber-400 font-semibold focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-amber-600 dark:text-amber-400 font-semibold focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               {/* Location */}
               <div>
-                <label className="block text-slate-300 font-medium mb-1">
+                <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
                   Preferred Location
                 </label>
                 <input
@@ -313,13 +313,13 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="e.g. Dubai Marina, OMR Chennai"
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               {/* Timeline */}
               <div>
-                <label className="block text-slate-300 font-medium mb-1">
+                <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
                   Purchase Timeline
                 </label>
                 <input
@@ -327,29 +327,29 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   value={timeline}
                   onChange={(e) => setTimeline(e.target.value)}
                   placeholder="e.g. 1-2 months, Immediate"
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-cyan-400 font-semibold focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-cyan-600 dark:text-cyan-400 font-semibold focus:outline-none focus:border-amber-500"
                 />
               </div>
             </div>
           </div>
 
           {/* Section 3: CRM Status & Outcome */}
-          <div className="space-y-2.5 pt-2 border-t border-slate-800">
-            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <FileText className="w-3 h-3 text-emerald-400" />
+          <div className="space-y-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <FileText className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
               <span>CRM Classification &amp; Notes</span>
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Call Status */}
               <div>
-                <label className="block text-slate-300 font-medium mb-1">
+                <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
                   Call Status
                 </label>
                 <select
                   value={callStatus}
                   onChange={(e) => setCallStatus(e.target.value as LeadCallStatus)}
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500 cursor-pointer"
+                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500 cursor-pointer"
                 >
                   <option value="NOT_CALLED">Not Called</option>
                   <option value="CALLING">Calling...</option>
@@ -362,14 +362,14 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
               {/* Qualification Outcome */}
               <div>
-                <label className="block text-slate-300 font-medium mb-1">
+                <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
                   Lead Classification Outcome
                 </label>
                 <select
                   value={outcome}
                   onChange={(e) => setOutcome(e.target.value as LeadOutcome)}
                   disabled={isOptedOut}
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500 cursor-pointer disabled:opacity-50"
+                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500 cursor-pointer disabled:opacity-50"
                 >
                   <option value="PENDING">PENDING (Unclassified)</option>
                   <option value="HOT">HOT 🔥 (Immediate buyer &lt; 90 days + budget)</option>
@@ -383,7 +383,7 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
             {/* Notes */}
             <div>
-              <label className="block text-slate-300 font-medium mb-1">
+              <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
                 Internal Notes &amp; Agent Remarks
               </label>
               <textarea
@@ -391,20 +391,20 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add special instructions, preferred callback time, or property requirements..."
-                className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500"
+                className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-amber-500"
               />
             </div>
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+          <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
             {savedSuccess ? (
-              <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Changes saved successfully!</span>
               </span>
             ) : (
-              <span className="text-[11px] text-slate-500 font-mono">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
                 ID: {lead.id}
               </span>
             )}
@@ -413,7 +413,7 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-1.5 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               >
                 Cancel
               </button>

@@ -8,3 +8,14 @@ coverage/
 !.env.example
 uploads/
 *.zip
+scratch/
+scratch*
+*.err
+server_*.txt
+Checksum
+Downloading
+Extracting
+Fetching
+Installing
+Latest
+Verifying

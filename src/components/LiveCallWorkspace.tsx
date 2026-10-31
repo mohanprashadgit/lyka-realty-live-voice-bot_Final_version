@@ -21,6 +21,7 @@ import {
   Bot,
   Sparkles,
   Move3d,
+  ExternalLink,
 } from 'lucide-react';
 import { CallStatus, TranscriptTurn, SUPPORTED_VOICES, getAgentPersona } from '../types/agent';
 import { renderHighlightedText } from '../utils/highlightKeywords';
@@ -49,6 +50,7 @@ interface LiveCallWorkspaceProps {
   leadData: any;
   onUpdateLeadData: (updated: any) => Promise<boolean>;
   errorMsg?: string;
+  serverStatus: 'checking' | 'ok' | 'error';
 }
 
 export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
@@ -75,6 +77,7 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
   leadData,
   onUpdateLeadData,
   errorMsg,
+  serverStatus,
 }) => {
   const [inputText, setInputText] = useState('');
   const [leadName, setLeadName] = useState(leadData?.name || '');
@@ -275,17 +278,17 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
       const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, outerR);
 
       if (isSpeaking) {
-        grad.addColorStop(0, 'rgba(168, 85, 247, 0.65)'); // Luminous violet
-        grad.addColorStop(0.35, 'rgba(99, 102, 241, 0.45)'); // Electric indigo
-        grad.addColorStop(0.7, 'rgba(56, 189, 248, 0.25)'); // Cyan flare
+        grad.addColorStop(0, 'rgba(229, 186, 115, 0.65)'); // Luminous violet
+        grad.addColorStop(0.35, 'rgba(216, 158, 67, 0.45)'); // Electric indigo
+        grad.addColorStop(0.7, 'rgba(247, 226, 184, 0.25)'); // Cyan flare
         grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
       } else if (isListening) {
         grad.addColorStop(0, 'rgba(16, 185, 129, 0.55)'); // Emerald
         grad.addColorStop(0.5, 'rgba(5, 150, 105, 0.3)');
         grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
       } else {
-        grad.addColorStop(0, 'rgba(124, 58, 237, 0.35)'); // Gentle idle cosmic violet
-        grad.addColorStop(0.6, 'rgba(79, 70, 229, 0.15)');
+        grad.addColorStop(0, 'rgba(200, 148, 70, 0.35)'); // Gentle idle cosmic violet
+        grad.addColorStop(0.6, 'rgba(156, 103, 22, 0.15)');
         grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
       }
 
@@ -301,7 +304,7 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
           const ripPhase = ((time * 1.5 + rIdx * 1.2) % 2) / 2; // 0 to 1
           const ripRadius = 55 + ripPhase * 58;
           const ripAlpha = (1 - ripPhase) * 0.45 * Math.min(1, activeEnergy);
-          ctx.strokeStyle = `rgba(168, 85, 247, ${ripAlpha})`;
+          ctx.strokeStyle = `rgba(229, 186, 115, ${ripAlpha})`;
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           ctx.arc(cx, cy, ripRadius, 0, Math.PI * 2);
@@ -380,7 +383,7 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
           if (isSpeaking) {
             col = depthAlpha > 0.6
               ? `rgba(255, 255, 255, ${depthAlpha})`
-              : `rgba(192, 132, 252, ${depthAlpha * 0.95})`; // Radiant violet
+              : `rgba(243, 207, 122, ${depthAlpha * 0.95})`; // Radiant violet
           } else if (isListening) {
             col = depthAlpha > 0.6
               ? `rgba(255, 255, 255, ${depthAlpha})`
@@ -406,10 +409,10 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
         if (proj.scale > 0) {
           const depthAlpha = Math.max(0.1, Math.min(0.9, (proj.pz + 90) / 180));
           const ringCol = isSpeaking
-            ? `rgba(56, 189, 248, ${depthAlpha * 0.85})` // Bright Cyan ring
+            ? `rgba(247, 226, 184, ${depthAlpha * 0.85})` // Bright Cyan ring
             : isListening
             ? `rgba(52, 211, 153, ${depthAlpha * 0.8})`
-            : `rgba(167, 139, 250, ${depthAlpha * 0.6})`;
+            : `rgba(229, 186, 115, ${depthAlpha * 0.6})`;
           projectedItems.push({
             type: 'ring1',
             px: proj.px,
@@ -429,8 +432,8 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
         if (proj.scale > 0) {
           const depthAlpha = Math.max(0.1, Math.min(0.85, (proj.pz + 80) / 160));
           const ringCol = isSpeaking
-            ? `rgba(232, 121, 249, ${depthAlpha * 0.8})` // Fuchsia flare
-            : `rgba(147, 197, 253, ${depthAlpha * 0.5})`;
+            ? `rgba(247, 226, 184, ${depthAlpha * 0.8})` // Fuchsia flare
+            : `rgba(245, 221, 168, ${depthAlpha * 0.5})`;
           projectedItems.push({
             type: 'ring2',
             px: proj.px,
@@ -599,6 +602,21 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
               {selectedVoice}
             </span>
           </div>
+
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                serverStatus === 'ok'
+                  ? 'bg-emerald-500 animate-pulse'
+                  : serverStatus === 'checking'
+                  ? 'bg-amber-500'
+                  : 'bg-rose-500'
+              }`}
+            />
+            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 hidden sm:inline">
+              {serverStatus === 'ok' ? 'Ready' : 'Checking'}
+            </span>
+          </div>
         </div>
 
         {/* Live Status Indicators matching Google Stitch */}
@@ -627,10 +645,34 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
 
       {/* Error alert banner if any */}
       {errorMsg && (
-        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>{errorMsg}</span>
+        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex flex-col gap-2 shadow-xs">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-1.5">
+              <span className="font-semibold leading-relaxed block">{errorMsg}</span>
+              {/spending cap|quota|studio/i.test(errorMsg) && (
+                <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px]">
+                  <a
+                    href="https://ai.studio/spend"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-rose-800 dark:text-rose-200 underline hover:no-underline"
+                  >
+                    <span>Manage Spend Cap at Google AI Studio</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-rose-800 dark:text-rose-200 underline hover:no-underline"
+                  >
+                    <span>Google AI Studio API Keys</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -664,7 +706,7 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
         {/* ── LEFT COLUMN: Voice calling orb & customer controls (approx 4.5 cols) ── */}
         <div className="lg:col-span-5 space-y-4">
           {/* Black Card: Celestial Interactive 3D Orb Visualizer */}
-          <div className="bg-[#030712] text-white rounded-2xl p-5 shadow-lg flex flex-col items-center justify-center relative overflow-hidden min-h-[320px] border border-slate-800 ring-1 ring-violet-500/20">
+          <div className="bg-[#1f0518] text-white rounded-2xl p-5 shadow-lg flex flex-col items-center justify-center relative overflow-hidden min-h-[320px] border border-slate-800 ring-1 ring-violet-500/20">
             {/* Interactive Canvas Wrapper with drag & hover */}
             <div
               className="relative group cursor-grab active:cursor-grabbing select-none"
@@ -816,8 +858,9 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
                   <option value="Aoede">Aoede (Warm &amp; Conversational)</option>
                 </optgroup>
                 <optgroup label="Male Voices — Agent Harish">
+                  <option value="Puck">Puck (Preferred Male — Expressive, Real-Human Breaks)</option>
                   <option value="Achird">Achird (Confident Natural Character)</option>
-                  <option value="Zubenelgenubi">Zubenelgenubi (Preferred Male — Calm Senior Advisor)</option>
+                  <option value="Zubenelgenubi">Zubenelgenubi (Calm Senior Advisor)</option>
                 </optgroup>
               </select>
 
@@ -1084,9 +1127,9 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
               </div>
 
               <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">3. Current Location</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
-                  {leadData?.city || leadData?.location || leadCity || 'Not provided'}
+                <span className="text-[10px] text-slate-400 block font-medium">3. Location(s) Mentioned</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200 block text-[11px]">
+                  {leadData?.all_locations_mentioned || leadData?.location || leadData?.city || leadCity || 'Not provided'}
                 </span>
               </div>
 
@@ -1125,6 +1168,18 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* Special Notes & Cumulative Summary */}
+            {leadData?.notes && (
+              <div className="p-2.5 rounded-xl bg-amber-50/90 dark:bg-slate-950/80 border border-amber-300 dark:border-amber-500/30 text-xs">
+                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider block mb-1">
+                  Special Notes &amp; Spoken Summary:
+                </span>
+                <p className="text-[11px] leading-relaxed text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-medium">
+                  {leadData.notes}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1262,7 +1317,9 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
 
                           <div className="flex items-center justify-end gap-1.5 pt-0.5 text-[10px] text-emerald-800 dark:text-emerald-200 font-mono">
                             <span>{displayTime}</span>
-                            <CheckCheck className="w-3.5 h-3.5 text-sky-600 dark:text-sky-300" title="Delivered &amp; Understood" />
+                            <span title="Delivered &amp; Understood">
+                              <CheckCheck className="w-3.5 h-3.5 text-sky-600 dark:text-sky-300" />
+                            </span>
                           </div>
                         </div>
 

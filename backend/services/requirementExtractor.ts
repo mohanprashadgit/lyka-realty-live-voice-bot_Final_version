@@ -6,7 +6,50 @@
  * in English, Tamil, and Tanglish. Prevents hallucinations and ensures INR & area unit consistency.
  */
 
-import { StructuredRequirements, convertAreaToSqft } from './propertyMatchingService.js';
+export interface StructuredRequirements {
+  listing_category: 'land' | 'property' | 'any';
+  property_type?: string | null;
+  land_type?: string | null;
+  intended_use?: string | null;
+  zoning?: string | null;
+  bedrooms?: number | null;
+  location?: string | null;
+  locality?: string | null;
+  city?: string | null;
+  budget_max?: number | null;
+  budget_min?: number | null;
+  area_min?: number | null;
+  area_max?: number | null;
+  area_unit?: string | null;
+  near_metro?: boolean;
+  road_access_required?: boolean;
+  min_road_width_ft?: number | null;
+  utilities_required?: { water: boolean; electricity: boolean } | boolean | null;
+  strict_budget?: boolean;
+  locality_preference?: string | null;
+  amenities?: string[] | null;
+}
+
+export function convertAreaToSqft(value: number, unit: string): number {
+  switch (unit.toLowerCase()) {
+    case 'cents':
+    case 'cent':
+      return value * 435.6;
+    case 'grounds':
+    case 'ground':
+      return value * 2400;
+    case 'acres':
+    case 'acre':
+      return value * 43560;
+    case 'sqm':
+      return value * 10.7639;
+    case 'sqyd':
+      return value * 9;
+    case 'sqft':
+    default:
+      return value;
+  }
+}
 
 /**
  * Normalise Lakhs / Crores / K / Millions into numeric INR

@@ -5,45 +5,190 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ═══════════════════════════════════════════════════════════════════════
-   LYKA REALTY AI CHATBOT — Aura Privé Design System
-   Design tokens extracted from Google Stitch UI ZIP
+   LYKA REALTY — "Royal Plum & Gold" Palette
+   Colour palette adopted from ai-cold-calling-agent (Lyka Realty ZIP):
+   rich plum surfaces, champagne-gold accents, soft rose-cream neutrals.
+   ═══════════════════════════════════════════════════════════════════════ */
+@theme {
+  /* ── Plum-tinted neutrals (replaces slate) ── */
+  --color-slate-50: #faf6f9;
+  --color-slate-100: #f5eaf0;
+  --color-slate-200: #ebd3e0;
+  --color-slate-300: #dfc2d3;
+  --color-slate-400: #b88fa8;
+  --color-slate-500: #8c5b7c;
+  --color-slate-600: #6f3f61;
+  --color-slate-700: #5a2649;
+  --color-slate-750: #4c1a41;
+  --color-slate-800: #3f1038;
+  --color-slate-850: #360d29;
+  --color-slate-900: #2e0b22;
+  --color-slate-950: #1f0518;
+
+  /* ── Champagne gold (primary accent — was violet) ── */
+  --color-violet-50: #fdf5e7;
+  --color-violet-100: #faeccf;
+  --color-violet-200: #f5dda8;
+  --color-violet-300: #f3cf7a;
+  --color-violet-400: #e5ba73;
+  --color-violet-500: #d89e43;
+  --color-violet-600: #c78d32;
+  --color-violet-700: #9c6716;
+  --color-violet-800: #7a4d10;
+  --color-violet-900: #5e3c04;
+  --color-violet-950: #2b1a04;
+
+  /* ── Deep gold / bronze (was indigo) ── */
+  --color-indigo-300: #f0cf9d;
+  --color-indigo-400: #e5ba73;
+  --color-indigo-500: #d4a24e;
+  --color-indigo-600: #b8862f;
+  --color-indigo-700: #96681f;
+  --color-indigo-800: #7a5318;
+  --color-indigo-900: #5e3c04;
+  --color-indigo-950: #2a1a05;
+
+  /* ── Light champagne (was cyan / sky / blue) ── */
+  --color-cyan-50: #fdf8ef;
+  --color-cyan-100: #faefd8;
+  --color-cyan-200: #f5e0b8;
+  --color-cyan-300: #f7e2b8;
+  --color-cyan-400: #efd09a;
+  --color-cyan-500: #e5ba73;
+  --color-cyan-600: #d89e43;
+  --color-cyan-700: #9c6716;
+  --color-cyan-800: #7a4d10;
+  --color-cyan-900: #5e3c04;
+  --color-cyan-950: #2e1d06;
+
+  --color-sky-50: #fdf8ef;
+  --color-sky-100: #faefd8;
+  --color-sky-200: #f5e0b8;
+  --color-sky-300: #f7e2b8;
+  --color-sky-400: #efd09a;
+  --color-sky-500: #e5ba73;
+  --color-sky-600: #d89e43;
+  --color-sky-700: #9c6716;
+  --color-sky-800: #7a4d10;
+  --color-sky-900: #5e3c04;
+  --color-sky-950: #2e1d06;
+
+  --color-blue-50: #fdf8ef;
+  --color-blue-100: #faefd8;
+  --color-blue-200: #f5e0b8;
+  --color-blue-300: #f3cf7a;
+  --color-blue-400: #e5ba73;
+  --color-blue-500: #d89e43;
+  --color-blue-600: #b8862f;
+  --color-blue-700: #96681f;
+  --color-blue-800: #7a5318;
+  --color-blue-900: #5e3c04;
+  --color-blue-950: #2a1a05;
+
+  /* ── Rose-plum secondary (was purple) ── */
+  --color-purple-50: #fdf2f8;
+  --color-purple-100: #fce7f3;
+  --color-purple-200: #fbcfe8;
+  --color-purple-300: #f9a8d4;
+  --color-purple-400: #fda1d7;
+  --color-purple-500: #d76aa8;
+  --color-purple-600: #a33d7d;
+  --color-purple-700: #7a2b5e;
+  --color-purple-800: #5a1d47;
+  --color-purple-900: #3d112f;
+  --color-purple-950: #2a0a20;
+
+  /* ── Refined gold (amber) ── */
+  --color-amber-50: #fdf6ea;
+  --color-amber-100: #faeccf;
+  --color-amber-200: #f5dda8;
+  --color-amber-300: #f3cf7a;
+  --color-amber-400: #e5ba73;
+  --color-amber-500: #d89e43;
+  --color-amber-600: #c78d32;
+  --color-amber-700: #9c6716;
+  --color-amber-800: #7a4d10;
+  --color-amber-900: #5e3c04;
+  --color-amber-950: #2b1a04;
+
+  /* ── Success / info harmonised to the plum theme ── */
+  --color-teal-300: #6ee7b7;
+  --color-teal-400: #34d399;
+  --color-teal-500: #10b981;
+  --color-teal-600: #059669;
+  --color-teal-700: #047857;
+  --color-green-300: #6ee7b7;
+  --color-green-400: #34d399;
+  --color-green-500: #10b981;
+  --color-green-600: #059669;
+  --color-orange-300: #f3cf7a;
+  --color-orange-400: #e5ba73;
+  --color-orange-500: #d89e43;
+  --color-orange-600: #c78d32;
+  --color-orange-700: #9c6716;
+
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, Cambria, 'Times New Roman', serif;
+
+  /* ── Larger, more legible type scale ── */
+  --text-xs: 0.82rem;
+  --text-xs--line-height: 1.35;
+  --text-sm: 0.95rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1.06rem;
+  --text-base--line-height: 1.6;
+  --text-lg: 1.2rem;
+  --text-lg--line-height: 1.55;
+  --text-xl: 1.35rem;
+  --text-xl--line-height: 1.45;
+  --text-2xl: 1.6rem;
+  --text-2xl--line-height: 1.35;
+  --text-3xl: 1.95rem;
+  --text-3xl--line-height: 1.25;
+  --text-4xl: 2.35rem;
+  --text-4xl--line-height: 1.15;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LYKA REALTY AI CHATBOT — Royal Plum Design System
+   Design tokens aligned with the Lyka Realty premium palette
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* ─── Design Tokens ──────────────────────────────────────────────────── */
 :root {
-  /* Stitch Colors — Light Mode */
-  --surface: #FAF7F2;
-  --surface-dim: #E2D8D1;
-  --surface-container: #f1ecf1;
-  --surface-container-low: #f7f2f6;
-  --surface-container-high: #ebe7eb;
-  --surface-container-highest: #e6e1e5;
+  /* Royal Plum — Light Mode */
+  --surface: #faf6f9;
+  --surface-dim: #ebd3e0;
+  --surface-container: #f5eaf0;
+  --surface-container-low: #faf6f9;
+  --surface-container-high: #efe0ea;
+  --surface-container-highest: #e6d3df;
   --surface-container-lowest: #ffffff;
-  --on-surface: #1c1b1e;
-  --on-surface-variant: #4f4539;
-  --outline: #817568;
-  --outline-variant: #d3c4b5;
-  --primary: #7d571f;
-  --primary-container: #d8a868;
+  --on-surface: #23061a;
+  --on-surface-variant: #5a2649;
+  --outline: #8c5b7c;
+  --outline-variant: #ebd3e0;
+  --primary: #9c6716;
+  --primary-container: #d89e43;
   --on-primary: #ffffff;
   --on-primary-container: #5e3c04;
-  --inverse-surface: #34302a;
-  --inverse-on-surface: #f9efe7;
-  --secondary: #904474;
+  --inverse-surface: #2e0b22;
+  --inverse-on-surface: #f5eaf0;
+  --secondary: #631e4e;
   --secondary-container: #fda1d7;
-  --tertiary: #3b6185;
+  --tertiary: #a33d7d;
   --error: #ba1a1a;
   --error-container: #ffdad6;
-  --champagne-glow: rgba(216, 168, 104, 0.18);
-  --champagne-light: #F3E3CE;
-  --ivory-bg: #FAF7F2;
-  --graphite-base: #0B0A0C;
-  --graphite-surface: #18161B;
-  --graphite-border: #28232D;
+  --champagne-glow: rgba(229, 186, 115, 0.20);
+  --champagne-light: #f3e3ce;
+  --ivory-bg: #faf6f9;
+  --graphite-base: #2e0b22;
+  --graphite-surface: #340e26;
+  --graphite-border: #4e1349;
 
   /* Typography */
   --font-display: 'Playfair Display', serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
 
   /* Spacing */
   --space-xs: 0.25rem;
@@ -56,18 +201,20 @@
   --gutter-mobile: 1rem;
 
   /* Radii */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.5rem;
+  --radius-sm: 0.4rem;
+  --radius-md: 0.7rem;
+  --radius-lg: 0.95rem;
+  --radius-xl: 1.2rem;
+  --radius-2xl: 1.6rem;
+  --radius-3xl: 2.1rem;
+  --radius-4xl: 2.6rem;
   --radius-pill: 9999px;
 
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-champagne: 0 8px 32px -4px rgba(216, 168, 104, 0.15);
+  --shadow-champagne: 0 8px 32px -4px rgba(229, 186, 115, 0.15);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -77,27 +224,29 @@
 
 /* ─── Dark Theme Tokens ──────────────────────────────────────────────── */
 .dark {
-  --surface: #0B0A0C;
-  --surface-dim: #1a1820;
-  --surface-container: #1e1c24;
-  --surface-container-low: #151318;
-  --surface-container-high: #262430;
-  --surface-container-highest: #302e38;
-  --surface-container-lowest: #060508;
-  --on-surface: #e6e1e5;
-  --on-surface-variant: #c9c0b5;
-  --outline: #968a7e;
-  --outline-variant: #4a4240;
-  --primary: #f0be7c;
-  --primary-container: #d8a868;
-  --on-primary: #291800;
-  --on-primary-container: #ffddb4;
-  --inverse-surface: #e6e1e5;
-  --inverse-on-surface: #313033;
-  --champagne-glow: rgba(216, 168, 104, 0.12);
-  --champagne-light: #d8a868;
-  --ivory-bg: #0B0A0C;
-  --graphite-base: #0B0A0C;
+  --surface: #2e0b22;
+  --surface-dim: #25071d;
+  --surface-container: #340e26;
+  --surface-container-low: #2b0820;
+  --surface-container-high: #3d0f39;
+  --surface-container-highest: #481144;
+  --surface-container-lowest: #1a051d;
+  --on-surface: #e5d7e0;
+  --on-surface-variant: #c4b2be;
+  --outline: #a894a2;
+  --outline-variant: #4e1349;
+  --primary: #e5ba73;
+  --primary-container: #d89e43;
+  --on-primary: #2b1a04;
+  --on-primary-container: #f5dda8;
+  --inverse-surface: #faf6f9;
+  --inverse-on-surface: #2e0b22;
+  --champagne-glow: rgba(229, 186, 115, 0.15);
+  --champagne-light: #e5ba73;
+  --ivory-bg: #2e0b22;
+  --graphite-base: #2e0b22;
+  --graphite-surface: #340e26;
+  --graphite-border: #4e1349;
 }
 
 /* ─── Base Reset ───────────────────────────────────────────────────────── */
@@ -150,18 +299,18 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(11, 10, 12, 0.5) 0%,
-    rgba(11, 10, 12, 0.7) 40%,
-    rgba(11, 10, 12, 0.92) 100%
+    rgba(31, 5, 24, 0.5) 0%,
+    rgba(31, 5, 24, 0.7) 40%,
+    rgba(31, 5, 24, 0.92) 100%
   );
 }
 
 .dark .welcome-bg-overlay {
   background: linear-gradient(
     180deg,
-    rgba(11, 10, 12, 0.6) 0%,
-    rgba(11, 10, 12, 0.8) 40%,
-    rgba(11, 10, 12, 0.96) 100%
+    rgba(31, 5, 24, 0.6) 0%,
+    rgba(31, 5, 24, 0.8) 40%,
+    rgba(31, 5, 24, 0.96) 100%
   );
 }
 
@@ -239,7 +388,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid rgba(216, 168, 104, 0.2);
+  border: 1px solid rgba(229, 186, 115, 0.2);
 }
 
 .orb-gradient {
@@ -306,7 +455,7 @@
 .lang-btn.active {
   background: var(--primary-container);
   color: var(--on-primary);
-  box-shadow: 0 2px 8px rgba(216, 168, 104, 0.3);
+  box-shadow: 0 2px 8px rgba(229, 186, 115, 0.3);
 }
 
 /* ─── Welcome Buttons ────────────────────────────────────────────────── */
@@ -333,12 +482,12 @@
   letter-spacing: 0.02em;
   cursor: pointer;
   transition: all var(--transition-base);
-  box-shadow: 0 4px 16px rgba(216, 168, 104, 0.3);
+  box-shadow: 0 4px 16px rgba(229, 186, 115, 0.3);
 }
 
 .btn-primary-gold:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(216, 168, 104, 0.4);
+  box-shadow: 0 6px 24px rgba(229, 186, 115, 0.4);
 }
 
 .btn-primary-gold:active { transform: scale(0.98); }
@@ -349,7 +498,7 @@
   justify-content: center;
   gap: 8px;
   padding: 14px 24px;
-  border: 1px solid rgba(216, 168, 104, 0.3);
+  border: 1px solid rgba(229, 186, 115, 0.3);
   border-radius: var(--radius-xl);
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(8px);
@@ -362,7 +511,7 @@
 
 .btn-secondary-glass:hover {
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(216, 168, 104, 0.5);
+  border-color: rgba(229, 186, 115, 0.5);
 }
 
 .btn-ghost {
@@ -514,7 +663,7 @@
 }
 
 .dark .chat-header {
-  background: rgba(11, 10, 12, 0.9);
+  background: rgba(31, 5, 24, 0.9);
   border-bottom-color: var(--graphite-border);
 }
 
@@ -655,7 +804,7 @@
   height: 100%;
   border-radius: 50%;
   background: var(--surface-container-high);
-  border: 1px solid rgba(216, 168, 104, 0.2);
+  border: 1px solid rgba(229, 186, 115, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -800,7 +949,7 @@
 }
 
 .dark .msg.user .msg-bubble {
-  background: rgba(216, 168, 104, 0.2);
+  background: rgba(229, 186, 115, 0.2);
   color: var(--champagne-light);
 }
 
@@ -1054,7 +1203,7 @@
   margin-top: var(--space-md);
   padding: var(--space-sm);
   border-radius: var(--radius-sm);
-  background: rgba(216, 168, 104, 0.08);
+  background: rgba(229, 186, 115, 0.08);
   font-size: 11px;
   color: var(--outline);
   text-align: center;
@@ -1229,7 +1378,7 @@
 }
 
 .dark .quick-reply-chip:hover {
-  background: rgba(216, 168, 104, 0.15);
+  background: rgba(229, 186, 115, 0.15);
   border-color: var(--primary);
 }
 
@@ -1325,4 +1474,397 @@
 @media (min-width: 1024px) {
   .chat-messages { padding: var(--space-lg) var(--space-xl); }
   .msg { max-width: 72%; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ROYAL PLUM & GOLD — MOTION PACK
+   Premium animations layered on top of the existing UI (no logic changes)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@keyframes lux-aurora {
+  0%   { background-position: 0% 50%, 100% 50%, 50% 100%; }
+  50%  { background-position: 100% 50%, 0% 50%, 50% 0%; }
+  100% { background-position: 0% 50%, 100% 50%, 50% 100%; }
+}
+@keyframes lux-rise {
+  from { opacity: 0; transform: translateY(22px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes lux-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes lux-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+@keyframes lux-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes lux-border-pan {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes lux-sweep {
+  0%   { transform: translateX(-140%) skewX(-18deg); }
+  100% { transform: translateX(240%) skewX(-18deg); }
+}
+@keyframes lux-ring {
+  0%   { transform: scale(0.85); opacity: 0.55; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+@keyframes lux-glow {
+  0%, 100% { box-shadow: 0 10px 40px -18px rgba(229, 186, 115, 0.35); }
+  50%      { box-shadow: 0 18px 60px -18px rgba(229, 186, 115, 0.60); }
+}
+
+/* ── Animated plum/gold app backdrop ─────────────────────────────────── */
+.lyka-app {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--surface);
+  color: var(--on-surface);
+}
+.lyka-app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(48rem 32rem at 8% -10%, rgba(229, 186, 115, 0.18), transparent 60%),
+    radial-gradient(42rem 30rem at 100% 0%, rgba(253, 161, 215, 0.16), transparent 62%),
+    radial-gradient(48rem 36rem at 50% 120%, rgba(216, 158, 67, 0.16), transparent 60%);
+  background-size: 130% 130%, 140% 140%, 130% 130%;
+  animation: lux-aurora 24s ease-in-out infinite;
+}
+.dark .lyka-app::before {
+  background:
+    radial-gradient(48rem 32rem at 8% -10%, rgba(229, 186, 115, 0.16), transparent 60%),
+    radial-gradient(42rem 30rem at 100% 0%, rgba(253, 161, 215, 0.11), transparent 62%),
+    radial-gradient(48rem 36rem at 50% 120%, rgba(216, 158, 67, 0.14), transparent 60%);
+}
+
+/* ── Header: glass + flowing gold hairline + shimmering brand ───────── */
+header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(229, 186, 115, 0.0) 12%,
+    rgba(229, 186, 115, 0.85) 38%,
+    rgba(247, 226, 184, 0.95) 50%,
+    rgba(229, 186, 115, 0.85) 62%,
+    rgba(229, 186, 115, 0.0) 88%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: lux-border-pan 7s linear infinite;
+}
+
+header h1 {
+  background-image: linear-gradient(92deg, #7a4d10, #b8862f, #9c6716, #c78d32, #7a4d10);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: lux-shimmer 9s linear infinite;
+}
+.dark header h1 {
+  background-image: linear-gradient(92deg, #e5ba73, #f7e2b8, #e5ba73, #d89e43, #e5ba73);
+}
+
+/* Brand monogram tile in the header turns into a plum → gold gem */
+header .bg-black {
+  background: linear-gradient(140deg, #2e0b22 0%, #631e4e 52%, #9c6716 100%) !important;
+  box-shadow:
+    0 6px 18px -8px rgba(229, 186, 115, 0.75),
+    inset 0 0 0 1px rgba(229, 186, 115, 0.40);
+}
+
+/* ── Tab content entrance ────────────────────────────────────────────── */
+main > div {
+  animation: lux-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Cards: buttery hover lift with a champagne glow ─────────────────── */
+main .rounded-2xl.border {
+  transition:
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.4s ease,
+    border-color 0.4s ease;
+}
+main .rounded-2xl.border:hover {
+  transform: translateY(-4px);
+  border-color: rgba(229, 186, 115, 0.55) !important;
+  box-shadow:
+    0 24px 48px -24px rgba(46, 11, 34, 0.55),
+    0 0 0 1px rgba(229, 186, 115, 0.22);
+}
+.dark main .rounded-2xl.border:hover {
+  box-shadow:
+    0 28px 60px -24px rgba(0, 0, 0, 0.78),
+    0 0 0 1px rgba(229, 186, 115, 0.32);
+}
+
+/* ── Primary gold buttons: light sweep on hover ──────────────────────── */
+main button[class*='bg-violet-6'],
+main button[class*='bg-amber-5'],
+main button[class*='bg-amber-6'],
+main button[class*='from-violet'],
+main button[class*='from-amber'],
+.btn-primary-gold {
+  position: relative;
+  overflow: hidden;
+}
+main button[class*='bg-violet-6']::after,
+main button[class*='bg-amber-5']::after,
+main button[class*='bg-amber-6']::after,
+main button[class*='from-violet']::after,
+main button[class*='from-amber']::after,
+.btn-primary-gold::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 42%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.48), transparent);
+  transform: translateX(-140%) skewX(-18deg);
+}
+main button[class*='bg-violet-6']:hover::after,
+main button[class*='bg-amber-5']:hover::after,
+main button[class*='bg-amber-6']:hover::after,
+main button[class*='from-violet']:hover::after,
+main button[class*='from-amber']:hover::after,
+.btn-primary-gold:hover::after {
+  animation: lux-sweep 0.85s ease;
+}
+
+/* ── Modals & overlays: soft fade + rise ─────────────────────────────── */
+.fixed.inset-0 {
+  animation: lux-fade 0.25s ease both;
+}
+.fixed.inset-0 > .rounded-2xl,
+.fixed.inset-0 > .rounded-3xl,
+.fixed.inset-0 > div > .rounded-2xl,
+.fixed.inset-0 > div > .rounded-3xl {
+  animation: lux-rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Utility / fallback animations used across the app ───────────────── */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.animate-fadeIn { animation: fadeIn 0.32s ease both; }
+.animate-fade-in { animation: fadeIn 0.32s ease both; }
+.animate-in { animation: lux-rise 0.36s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-pulse-slow { animation: pulse 3s ease-in-out infinite; }
+
+/* ── Floating accents ───────────────────────────────────────────────── */
+.lux-float { animation: lux-float 6s ease-in-out infinite; }
+.lux-glow { animation: lux-glow 5s ease-in-out infinite; }
+
+/* ── Selection & focus polish ───────────────────────────────────────── */
+::selection { background: rgba(229, 186, 115, 0.35); color: #2e0b22; }
+:focus-visible { outline: 2px solid rgba(229, 186, 115, 0.75); outline-offset: 2px; }
+
+/* ── Respect reduced-motion preferences ─────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+/* ═══════════════════════════════════════════════════════════════════════
+   PREMIUM UI POLISH — refined type scale, buttons, inputs, tables, cards
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Readability: bump the very small arbitrary text sizes ───────────── */
+.text-\[9px\]  { font-size: 0.72rem; line-height: 1.35; }
+.text-\[10px\] { font-size: 0.78rem; line-height: 1.35; }
+.text-\[11px\] { font-size: 0.85rem; line-height: 1.4; }
+.text-\[13px\] { font-size: 0.97rem; line-height: 1.5; }
+
+body { line-height: 1.5; letter-spacing: 0.005em; }
+
+/* ── Primary gold buttons: gradient, inner bevel, lift on hover ─────── */
+main button[class*='bg-amber-500'],
+main button[class*='bg-violet-600'],
+main button[class*='bg-slate-900']:not([class*='rounded-lg']),
+main button[class*='bg-slate-950']:not([class*='rounded-lg']) {
+  background-color: #d89e43 !important;
+  background-image: linear-gradient(
+    135deg,
+    #f7e2b8 0%,
+    #e5ba73 34%,
+    #d89e43 72%,
+    #c78d32 100%
+  ) !important;
+  color: #2b1a04 !important;
+  border: 1px solid rgba(255, 255, 255, 0.30);
+  border-radius: 1.05rem;
+  letter-spacing: 0.012em;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(122, 77, 16, 0.25),
+    0 10px 24px -14px rgba(200, 141, 50, 0.95),
+    0 2px 5px rgba(46, 11, 34, 0.22);
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s ease,
+    filter 0.25s ease;
+}
+main button[class*='bg-amber-500']:hover,
+main button[class*='bg-violet-600']:hover,
+main button[class*='bg-slate-900']:not([class*='rounded-lg']):hover,
+main button[class*='bg-slate-950']:not([class*='rounded-lg']):hover {
+  transform: translateY(-2px);
+  filter: brightness(1.04) saturate(1.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(122, 77, 16, 0.25),
+    0 18px 34px -16px rgba(200, 141, 50, 1),
+    0 4px 10px rgba(46, 11, 34, 0.25);
+}
+main button[class*='bg-amber-500']:active,
+main button[class*='bg-violet-600']:active,
+main button[class*='bg-slate-900']:not([class*='rounded-lg']):active,
+main button[class*='bg-slate-950']:not([class*='rounded-lg']):active {
+  transform: translateY(0) scale(0.985);
+  filter: brightness(0.99);
+}
+main button[class*='bg-amber-500'] svg,
+main button[class*='bg-violet-600'] svg,
+main button[class*='bg-slate-900']:not([class*='rounded-lg']) svg,
+main button[class*='bg-slate-950']:not([class*='rounded-lg']) svg {
+  color: #2b1a04 !important;
+}
+
+/* Keep the main rounded-full CTA truly pill-shaped */
+main button[class*='rounded-full'][class*='bg-slate-900'],
+main button[class*='rounded-full'][class*='bg-slate-950'] {
+  border-radius: 9999px;
+}
+
+/* ── Danger / end-call buttons: premium depth ───────────────────────── */
+main button[class*='bg-rose-600'] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 10px 24px -14px rgba(190, 18, 60, 0.95),
+    0 2px 5px rgba(46, 11, 34, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s ease,
+    background-color 0.25s ease;
+}
+main button[class*='bg-rose-600']:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 18px 34px -16px rgba(190, 18, 60, 1);
+}
+
+/* ── Icon / secondary buttons: soft champagne hover ─────────────────── */
+main button.rounded-full.border,
+main button.rounded-xl.border,
+main button.rounded-lg.border {
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s ease,
+    background-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+main button.rounded-full.border:hover,
+main button.rounded-xl.border:hover,
+main button.rounded-lg.border:hover {
+  border-color: rgba(229, 186, 115, 0.65) !important;
+  box-shadow: 0 8px 20px -14px rgba(200, 141, 50, 0.85);
+}
+
+/* ── Inputs, selects & textareas: inset bevel + gold focus halo ─────── */
+main input,
+main select,
+main textarea {
+  box-shadow: inset 0 1px 2px rgba(46, 11, 34, 0.08);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+main input:focus,
+main select:focus,
+main textarea:focus {
+  border-color: rgba(229, 186, 115, 0.85) !important;
+  box-shadow:
+    0 0 0 3px rgba(229, 186, 115, 0.20),
+    inset 0 1px 2px rgba(46, 11, 34, 0.06) !important;
+  outline: none !important;
+}
+
+/* ── Header nav: active tab becomes a gold gem ──────────────────────── */
+header nav button[class*='bg-white'],
+header nav button[class*='dark:bg-slate-900'] {
+  background-image: linear-gradient(135deg, #f7e2b8 0%, #e5ba73 42%, #d89e43 100%) !important;
+  background-color: #e5ba73 !important;
+  color: #2b1a04 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 8px 18px -10px rgba(200, 141, 50, 0.95);
+}
+header nav button[class*='bg-white'] svg,
+header nav button[class*='dark:bg-slate-900'] svg {
+  color: #2b1a04 !important;
+}
+
+/* ── Cards: soft top-light sheen + refined border ───────────────────── */
+main .rounded-2xl.border {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0) 42%
+  );
+}
+main .rounded-2xl.border:hover {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0) 55%
+  );
+}
+
+/* ── Tables: editorial uppercase headers + smooth row hover ─────────── */
+main thead th {
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+main tbody tr {
+  transition: background-color 0.18s ease;
+}
+
+/* ── Pills / chips: subtle lift ─────────────────────────────────────── */
+main button.rounded-full:not([class*='bg-slate-900']):not([class*='bg-slate-950']):not([class*='bg-rose-600']):hover {
+  transform: translateY(-1px);
+}
+
+/* ── Gold scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(229, 186, 115, 0.55), rgba(200, 141, 50, 0.55));
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(229, 186, 115, 0.85), rgba(200, 141, 50, 0.85));
 }

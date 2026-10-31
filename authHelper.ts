@@ -4,7 +4,8 @@
  */
 import crypto from 'crypto';
 
-const AUTH_SECRET = process.env.AUTH_SECRET || 'lyka_realty_jwt_secret_key_production_grade_2026';
+// Read after dotenv initialization, including when this module is imported first.
+const authSecret = () => process.env.AUTH_SECRET || 'lyka_realty_jwt_secret_key_production_grade_2026';
 
 export interface AuthTokenPayload {
   id: string;
@@ -52,7 +53,7 @@ export function generateToken(payload: Omit<AuthTokenPayload, 'exp'>, expiresInH
   const fullPayload: AuthTokenPayload = { ...payload, exp };
   const encodedPayload = Buffer.from(JSON.stringify(fullPayload)).toString('base64url');
   const signature = crypto
-    .createHmac('sha256', AUTH_SECRET)
+    .createHmac('sha256', authSecret())
     .update(encodedPayload)
     .digest('base64url');
   return `${encodedPayload}.${signature}`;
@@ -68,7 +69,7 @@ export function verifyToken(token: string): AuthTokenPayload | null {
   try {
     const [encodedPayload, signature] = token.split('.');
     const expectedSig = crypto
-      .createHmac('sha256', AUTH_SECRET)
+      .createHmac('sha256', authSecret())
       .update(encodedPayload)
       .digest('base64url');
 

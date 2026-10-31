@@ -150,13 +150,13 @@ export const DialTab: React.FC<DialTabProps> = ({
               <option value="+65">🇸🇬 +65 (Singapore)</option>
             </select>
 
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-0">
               <input
                 type="text"
                 placeholder="Enter phone number..."
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="w-full text-base font-mono font-bold tracking-wider px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none"
+                className="w-full min-w-0 text-base font-mono font-bold tracking-wider px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none"
               />
               {phoneNumber && (
                 <button

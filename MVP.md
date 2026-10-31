@@ -6,7 +6,35 @@ A production-grade, human-sounding conversational AI voice calling agent and pro
 
 ---
 
-## 🔧 Latest Updates & Improvements (October 2026)
+## 🔧 Latest Updates & Improvements (November 2026)
+
+### Combined Bug Fixes & UI Improvements Release
+1. **Duplicate Agent Speech Resolution**:
+   - Traced root causes to: (1) redundant `media` property passed alongside `audio` in `liveSession.sendRealtimeInput` in `server.ts`, sending duplicate ASR input chunks; (2) premature 0ms buffer state drop in `LiveAudioPlayer.source.onended` during network arrival jitter; and (3) immediate un-gated microphone transmission in `LiveMicRecorder` capturing room acoustic reverberation after the agent speaks.
+   - Deduplicated `sendRealtimeInput` to forward strictly `audio`. Added a 200ms debounce hangover in `LiveAudioPlayer` and a 350ms acoustic echo drain in `LiveMicRecorder` that suppresses room reflections while preserving normal barge-in and turn-taking.
+2. **Lead Temperature and Scoring Determinism**:
+   - Schema update in `db.ts`: set default temperature to `'PENDING'` (was `'WARM'`), added `lead_score INT DEFAULT NULL` with idempotent migration.
+   - `leadService.ts`: removed fallback defaulting leads to `'WARM'`; integrated `calculateDeterministicLeadScore` into lead payload creation and updates.
+   - `src/utils/scoring.ts`: eliminated agent question contamination (removed `fullConversation` positive keyword checks). Short non-committal or disconnected calls now properly resolve to `NO_ANSWER` or `PENDING` rather than defaulting to `WARM`.
+3. **Persisted Numerical Score on Customer Profile & Table**:
+   - Added persisted numerical score badges (`Score: {score}/100`) directly in the Customer Profile conversation modal header and the Leads & Calls table outcome column.
+   - Replaced client-side fabricated `fitScore` in `CrmDashboard.tsx` with persisted scores. Refreshes live after calls via database event listeners.
+4. **Transparent API Usage Tracking**:
+   - Audited `/api/usage` and `ApiUsageTab.tsx`. Distinguishes verified MySQL database activity (sessions, turns, CRM tool calls) from provider-level quotas.
+   - Accurately displays "Unavailable from provider" for live provider balance queries unexposed by Google AI Studio without Cloud Billing API credentials.
+   - Dynamic user timezone display and UTC daily reset boundary countdown.
+5. **Call Date Tracking & Top Date Filters**:
+   - Added top filters to `LeadsAndCallsTab.tsx`: `All calls`, `Today`, `Last 7 Days`, `Last 30 Days`, and `Custom date range` with `From` and `To` date pickers.
+   - Filters by actual call timestamps (`c.startedAt`), preserving individual timestamps for multi-call customers.
+   - Includes invalid-date boundary validation (`From > To` inline error) and custom empty states.
+6. **Consistent Dark & Light Theme Across All Components**:
+   - Resolved conflicting hardcoded dark backgrounds in `EditLeadModal.tsx` and `TwilioConfigModal.tsx` (`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800`).
+   - Added dark theme styling to `CrmDashboard.tsx` background, cards, and handoff modals.
+   - Persists theme across browser refresh via `localStorage.getItem('lyka_theme')`.
+
+---
+
+## 🔧 Previous Updates & Improvements (October 2026)
 
 ### Critical Bug Fix: Gemini Live API Model Configuration
 **Issue Resolved**: Voice agent was not speaking due to incorrect model name configuration.
@@ -32,19 +60,23 @@ A production-grade, human-sounding conversational AI voice calling agent and pro
 
 ### Troubleshooting Voice Agent Issues
 
-If the voice agent is not speaking, check these common issues:
+If the voice agent is not speaking or closes immediately upon pressing start call:
 
-1. **API Quota Exceeded**
+1. **API Spending Cap / Quota Exceeded**
    - Error: `"Your project has exceeded its monthly spending cap"`
-   - Solution: Visit [Google AI Studio](https://aistudio.google.com/app/apikey) to check billing and increase quota
-   
-2. **Invalid API Key**
-   - Verify `GEMINI_API_KEY` in `.env` file is correct and active
-   - Test with diagnostic script: `node test_audio_pipeline.mjs`
+   - UI Display: Alert banner appears in `LiveCallWorkspace` with clickable links to Google AI Studio spend settings.
+   - Solution: Visit [Google AI Studio Spend Settings](https://ai.studio/spend) to raise the project spend cap, or generate a new key at [Google AI Studio](https://aistudio.google.com/app/apikey).
+   - Dynamic Key Update: Can be updated at runtime via `POST /api/gemini/config` with `{"apiKey": "AIzaSy..."}` or `{"apiKey": "AQ...."}` or by editing `.env`.
+   - Pipeline Diagnostic: Run `node test_audio_pipeline.mjs` to test audio chunk streaming directly against the Gemini Live API.
 
-3. **Model Configuration**
-   - Ensure server is using `gemini-3.8-live` (not deprecated model names)
-   - Check console logs for connection errors
+2. **API Key Formats (`AIzaSy` & `AQ.`)**
+   - Both standard `AIzaSy...` keys and newer Google AI Studio `AQ....` developer keys are supported.
+   - Hot-reloaded automatically from `.env` on every request.
+
+3. **Model Configuration & Deprecation Fallback**
+   - Live Voice Audio: Uses `gemini-3.8-live` for bidirectional audio streaming.
+   - Probing & Tanglish Transcript Processing: Uses `gemini-3.5-flash` (`gemini-2.5-flash` was deprecated by Google for new users/keys with 404).
+   - Rate limit probe safely isolates genuine spending cap / quota errors from standard model updates.
 
 ---
 
@@ -85,21 +117,33 @@ If the voice agent is not speaking, check these common issues:
 
 | Feature / Module | Status | Verification Method | Notes |
 |---|---|---|---|
+| **Duplicate Agent Speech Fix** | **COMPLETED & VERIFIED** | Tested via audio pipeline deduplication & `tsc` | Deduplicated `sendRealtimeInput` in `server.ts` to forward single `audio` payload (discarding redundant `media`); added 200ms playback hangover in `LiveAudioPlayer` and 350ms acoustic echo drain in `LiveMicRecorder` to prevent room reverberation loopback. |
+| **Lead Temperature & Qualification Determinism** | **COMPLETED & VERIFIED** | Tested via unit test suite (`scratch_test_scoring.ts`) | Replaced `'WARM'` default with `'PENDING'` in `db.ts` and `leadService.ts`; removed agent question keyword contamination in `scoring.ts`; disconnected/incomplete calls no longer qualify as WARM without evidence. |
+| **Persisted Score on Customer Profile** | **COMPLETED & VERIFIED** | Tested via API & UI rendering | Numerical score (`Score: {score}/100`) and classification badge displayed on Customer Profile modal and Leads table; replaced fabricated `fitScore` with persisted lead score. |
+| **API Usage Provider vs Local Accounting** | **COMPLETED & VERIFIED** | Tested via `/api/usage` & UI verification | Distinguishes verified database counts (MySQL sessions, turns, tool calls) from provider limits; displays "Unavailable from provider" for unexposed balances; dynamic local timezone & reset countdown. |
+| **Leads & Calls Call Date Tracking & Filters** | **COMPLETED & VERIFIED** | Tested via filter state & UI verification | Top call date filter pills (`All calls`, `Today`, `Last 7 Days`, `Last 30 Days`, `Custom date range` From/To); filters by actual call timestamp (`startedAt`), preserves multi-call timestamps per customer, handles invalid date boundaries. |
+| **Global Dark & Light Theme Consistency** | **COMPLETED & VERIFIED** | Tested via theme toggle & component audit | Fixed hardcoded dark classes in `EditLeadModal.tsx` and `TwilioConfigModal.tsx`; added dark theme support to `CrmDashboard.tsx`; persisted across page refreshes via `lyka_theme`. |
 | **White Voice Calling Agent Interface (Google Stitch)** | **COMPLETED & SIGNED OFF** | Tested via Vite build & HTTP test suite | Clean white layout designed with Google Stitch ("Sovereign Voice Minimal"). Minimalist cards, subtle borders, high-contrast typography, and restrained purple/violet accents. Zero login forms or demo credentials. Knowledge tab removed from top navigation bar. |
 | **WhatsApp-Style Dual-Bubble Chat Layout** | **COMPLETED & VERIFIED** | Tested via Vite build & UI state rendering | Agent messages on **LEFT** with avatar, bot badge, verified voice tag, left-corner bubble in white/slate. Customer messages on **RIGHT** in soft emerald green bubble (`bg-[#DCF8C6] dark:bg-[#005C4B]`) with customer initial avatar and WhatsApp double blue checkmarks (`✓✓`). Active streaming and interim listening bubbles. |
 | **Interactive 3D Celestial Particle Orb** | **COMPLETED & VERIFIED** | Tested via HTML5 Canvas & build | Physics-based mouse drag & hover rotation with inertia damping (`Move3d`), 200 Fibonacci sphere particles, 2 concentric tilted orbital rings (22° and -40°), dynamic harmonic sinusoidal wave flaring during agent speech (`voiceState === 'speaking'`), and 16 dynamic studio audio spectrum equalizer bars. |
 | **Fully Functional Dark & Light Theme** | **COMPLETED & VERIFIED** | Tested via Tailwind v4 `@custom-variant dark` & localStorage | Immediate visual switching across header, cards, inputs, dropdowns, and transcripts with persistent theme state (`lyka_theme`) across browser refreshes. |
 | **Priya & Harish Voice Personas** | **COMPLETED & VERIFIED** | Tested via `/api/live-ws`, `/api/chat` & script | **Priya** (Female - Senior Property Relationship Manager) and **Harish** (Male - Senior Property Portfolio Executive). Zero references to legacy "Kayal" name. |
 | **Exactly 5 Selectable Voice Presets** | **COMPLETED & VERIFIED** | Tested all 5 via automated script (5/5 200 OK) | Female: `Sulafat` (Default preferred Tanglish reference), `Callirrhoe`, `Aoede`. Male: `Achird`, `Zubenelgenubi` (Preferred male reference). Grouped `<optgroup>` selector. Dynamic `change_voice` updates audio generation in real-time. |
-| **Transcript Looping & Duplicate Bug Fix** | **COMPLETED & VERIFIED** | Tested via automated multi-turn test script | Solved token-delta streaming fragmentation. Incoming deltas stream in-place (`streamingAgentTurn`); commits exactly once on `turn_complete`. Formatted as `**Priya · Agent · 00:14**` and `**Customer · 00:22**`. Zero duplicate phrases. |
+| **Transcript Looping & Duplicate Bug Fix** | **COMPLETED & VERIFIED** | Tested via multi-turn test & build | Solved token-delta streaming fragmentation. Removed placeholder `turn-init` duplicate rendering, filtered consecutive identical sentences in spoken audio, deduplicated consecutive agent turns, and prevented mic feedback echo from re-triggering speech. |
+| **Spoken Expressions & Subtle Appreciation** | **COMPLETED & VERIFIED** | Tested via 10/10 test suite (`scratch/test_voice_prompt.ts`) & Gemini Live audio probe | Advanced Natural Voice Tuning: enriched Tanglish telephone vocabulary across 10 categories (Listening, Warmth, Empathy, Apologies, Thinking, Curiosity, Reassurance, Transitions, Polite Waiting, Closing). Natural gender-neutral `-nga` marker rotated with `sir/madam` (*"Seri nga, got it"*, *"Super nga!"*, *"Puriyudhu nga"*, *"Konjam wait pannunga nga"*, *"One second, let me check"*). South Indian phone call vocal cadence with higher engaged pitch on curiosity/greetings, and slower relaxed pace with pauses (`...`) when explaining/waiting. Raw XML tags strictly prohibited in token stream to guarantee glitch-free audio synthesis and clean transcripts. |
+| **3-Attempt Objection Handling Protocol** | **COMPLETED & VERIFIED** | Built into system prompt & dialogue flow | 1st decline: Acknowledges warmly and pivots to referral or brief value point; 2nd decline: Respects choice and offers WhatsApp brochure for future reference; 3rd decline: Leaves gracefully without pushing. |
+| **Cumulative Multi-Location & Special Notes Memory** | **COMPLETED & VERIFIED** | Tested via live qualification schema | Stores ALL locations mentioned chronologically (e.g. "Madurai, Thoothukudi"), and preserves cumulative special requirements, preferences, and objections across the entire dialogue. |
+| **Extracted Prospect Profile Live Updates** | **COMPLETED & VERIFIED** | Tested in LeadPanel & LiveCallWorkspace | All 7 qualification fields (Name, Phone, Locations, Source, Purpose, Contact Method, Best Time) + Property specs + Special notes box live-sync from tool calls. |
+| **Conversation Persistence & Real Call Transcripts** | **COMPLETED & VERIFIED** | Tested via `/api/calls` & MySQL queries | Inbound/outbound calls automatically register conversations, link leads, and stream turn-by-turn messages to `conversation_messages`. Full transcripts render dynamically in the Leads & Calls tab modal. |
+| **Synchronous Customer Transcript Stream** | **COMPLETED & VERIFIED** | Tested via WebSocket stream | Delivers customer turns immediately to the UI to preserve exact chronological order with live agent responses; Tanglish normalization updates asynchronously in-place. |
 | **6-Stage Tanglish Spoken Style & Lead Flow** | **COMPLETED & VERIFIED** | Tested via `/api/chat` & live tests | Introduction & name -> basic details -> property transition -> qualification -> summary. Direct real-estate question override active. |
 | **Real Estate Knowledge Base** | **COMPLETED & VERIFIED** | Tested via `/api/knowledge` (200 OK) | India & Dubai listings, RERA/DLD regulations, investment comparison, Tanglish FAQs. |
-| **Leads & Calls Management** | **COMPLETED & VERIFIED** | Tested via `/api/leads` & `/api/calls` | Qualified prospect table, full Tanglish call transcripts modal, score badges. |
+| **Leads & Calls Management** | **COMPLETED & VERIFIED** | Tested via `/api/leads` & `/api/calls` | Compact single-view layout in `LeadsAndCallsTab.tsx`. Train-like accordion history list removed; 1-click **View** immediately opens a theme-responsive, centered conversation modal (`max-w-3xl`, `h-[88vh]`, `pt-16` below navbar). Full dual Light & Dark theme support (Light: clean white/rose-cream `#faf6f9`, readable dark text; Dark: royal plum `#2e0b22` & champagne gold). High-capacity transcript area (`flex-1 min-h-0`) reveals 10–15 turns simultaneously above a pinned `Close Details` button. Header intelligence & automated summary compressed to compact top strip. Customer bubbles right-aligned with amber/gold styling (`bg-amber-50 dark:bg-amber-500/20 text-slate-900 dark:text-amber-100 border border-amber-200 dark:border-amber-500/30`), agent left-aligned (`bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60`) with `break-words`. Independent scroll with `overscroll-contain` & body overflow lock. Aligned action buttons (`Call`, `View`, `Summary`, `Delete` all `h-7`). Centered delete confirmation modal (`max-w-sm`). `npx tsc --noEmit` passed (0 errors); `npm run build` passed (1670 modules, 3.02s). |
 | **PSTN Telephony & Dialpad** | **COMPLETED & VERIFIED** | Tested via `/api/call` & DialTab | Interactive dialpad, Twilio integration with browser microphone guidance. |
-| **Google AI Studio Quota Tracker** | **COMPLETED & VERIFIED** | Tested via `/api/usage` (200 OK) | Live token counts, audio minutes streamed, and daily refill policies. |
+| **Google AI Studio Quota Tracker** | **COMPLETED & VERIFIED** | Tested via `/api/usage?refresh=true` (200 OK) | Verified live database metrics (28 real sessions, 131 dialogue turns, 20 lead interactions, 12.65 mins audio duration), live Google Gemini API health probe, accurate RPD capacity bars, and real-time spending cap detection. |
 | **MySQL Relational Persistence** | **COMPLETED & VERIFIED** | Tested via live queries | Pool with safe `CREATE TABLE IF NOT EXISTS`, zero data loss. |
 | **Unified Upsert Lead Engine** | **COMPLETED & VERIFIED** | Tested via chat & voice turns | `leadService.ts` prevents duplicates, normalizes budgets and locations. |
-| **Dual App Shell Navigation** | **COMPLETED & SIGNED OFF** | Tested in browser (`#crm`, `#chat`) | Chatbot preserved; CRM accessible on `#crm` or "CRM Portal" button. Full viewport shell (`h-screen w-screen overflow-hidden`). |
+| **Dual App Shell Navigation** | **COMPLETED & VERIFIED** | Tested in browser (`#crm`, `#chat`) & Vite production build | Chatbot and voice assistant strictly preserved; CRM accessible at `#crm` or `http://localhost:3001/#crm`. Seamless reactive screen switching in `App.tsx` via `window.location.hash`, champagne-gold `CRM Dashboard` quick button and `CRM` tab pill in `Header.tsx`, `CRM Analytics` button in `LeadsAndCallsTab.tsx`, and `AI Assistant` return button in `CrmHeader.tsx`. |
 | **Aura Privé Dashboard Layout (Stage 1)** | **COMPLETED & SIGNED OFF** | Verified in build & DOM inspection | Full-viewport shell (`h-screen w-screen overflow-hidden`), independent sidebar/main scrolling, Tailwind v4 `@layer base` fix restoring all utility padding, centered max-w-[1600px] container. Zero clipping. *(Visual browser automation marked NOT VERIFIED due to offline Playwright binary 404)*. |
 | **Dashboard Core KPIs (Stage 1)** | **COMPLETED & SIGNED OFF** | Verified in build & DOM | Responsive CSS grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6`), 20px padding (`p-5`), 6 real MySQL tallies, zero border collisions across viewports. |
 | **Recent Leads Table (Dashboard)** | **COMPLETED & VERIFIED** | Verified with 7 real records | Horizontal scroll wrapper (`overflow-x-auto min-w-[880px]`), 52px table rows, high contrast text, HOT/WARM/COLD badges, slide-in drawer, reachable Actions column. |
@@ -130,6 +174,7 @@ If the voice agent is not speaking, check these common issues:
 | **AI Property Recommendation Engine inside Chat (Stage 4)** | **COMPLETED & VERIFIED** | Tested via 112/112 test suite & API | Deterministic 100-pt weighted scoring (`propertyMatchingService.ts`), Tamil/Tanglish/English parser (`requirementExtractor.ts`), Requirement Confirmation card, recommendation cards with "Why it matches" explainability, 1-click site visit scheduling, interested property bookmarking, Customer Portal integration, relaxation suggestions, and unmatched broker triage queue. |
 | **Global Floating AI Assistant (`GlobalAIAssistant.tsx`)** | **COMPLETED & VERIFIED** | Tested via 43/43 test suite & UI | Anchored at bottom-right of CRM layout (`CrmLayout.tsx`). Graphite & champagne-gold styling, collapsible launcher, live role badge, role- & page-aware prompt chips, Web Speech voice input, role-grounded `/api/chat` integration, and per-user isolated sessionStorage history preventing cross-user conversation leaks. |
 | **Role-Based Dashboard Dispatcher (`RoleDashboard.tsx`)** | **COMPLETED & VERIFIED** | Tested via `verify_all_roles_rbac.js` | Dedicated server-verified dashboard views for all 5 roles (Super Admin, Operations Admin, Lead Exec, Territory Manager, Sales Exec). Real MySQL KPIs, neutral loading skeleton eliminating data flash, and zero-trust backend API (`GET /api/crm/dashboard`). |
+| **Enhanced CRM Analytics Dashboard (`OverviewDashboard.tsx`)** | **COMPLETED & VERIFIED** | Tested via `scratch/verify_dashboard_analytics.ts` (46/46 passed) & Vite production build | Full analytics dashboard powered by `GET /api/crm/dashboard/analytics`: 16 period KPIs (Total/New/Hot/Warm/Cold/Qualified/Converted Leads, Total/Answered/Missed Voice Calls, Avg Duration, Answer & Qualification Rates), interactive date filters (Today, 7d, 30d, 90d, Custom Range), date-based lead & call trends (`LeadTrendChart.tsx`), lead source donut & stacked bar analytics (`LeadSourceChart.tsx`), 7-stage qualification funnel (`LeadFunnelViz.tsx`), 4 radial rate rings (`RateRingsViz.tsx`), hot-lead priority list (`HotLeadsPanel.tsx`), live CRM activity feed (`ActivityFeed.tsx`), multi-report CSV export (`dashboardExport.ts`), KPI-card filter navigation to `LeadManagementView`, and seamless dual Light & Dark theme support. |
 | **Zero-Trust Backend RBAC & Account-Switching Cleanup** | **COMPLETED & VERIFIED** | Tested via 43/43 test suite & API | Cryptographically signed HMAC-SHA256 tokens strictly enforced; spoofed headers (`x-user-role`, `?role=`) return 401/403. Scoped record filtering (Sales Exec sees only assigned leads; Territory Manager sees only department team). On sign-out or account switch, cached KPIs and assistant chats are instantly wiped. |
 | **Unified AI Land & Property Recommendation Engine inside Chat** | **COMPLETED & VERIFIED** | Tested via 25/25 automated test suite (`scratch/test_unified_land_property_recommendation.ts`) & live MySQL `lyka_crm` | Deterministic 100-pt scoring for land (Location 25%, Budget 20%, Area 20%, Zoning 15%, Road 10%, Utilities 10%) and properties (25/20/15/10/15/15); multilingual NLP parser (English, Tamil, Tanglish); standard unit conversions (cents, grounds, acres, sq.ft); strict vs flexible matches; data completeness tracking; chat confirmation cards (`RequirementConfirmationCard.tsx`); land-enriched recommendation cards (`PropertyRecommendationCard.tsx`); full modal (`PropertyDetailModal.tsx`); public concierge (`App.tsx`) and floating assistant (`GlobalAIAssistant.tsx`) integration; customer bookmarking (`customer_interested_properties`) and site visit booking with automatic CRM tasks. |
 | **Direct AI Chatbot Experience** | **COMPLETED & VERIFIED** | Verified in browser & production build | Unnecessary roadblocks and tab navigations (`Live call`, `Knowledge`, `Leads & calls`, `Dial`) removed; opens directly into the conversational Chatbot with greeting and quick reply chips. CRM portal remains accessible via `🏛️` header button and `#crm`. |
@@ -145,6 +190,10 @@ If the voice agent is not speaking, check these common issues:
 | **Subtle Appreciation & Natural City Response** | **COMPLETED & VERIFIED** | Tested via `scratch/test_final_update_suite.ts` | Light appreciation (*"Super sir!"*, *"Okay nga, puriyudhu"*, *"Ohh, appadiya?"*); avoids fake excitement or overpraising. Responds naturally to customer's city (e.g. Thoothukudi, Chennai) with zero invented facts. |
 | **Gradual 7-Field Lead Collection & DB Persistence** | **COMPLETED & VERIFIED** | Tested via `scratch/test_final_update_suite.ts` & MySQL | Progressively gathers all 7 required lead fields across dialogue turns one question at a time (Name, Phone, Location, Lead Source, Purpose, Preferred Contact Method, Best Time to Contact) with full MySQL persistence. |
 | **Vercel Deployment & Cloud MySQL SSL** | **COMPLETED & VERIFIED** | Verified via build & `vercel.json` | `vercel.json` configured with SPA routing rewrites. Cloud MySQL support enabled via `DB_SSL=true` in `db.ts` for Aiven, TiDB, Supabase, or AWS RDS. Production build (`npm run build`) bundles in 581ms with zero lint/type errors. |
+| **InfinityFree MySQL Audit & Remote Database Compatibility** | **AUDITED & TESTED (NOT REACHABLE EXTERNALLY)** | Tested via `scratch/test_infinityfree_connection.ts`, `Test-NetConnection`, DNS lookup | Host `sql308.infinityfree.com` has no public DNS A record (`ENOTFOUND`) and port 3306 is firewalled on InfinityFree free hosting against external connections. Node.js / Express and WebSockets are not supported on InfinityFree. Local MySQL (`lyka_crm`, 55 leads, 62 calls) verified working. Safe `CREATE DATABASE IF NOT EXISTS` exception handling added to `db.ts` for cloud/shared hosting. Standalone PHP proxy gateway provided at `bridge/infinityfree_bridge.php` for internal InfinityFree query execution if needed. |
+| **TiDB Cloud Live Connection & Test Data Purge** | **COMPLETED & VERIFIED** | Verified via live query, /api/health/db & /api/leads | Purged all dummy testing records from TiDB Cloud 5 core tables (backup preserved in `scratch/backup_tidb_testing_data.json`). Connected `.env` directly to TiDB Cloud (`gateway01.ap-northeast-1.prod.aws.tidbcloud.com:4000`). Verified server startup and live DB health check (`"database":"connected"`, `"error":null`). Returned 0 active test leads for clean production operation. |
+| **Complete CRM Setup Removal** | **COMPLETED & VERIFIED** | Verified via codebase audit, clean build & DB inspection | Completely removed all CRM subsystem files (src/crm/, crmRoutes.ts, CRM-specific modals and views). Removed CRM navigation links, tabs, and #crm route handling from App.tsx, Header.tsx, and LeadsAndCallsTab.tsx. Purged 11 unwanted tables from TiDB Cloud and local MySQL, leaving strictly the 5 core tables (customers, leads, conversations, conversation_messages, lead_interactions). Updated db.ts to only manage the 5 core tables. Application bundle dropped from 819 KB to 355 KB. |
+| **TiDB Cloud 5 Core Tables Architecture & Cleanup** | **COMPLETED & VERIFIED** | Tested via `scratch/clean_tidb_tables.ts` & TiDB query verification | Connected to TiDB Cloud (`gateway01.ap-northeast-1.prod.aws.tidbcloud.com:4000`). Safely backed up 11 unwanted CRM tables to `scratch/backup_tidb_unwanted_tables.json` and dropped them from `lyka_crm`. Strictly preserved the 5 core tables matching `lyka_realty_core_schema_infinityfree.sql`: `customers` (7 rows), `leads` (55 rows), `conversations` (67 rows), `conversation_messages` (97 rows), and `lead_interactions` (115 rows). Added `CORE_TABLES_ONLY=true` support in `db.ts` to prevent unwanted table re-creation. |
 
 ---
 

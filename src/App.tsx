@@ -156,6 +156,11 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Live Call always opens at the very top of the page
+  useEffect(() => {
+    if (activeTab === 'live') window.scrollTo(0, 0);
+  }, [activeTab]);
+
   const pushNavigation = (tab: MainAppTab, leads: LeadsView, period: DashboardPeriod) => {
     const state: LykaHistoryState = { lyka: true, tab, leads, dashboardPeriod: period };
     window.history.pushState(state, '');
@@ -165,7 +170,10 @@ export default function App() {
   };
 
   const selectTab = (tab: MainAppTab) => {
-    if (tab === activeTab) return;
+    if (tab === activeTab) {
+      if (tab === 'live') window.scrollTo(0, 0);
+      return;
+    }
     pushNavigation(tab, leadsView, dashboardPeriod);
   };
 

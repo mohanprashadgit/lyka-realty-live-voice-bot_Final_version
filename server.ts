@@ -82,6 +82,8 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 const twilioWss = new WebSocketServer({ noServer: true });
 
+// Vite's dev-mode HMR WebSocket rides THIS server's upgrade flow (same port)
+// so it never opens its own socket on 24678 — a second instance can't collide there.
 server.on('upgrade', (request, socket, head) => {
   const host = request.headers.host || `localhost:${PORT}`;
   const { pathname } = new URL(request.url || '', `http://${host}`);
@@ -93,6 +95,9 @@ server.on('upgrade', (request, socket, head) => {
     twilioWss.handleUpgrade(request, socket, head, (ws) => {
       twilioWss.emit('connection', ws, request);
     });
+  } else if (pathname === '/vite-hmr') {
+    // Hand Vite's HMR upgrade to Vite's own listener (registered later on this server).
+    return;
   } else {
     socket.destroy();
   }
@@ -3491,7 +3496,10 @@ if (!isProd) {
   try {
     const { createServer: createViteServer } = await import('vite');
   const vite = await createViteServer({
-    server: { middlewareMode: true },
+    // HMR rides our HTTP server (this instance's port) instead of a standalone WS on
+    // port 24678, which crashed the process with "Port 24678 is already in use" when
+    // another dev instance was running. (Vite 8: `server.ws` = old `server.hmr`.)
+    server: { middlewareMode: true, ws: { server: server, path: '/vite-hmr' } },
     appType: 'spa',
   });
     app.use(vite.middlewares);
@@ -3520,6 +3528,15 @@ try {
 } catch (err: any) {
   console.warn('[Server] MySQL not available — chatbot works without persistence:', err.message || err);
 }
+
+// Turn a port clash into a clean, readable exit instead of an unhandled crash
+server.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`[Server] Port ${PORT} already in use — another agent instance is running. Exiting cleanly.`);
+    process.exit(1);
+  }
+  console.error('[Server] HTTP server error:', err);
+});
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[Server] Lyka AI Real Estate Voice Agent running on http://0.0.0.0:${PORT}`);

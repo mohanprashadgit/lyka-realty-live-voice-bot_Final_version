@@ -78,17 +78,16 @@ export class CallJournal {
   drain() { return this.tail; }
 }
 
-/** Operator records access with cross-origin protection.
+/** Operator records access.
  * Standalone direct access; no employee sign-in or auth token required. */
-export const recordsAccess: RequestHandler = async (req, res, next) => {
+export const recordsAccess: RequestHandler = async (_req, res, next) => {
   try {
-    const origin = req.headers.origin;
-    if (req.headers['sec-fetch-site'] === 'cross-site' || (origin && new URL(origin).host !== req.headers.host)) {
-      res.status(403).json({ success: false, error: 'Cross-origin records access denied.' }); return;
-    }
     res.locals.recordActor = 'operator';
     await ensureCallRecords(); next();
-  } catch { res.status(503).json({ success: false, error: 'Records storage unavailable. Please retry.' }); }
+  } catch (err) {
+    console.error('[recordsAccess] Storage error:', err);
+    res.status(503).json({ success: false, error: 'Records storage unavailable. Please retry.' });
+  }
 };
 
 function parseJSON(value: any) {

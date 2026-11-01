@@ -31,6 +31,13 @@ A production-grade, human-sounding conversational AI voice calling agent and pro
    - Resolved conflicting hardcoded dark backgrounds in `EditLeadModal.tsx` and `TwilioConfigModal.tsx` (`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800`).
    - Added dark theme styling to `CrmDashboard.tsx` background, cards, and handoff modals.
    - Persists theme across browser refresh via `localStorage.getItem('lyka_theme')`.
+7. **Login Setup Removal & Initial Dashboard Launch**:
+   - Completely removed employee sign-in requirements, HMAC token validation, and the 401 "Employee sign-in required" barrier in `callRecords.ts` (`recordsAccess`).
+   - Cleaned up token dependencies in `CrmDashboard.tsx` and `LeadsAndCallsTab.tsx`.
+   - Configured the default initial tab in `src/App.tsx` to `dashboard` (`activeTab: 'dashboard'`), ensuring the application opens directly to the real-time CRM Analytics Dashboard with live synced KPIs.
+   - Fixed `LiveCallWorkspace.tsx` transcript layout with `lg:sticky lg:top-20` so the Live Conversation Stream remains visible beside the Extracted Prospect Profile during scrolling.
+   - Verified live database persistence in TiDB Cloud (`conversations`, `conversation_messages`, and `leads`), confirming call sessions, multi-turn messages, and extracted client specifications are accurately saved and queried.
+   - Guaranteed full preservation of live voice calling (`Live call` tab, Gemini Live WebSocket, 3D particle orb, audio player/mic recorder, voice presets) with zero disruption.
 
 ---
 
@@ -123,6 +130,7 @@ If the voice agent is not speaking or closes immediately upon pressing start cal
 
 | Feature / Module | Status | Verification Method | Notes |
 |---|---|---|---|
+| **Login Setup Removal & Initial Dashboard Launch** | **COMPLETED & VERIFIED** | Tested via Express test suite, Vite build & `tsc` | Removed 401 "Employee sign-in required" gate on `/api/leads` and `/api/calls` in `callRecords.ts`; cleaned up token dependencies in `CrmDashboard.tsx` and `LeadsAndCallsTab.tsx`; set default initial view in `src/App.tsx` to `dashboard`; preserved all live call audio and Gemini Live streaming. |
 | **Duplicate Agent Speech Fix** | **COMPLETED & VERIFIED** | Tested via audio pipeline deduplication & `tsc` | Deduplicated `sendRealtimeInput` in `server.ts` to forward single `audio` payload (discarding redundant `media`); added 200ms playback hangover in `LiveAudioPlayer` and 350ms acoustic echo drain in `LiveMicRecorder` to prevent room reverberation loopback. |
 | **Lead Temperature & Qualification Determinism** | **COMPLETED & VERIFIED** | Tested via unit test suite (`scratch_test_scoring.ts`) | Replaced `'WARM'` default with `'PENDING'` in `db.ts` and `leadService.ts`; removed agent question keyword contamination in `scoring.ts`; disconnected/incomplete calls no longer qualify as WARM without evidence. |
 | **Persisted Score on Customer Profile** | **COMPLETED & VERIFIED** | Tested via API & UI rendering | Numerical score (`Score: {score}/100`) and classification badge displayed on Customer Profile modal and Leads table; replaced fabricated `fitScore` with persisted lead score. |

@@ -1184,7 +1184,7 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
         </div>
 
         {/* ── RIGHT COLUMN: Main Conversation Transcript (WhatsApp Style) ── */}
-        <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-[740px]">
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-[740px] lg:sticky lg:top-20">
           {/* Header Bar matching Google Stitch & WhatsApp console specifications */}
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 text-xs">
             <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">

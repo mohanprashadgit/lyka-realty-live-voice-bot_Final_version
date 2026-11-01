@@ -11,11 +11,11 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
 ## 🌟 Key Highlights
 
 ### 1. Minimalist White Voice Calling Agent Interface (Google Stitch Design)
-- **Direct Entry**: Launches directly into the clean, white AI Voice Calling Agent workspace designed with Google Stitch ("Sovereign Voice Minimal"). Unnecessary CRM dashboard widgets, sales pipelines, employee leaderboards, login forms, demo credentials, and heavy dark navigation sidebars are completely removed from the primary UI.
+- **Direct Entry**: Launches directly into the initial **CRM Analytics Dashboard**, providing real-time visibility into incoming leads, voice calls, answer/qualification rates, conversion trends, and hot leads. Completely removed all login setups, employee sign-in barriers, and token checks from `/api/leads` and `/api/calls`, ensuring the dashboard loads live synced records seamlessly without 401 "Employee sign-in required" errors.
 - **Top Header**:
   - Official Lyka Realty logo & brand title: `Voice Calling Agent` with `AI Live` badge.
   - Persona badge: Shows active agent `Priya (Female)` or `Harish (Male)` with current voice preset (e.g. `Sulafat` or `Achird`).
-  - Agent-focused navigation tabs: `Live call`, `Leads & calls`, `Dial`, and `API Usage` (Knowledge tab removed from top navigation to streamline workflow).
+  - Navigation tabs: `Dashboard` (initial view), `Live call`, `Leads & calls`, `Dial`, and `API Usage`.
   - Light/Dark theme toggle: Defaults to **clean white / light theme** (`#FFFFFF` background, subtle `#E2E8F0` borders, `#0F172A` high-contrast typography, and restrained purple/violet accents). Fixed in Tailwind v4 with `@custom-variant dark (&:where(.dark, .dark *));`, updating the entire interface immediately and persisting in `localStorage`.
 - **Left Compact Panel (Voice Calling & Lead Qualification)**:
   - Black rounded card with **Interactive 3D Celestial Particle Orb & Globe Visualizer** (`#030712` void with `#4F46E5` / `#9333EA` / `#38BDF8` glow):

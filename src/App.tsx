@@ -37,7 +37,7 @@ const DEFAULT_LEADS_VIEW: LeadsView = { outcome: 'ALL', scope: 'ALL', source: 'A
 
 export default function App() {
   // Navigation & Theme State (Defaulting to the Lyka Royal Plum & Gold theme)
-  const [activeTab, setActiveTab] = useState<MainAppTab>('live');
+  const [activeTab, setActiveTab] = useState<MainAppTab>('dashboard');
   const [leadsView, setLeadsView] = useState<LeadsView>(DEFAULT_LEADS_VIEW);
   const [dashboardPeriod, setDashboardPeriod] = useState<DashboardPeriod>('today');
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -132,12 +132,12 @@ export default function App() {
   useEffect(() => {
     const initial = window.history.state as LykaHistoryState | null;
     if (initial?.lyka) {
-      setActiveTab(initial.tab);
+      setActiveTab(initial.tab || 'dashboard');
       setLeadsView({ ...DEFAULT_LEADS_VIEW, ...(initial.leads || {}) });
       setDashboardPeriod(initial.dashboardPeriod);
     } else {
       window.history.replaceState(
-        { lyka: true, tab: 'live', leads: DEFAULT_LEADS_VIEW, dashboardPeriod: 'today' } satisfies LykaHistoryState,
+        { lyka: true, tab: 'dashboard', leads: DEFAULT_LEADS_VIEW, dashboardPeriod: 'today' } satisfies LykaHistoryState,
         ''
       );
     }
@@ -145,10 +145,10 @@ export default function App() {
     const handlePopState = (event: PopStateEvent) => {
       const state = event.state as LykaHistoryState | null;
       if (!state?.lyka) {
-        setActiveTab('live');
+        setActiveTab('dashboard');
         return;
       }
-      setActiveTab(state.tab);
+      setActiveTab(state.tab || 'dashboard');
       setLeadsView({ ...DEFAULT_LEADS_VIEW, ...(state.leads || {}) });
       setDashboardPeriod(state.dashboardPeriod);
     };

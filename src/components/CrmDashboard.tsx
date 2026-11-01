@@ -245,8 +245,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
     let inFlight = false;
     let refreshAgain = false;
     const headers: Record<string, string> = {};
-    const token = localStorage.getItem('lyka_auth_token');
-    if (token) headers.Authorization = `Bearer ${token}`;
+
 
     const refresh = async () => {
       if (inFlight) {

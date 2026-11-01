@@ -1,6 +1,5 @@
 import { Router, type RequestHandler } from 'express';
 import { getPool } from './db.js';
-import { verifyToken } from './authHelper.js';
 import { saveMessage } from './leadService.js';
 
 let schemaReady: Promise<void> | undefined;
@@ -79,25 +78,15 @@ export class CallJournal {
   drain() { return this.tail; }
 }
 
-/** Standalone local operator access; remote access requires a signed employee session.
- * Never trust forwarded IP/role headers. Cross-site requests cannot use local access. */
+/** Operator records access with cross-origin protection.
+ * Standalone direct access; no employee sign-in or auth token required. */
 export const recordsAccess: RequestHandler = async (req, res, next) => {
   try {
-    const host = new URL(`http://${req.headers.host || ''}`).hostname;
-    const local = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress || '') &&
-      ['localhost', '127.0.0.1', '[::1]'].includes(host) && !req.headers['x-forwarded-for'] && !req.headers['x-forwarded-host'];
     const origin = req.headers.origin;
     if (req.headers['sec-fetch-site'] === 'cross-site' || (origin && new URL(origin).host !== req.headers.host)) {
       res.status(403).json({ success: false, error: 'Cross-origin records access denied.' }); return;
     }
-    if (local) { res.locals.recordActor = 'local-operator'; await ensureCallRecords(); next(); return; }
-    const token = req.headers.authorization?.replace(/^Bearer /, '');
-    const user = process.env.AUTH_SECRET && token ? verifyToken(token) : null;
-    if (!user) { res.status(401).json({ success: false, error: 'Employee sign-in required.' }); return; }
-    const [rows]: any = await getPool().query('SELECT role FROM employees WHERE id = ?', [user.id]);
-    const allowed = ['Super Admin', 'Operations Admin', 'Lead Management Executive'];
-    if (!allowed.includes(rows[0]?.role)) { res.status(403).json({ success: false, error: 'Records access denied.' }); return; }
-    res.locals.recordActor = user.id;
+    res.locals.recordActor = 'operator';
     await ensureCallRecords(); next();
   } catch { res.status(503).json({ success: false, error: 'Records storage unavailable. Please retry.' }); }
 };

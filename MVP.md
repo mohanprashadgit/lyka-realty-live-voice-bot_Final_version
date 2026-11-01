@@ -35,9 +35,16 @@ A production-grade, human-sounding conversational AI voice calling agent and pro
    - Completely removed employee sign-in requirements, HMAC token validation, and the 401 "Employee sign-in required" barrier in `callRecords.ts` (`recordsAccess`).
    - Cleaned up token dependencies in `CrmDashboard.tsx` and `LeadsAndCallsTab.tsx`.
    - Configured the default initial tab in `src/App.tsx` to `dashboard` (`activeTab: 'dashboard'`), ensuring the application opens directly to the real-time CRM Analytics Dashboard with live synced KPIs.
-   - Fixed `LiveCallWorkspace.tsx` transcript layout with `lg:sticky lg:top-20` so the Live Conversation Stream remains visible beside the Extracted Prospect Profile during scrolling.
    - Verified live database persistence in TiDB Cloud (`conversations`, `conversation_messages`, and `leads`), confirming call sessions, multi-turn messages, and extracted client specifications are accurately saved and queried.
    - Guaranteed full preservation of live voice calling (`Live call` tab, Gemini Live WebSocket, 3D particle orb, audio player/mic recorder, voice presets) with zero disruption.
+8. **Collaborator UI & Architecture Integration (Commit `c9502c2`)**:
+   - **Unified Right Column Layout (`LiveCallWorkspace.tsx`)**: Re-architected right column (`lg:col-span-7 space-y-4`) to house both the WhatsApp-style Live Conversation Stream (`h-[600px] sm:h-[740px]`) and the Extracted Prospect Profile cleanly.
+   - **Collapsible Voice Preset Accordion**: Added accessible `isVoicePresetOpen` toggle button for the 5 voice presets with animated rotation indicators.
+   - **Container-Scoped Transcript Auto-Scrolling**: Implemented `transcriptScrollRef.current.scrollTo({ top: scrollHeight, behavior: 'smooth' })`, ensuring auto-scroll applies strictly within the transcript viewport and never jumps the parent page.
+   - **Enhanced Navigation & Responsive Header**: Added Lyka logo button to quickly open Live call, responsive pill wrapping on mobile (`max-lg:w-full`, `truncate`, `whitespace-nowrap`), and smooth page scroll-to-top on entering the Live call tab.
+   - **Liquid Glass Dark Theme Dashboard**: Added scoped dark theme classes (`.lyka-dash-loading`, `.dark .lyka-kpi`), glassmorphism backdrop filters, and SVG ring indicators with dark stroke styling in `src/index.css` and `CrmDashboard.tsx`.
+   - **Responsive Table Sizing**: Enforced `min-w-[900px]` with horizontal scrolling on `LeadsAndCallsTab.tsx` table.
+   - **Vite HMR & Port Clash Protection**: Added `/vite-hmr` WebSocket route attached to the main HTTP server in `server.ts`, preventing port 24678 collisions between instances, and graceful exit handling on `EADDRINUSE`.
 
 ---
 

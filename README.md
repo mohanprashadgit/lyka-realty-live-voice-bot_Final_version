@@ -24,7 +24,8 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
     - Dynamic harmonic coronal energy flaring: while the agent is speaking (`voiceState === 'speaking'`), particles ripple outwards with frequency waves proportional to `audioEnergy`, alongside multi-ring shockwaves.
     - 16 dynamic studio audio spectrum equalizer bars below the orb bouncing in real-time with agent audio and microphone energy.
   - Voice Persona Selector: Seamless toggle between **Priya (Female)** and **Harish (Male)** (the legacy name 'Kayal' has been completely removed).
-  - Exactly 5 Selectable Voice Presets (Grouped by Gender in Dropdown):
+  - Exactly 5 Selectable Voice Presets (Grouped by Gender in Collapsible Accordion):
+    - **Interactive Accordion**: Voice selector can be smoothly expanded or collapsed via the header toggle (`isVoicePresetOpen`).
     - **Female**:
       1. `Sulafat` (Default female voice / primary audio-quality reference)
       2. `Callirrhoe` (Empathetic & professional)
@@ -75,9 +76,11 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
   - Pre-call / live qualification form fields: `Customer Name`, `Phone`, `City / Location` (e.g., Chennai, Dubai), `Language` (Tamil Nadu Tanglish, English, Tamil), and `Reason for call`.
   - High-visibility action pill button: `📞 Start new call with Priya/Harish` / `🔴 End call` + Mic Mute + Barge-in Interrupt.
   - Mode toggle: `Live voice` with browser microphone permissions and echo-safe audio streaming.
-- **Right Main Panel (WhatsApp-Style Dual-Bubble Conversation Stream)**:
+- **Right Main Panel (WhatsApp-Style Dual-Bubble Stream & Extracted Profile)**:
+  - Unified right column (`lg:col-span-7 space-y-4`) wrapping both the live conversation transcript and the extracted prospect profile.
   - Header with `Live Conversation Stream`, `WhatsApp Dual-Bubble` badge, and unique session call ID.
   - Subtle WhatsApp wallpaper background with centered session date pill (`Today · WhatsApp Live Voice Session`).
+  - Container-scoped smooth auto-scrolling (`transcriptScrollRef.current.scrollTo`) so the parent browser window never jumps when new dialogue turns stream in.
   - **Agent Turns on LEFT**:
     - Circular agent avatar with online green indicator (`Priya` / `Harish`).
     - Clean incoming bubble (`bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-2xl rounded-tl-xs px-4 py-3 shadow-xs border border-slate-200/90 dark:border-slate-700/80`).
@@ -91,7 +94,7 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
     - Agent streaming turn: Left-aligned glowing WhatsApp bubble with animated vertical audio equalizer bars (`Priya is speaking...`).
     - Customer interim speech: Right-aligned dashed emerald listening bubble with pulsing microphone icon (`Listening to customer...`).
   - Test chips bar: Instant clickable test lines in natural Tamil Nadu Tanglish for India & Dubai real estate.
-  - Interaction input bar: Type-to-speak input with instant Send button and auto-scroll to the latest turn.
+  - Interaction input bar: Type-to-speak input with instant Send button.
 - **Protected Real Estate Knowledge Base Tab**:
   - Verified luxury inventory for India (Chennai OMR/ECR villas, Bangalore gated communities) and Dubai (Downtown Dubai, Dubai Marina, Palm Jumeirah).
   - Regulatory guides for TNRERA / MahaRERA and Dubai Land Department (DLD 4% fee, Freehold eligibility, UAE 10-Year Golden Visa at AED 2M+).

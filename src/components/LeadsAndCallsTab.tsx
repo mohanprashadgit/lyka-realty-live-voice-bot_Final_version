@@ -104,7 +104,8 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
   const [dateError, setDateError] = useState('');
 
   const authHeaders = (): Record<string, string> => {
-    return {};
+    const token = localStorage.getItem('lyka_auth_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
   const openConversation = async (id: string) => {

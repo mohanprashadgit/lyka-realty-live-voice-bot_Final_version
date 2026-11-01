@@ -70,11 +70,10 @@ interface SummaryView {
   transcript: TranscriptTurn[];
 }
 
-const PAGE_BG = 'linear-gradient(165deg, #f7f1e9 0%, #f5eee6 38%, #f1e5df 100%)';
-const CARD = 'rounded-[24px] border border-[#eeded4] dark:border-slate-800 bg-[#fdfaf7] dark:bg-slate-900 shadow-[0_26px_60px_-48px_rgba(74,18,55,0.6)] dark:shadow-none text-slate-900 dark:text-slate-100 transition-colors';
-const H2 = 'text-[16px] font-bold tracking-tight text-[#3c122e] dark:text-slate-100';
-const SUB = 'mt-0.5 text-[11.5px] text-[#9b7f8c] dark:text-slate-400';
-const ICON_TILE = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border border-[#f1dfbc] dark:border-slate-700 bg-[#fbf0da] dark:bg-slate-800';
+const CARD = 'rounded-[24px] border border-[#eeded4] dark:border-white/10 bg-[#fdfaf7] dark:bg-slate-900 shadow-[0_26px_60px_-48px_rgba(74,18,55,0.6)] dark:shadow-[0_24px_54px_-42px_rgba(0,0,0,0.9)] text-slate-900 dark:text-slate-100 transition-colors';
+const H2 = 'text-[16px] font-bold tracking-tight text-[#3c122e] dark:text-white';
+const SUB = 'mt-0.5 text-[11.5px] text-[#9b7f8c] dark:text-[#d3b3c4]';
+const ICON_TILE = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border';
 const GOLD_STYLE: React.CSSProperties = {
   background: 'linear-gradient(135deg, #f7e2b8 0%, #ecc176 38%, #d89e43 100%)',
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.75), 0 12px 24px -16px rgba(200,141,50,0.95)',
@@ -205,7 +204,15 @@ const Ring: React.FC<{ value: number; color: string }> = ({ value, color }) => {
       role="img"
       aria-label={`${pct}%`}
     >
-      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#ece2da" strokeWidth={stroke} />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="#ece2da"
+        strokeWidth={stroke}
+        className="dark:stroke-white/12"
+      />
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -216,8 +223,18 @@ const Ring: React.FC<{ value: number; color: string }> = ({ value, color }) => {
         strokeLinecap="round"
         strokeDasharray={`${(pct / 100) * circumference} ${circumference}`}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        className="dark:drop-shadow-[0_0_3px_rgba(255,240,248,0.5)]"
       />
-      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="700" fill="#3a102c">
+      <text
+        x="50%"
+        y="50%"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize="15"
+        fontWeight="700"
+        fill="#3a102c"
+        className="dark:fill-white"
+      >
         {pct}%
       </text>
     </svg>
@@ -830,11 +847,30 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
     },
   ];
 
-  const toneStyles: Record<string, { bg: string; border: string; color: string }> = {
-    gold: { bg: '#fbf0da', border: '#f1dfbc', color: '#c08a2e' },
-    plum: { bg: '#f7e9f0', border: '#edd7e4', color: '#7a2d5c' },
-    green: { bg: '#e8f6ee', border: '#cfe9dc', color: '#158a5b' },
-    red: { bg: '#fdebed', border: '#f6d3d8', color: '#c02b48' },
+  const toneStyles: Record<
+    string,
+    { tile: string; color: string; darkColor: string }
+  > = {
+    gold: {
+      tile: 'bg-[#fbf0da] border-[#f1dfbc] dark:bg-amber-500/10 dark:border-amber-500/25',
+      color: 'text-[#c08a2e]',
+      darkColor: 'dark:text-[#e5ba73]',
+    },
+    plum: {
+      tile: 'bg-[#f7e9f0] border-[#edd7e4] dark:bg-purple-500/10 dark:border-purple-500/25',
+      color: 'text-[#7a2d5c]',
+      darkColor: 'dark:text-[#f0c3dd]',
+    },
+    green: {
+      tile: 'bg-[#e8f6ee] border-[#cfe9dc] dark:bg-emerald-500/10 dark:border-emerald-500/25',
+      color: 'text-[#158a5b]',
+      darkColor: 'dark:text-emerald-400',
+    },
+    red: {
+      tile: 'bg-[#fdebed] border-[#f6d3d8] dark:bg-rose-500/10 dark:border-rose-500/25',
+      color: 'text-[#c02b48]',
+      darkColor: 'dark:text-rose-300',
+    },
   };
 
   const totalClassified = metrics.classified;
@@ -873,21 +909,21 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
 
   if (loading && !leads.length && !calls.length) {
     return (
-      <div className="min-h-[70vh] px-3 py-5 sm:px-5 lg:px-6" style={{ background: PAGE_BG }}>
+      <div className="lyka-dash-loading min-h-[70vh] px-3 py-5 sm:px-5 lg:px-6">
         <div className="mx-auto max-w-[1500px] space-y-4">
-          <div className="flex h-[230px] items-center justify-center rounded-[30px] border border-[#e9d8cd] bg-[#eaded3]">
-            <span className="flex items-center gap-2 text-[12px] font-semibold text-[#8a6a5f]">
+          <div className="flex h-[230px] items-center justify-center rounded-[30px] border border-[#e9d8cd] bg-[#eaded3] dark:border-white/10 dark:bg-white/[0.04]">
+            <span className="flex items-center gap-2 text-[12px] font-semibold text-[#8a6a5f] dark:text-[#d3b3c4]">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading live CRM data…
             </span>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
             {Array.from({ length: 8 }).map((_, index) => (
-              <div key={index} className="h-[125px] animate-pulse rounded-[20px] bg-[#e6d5c9]" />
+              <div key={index} className="h-[125px] animate-pulse rounded-[20px] bg-[#e6d5c9] dark:bg-white/[0.06]" />
             ))}
           </div>          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-            <div className="h-[360px] animate-pulse rounded-[24px] bg-[#ecdfd5]" />
-            <div className="h-[360px] animate-pulse rounded-[24px] bg-[#ecdfd5]" />
+            <div className="h-[360px] animate-pulse rounded-[24px] bg-[#ecdfd5] dark:bg-white/[0.05]" />
+            <div className="h-[360px] animate-pulse rounded-[24px] bg-[#ecdfd5] dark:bg-white/[0.05]" />
           </div>
         </div>
       </div>
@@ -895,18 +931,18 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
   }
 
   return (
-    <div className="min-h-[70vh] px-3 py-5 text-[#3c122e] dark:text-slate-100 bg-[#f7f1e9] dark:bg-slate-950 transition-colors sm:px-5 lg:px-6">
+    <div className="min-h-[70vh] px-3 py-5 text-[#3c122e] dark:text-white bg-[#f7f1e9] dark:bg-slate-950 transition-colors sm:px-5 lg:px-6">
       <div className="mx-auto max-w-[1500px] space-y-4">
         {loadError && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#f0d2c8] bg-[#fdf0ea] px-4 py-3">
-            <p className="flex items-center gap-2 text-[12px] font-medium text-[#9c3a2c]">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#f0d2c8] bg-[#fdf0ea] dark:border-rose-500/30 dark:bg-rose-950/30 px-4 py-3">
+            <p className="flex items-center gap-2 text-[12px] font-medium text-[#9c3a2c] dark:text-rose-300">
               <AlertCircle className="h-4 w-4 shrink-0" />
               {loadError} KPI values below reflect the last successful sync.
             </p>
             <button
               type="button"
               onClick={() => setReloadKey((key) => key + 1)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#e7c2b4] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#8c3327] hover:bg-[#fdf7f3]"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#e7c2b4] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#8c3327] hover:bg-[#fdf7f3] dark:border-rose-500/30 dark:bg-white/[0.06] dark:text-rose-200 dark:hover:bg-white/[0.1]"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Retry
@@ -966,11 +1002,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
               type="button"
               onClick={() => onNavigateLeads(card.target)}
               title={`View ${card.label.toLowerCase()} in Leads & Calls`}
-              className="relative flex min-h-[146px] w-full cursor-pointer flex-col overflow-hidden rounded-[20px] border border-white/10 px-3.5 py-4 text-left text-white shadow-[0_18px_36px_-26px_rgba(46,11,34,0.9)] transition-[filter,border-color] duration-200 hover:border-white/25 hover:brightness-[1.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f3d9a4]/70 active:brightness-95"
-              style={{
-                background:
-                  'radial-gradient(120% 105% at 88% 0%, rgba(255,255,255,0.15), transparent 56%), linear-gradient(155deg, #5d2149 0%, #3d0c2b 55%, #28061c 100%)',
-              }}
+              className="lyka-kpi relative flex min-h-[146px] w-full cursor-pointer flex-col overflow-hidden rounded-[20px] border border-white/10 px-3.5 py-4 text-left text-white shadow-[0_18px_36px_-26px_rgba(46,11,34,0.9)] transition-[filter,border-color] duration-200 hover:border-white/25 hover:brightness-[1.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f3d9a4]/70 active:brightness-95"
             >
               <div className="flex items-start justify-between gap-2">
                 <p className="text-[11.5px] font-semibold leading-snug text-[#f6e7df]">{card.label}</p>
@@ -980,7 +1012,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
               </div>
               <p className="mt-3 text-[34px] font-extrabold leading-none tracking-tight">{card.value}</p>
               <div className="mt-auto flex items-end justify-between gap-2 pt-2.5">
-                <span className="min-w-0 truncate text-[10px] font-medium text-[#dcb7a7]">{card.hint}</span>
+                <span className="min-w-0 truncate text-[10px] font-medium text-[#dcb7a7] dark:text-[#f2d9cc]">{card.hint}</span>
                 <svg width="56" height="16" viewBox="0 0 62 16" className="shrink-0 opacity-90" aria-hidden="true">
                   <path
                     d={sparkPath(card.series)}
@@ -1000,15 +1032,15 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
           <div className={`${CARD} flex flex-col p-5 sm:p-6 lg:col-span-2 xl:col-span-1`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-start gap-3">
-                <span className={ICON_TILE} style={{ background: '#f8ecdc', borderColor: '#f1dfc7' }}>
-                  <PhoneCall className="h-4 w-4 text-[#c08a2e]" />
+                <span className={`${ICON_TILE} bg-[#f8ecdc] border-[#f1dfc7] dark:bg-amber-500/10 dark:border-amber-500/25`}>
+                  <PhoneCall className="h-4 w-4 text-[#c08a2e] dark:text-[#e5ba73]" />
                 </span>
                 <div>
                   <h3 className={H2}>Outbound Calling Volume</h3>
                   <p className={SUB}>Real-time call attempts and answered talks over time</p>
                 </div>
               </div>
-              <div className="flex items-center rounded-full bg-[#f4ece3] p-1">
+              <div className="flex items-center rounded-full bg-[#f4ece3] dark:bg-white/[0.06] p-1">
                 {(
                   [
                     { key: 'today', label: 'Today' },
@@ -1021,7 +1053,9 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                     type="button"
                     onClick={() => onPeriodChange(option.key)}
                     className={`rounded-full px-3.5 py-1.5 text-[10.5px] font-bold transition-colors ${
-                      period === option.key ? '' : 'text-[#7c5f6e] hover:text-[#3c122e]'
+                      period === option.key
+                        ? ''
+                        : 'text-[#7c5f6e] dark:text-[#cbb0bf] hover:text-[#3c122e] dark:hover:text-white'
                     }`}
                     style={period === option.key ? ACTIVE_PILL_STYLE : undefined}
                   >
@@ -1057,8 +1091,16 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                         stroke="#eadfd6"
                         strokeDasharray="4 6"
                         strokeWidth="1"
+                        className="dark:stroke-white/10"
                       />
-                      <text x={geometry.left - 8} y={y + 3.5} textAnchor="end" fontSize="10" fill="#b39ca6">
+                      <text
+                        x={geometry.left - 8}
+                        y={y + 3.5}
+                        textAnchor="end"
+                        fontSize="10"
+                        fill="#b39ca6"
+                        className="dark:fill-[#d9bdca]"
+                      >
                         {value}
                       </text>
                     </g>
@@ -1076,6 +1118,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                       textAnchor={anchor}
                       fontSize="10"
                       fill="#b39ca6"
+                      className="dark:fill-[#d9bdca]"
                     >
                       {axis.label}
                     </text>
@@ -1108,7 +1151,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                     stroke="#4a1237"
                     strokeWidth="2.4"
                     strokeLinecap="round"
-                    className="pointer-events-none"
+                    className="pointer-events-none dark:drop-shadow-[0_0_3px_rgba(255,240,248,0.55)]"
                   />
                 )}
                 {geometry.dialedPath && chart.total > 0 && (
@@ -1160,7 +1203,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                   return (
                     <g
                       key={`answered-point-${index}`}
-                      className="cursor-pointer"
+                      className="cursor-pointer dark:drop-shadow-[0_0_4px_rgba(255,240,248,0.6)]"
                       onClick={() => onNavigateLeads({ outcome: 'ALL', scope: 'ANSWERED' })}
                     >
                       <circle cx={x} cy={y} r={10} fill="transparent" />
@@ -1176,6 +1219,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                     textAnchor="middle"
                     fontSize="11"
                     fill="#b39ca6"
+                    className="dark:fill-[#d9bdca]"
                   >
                     No calls in this period
                   </text>
@@ -1183,13 +1227,13 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
               </svg>
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-[#f0e2d8] pt-3">
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-[#f0e2d8] dark:border-white/10 pt-3">
               <div className="flex items-center gap-4">
                 <button
                   type="button"
                   onClick={() => onNavigateLeads({ outcome: 'ALL', scope: 'ATTEMPTED' })}
                   title="Open attempted calls in Leads & Calls"
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold text-[#6f4f62] transition-colors hover:bg-[#f6eadf] hover:text-[#3c122e]"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold text-[#6f4f62] dark:text-[#d9bdca] transition-colors hover:bg-[#f6eadf] hover:text-[#3c122e] dark:hover:bg-white/[0.08] dark:hover:text-white"
                 >
                   <span className="h-2 w-2 rounded-full" style={{ background: '#d9a441' }} />
                   Total Dialed
@@ -1198,16 +1242,16 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                   type="button"
                   onClick={() => onNavigateLeads({ outcome: 'ALL', scope: 'ANSWERED' })}
                   title="Open answered calls in Leads & Calls"
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold text-[#6f4f62] transition-colors hover:bg-[#f6eadf] hover:text-[#3c122e]"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold text-[#6f4f62] dark:text-[#d9bdca] transition-colors hover:bg-[#f6eadf] hover:text-[#3c122e] dark:hover:bg-white/[0.08] dark:hover:text-white"
                 >
-                  <span className="h-2 w-2 rounded-full" style={{ background: '#4a1237' }} />
+                  <span className="h-2 w-2 rounded-full dark:ring-1 dark:ring-white/50" style={{ background: '#4a1237' }} />
                   Answered Talks
                 </button>
               </div>
               <button
                 type="button"
                 onClick={onOpenLogs}
-                className="inline-flex items-center gap-1.5 text-[10.5px] font-bold text-[#c08a2e] hover:text-[#9c6c1f]"
+                className="inline-flex items-center gap-1.5 text-[10.5px] font-bold text-[#c08a2e] dark:text-[#e5ba73] hover:text-[#9c6c1f] dark:hover:text-[#f3cf7a]"
               >
                 {chart.total} calls recorded
                 <ArrowRight className="h-3 w-3" />
@@ -1217,8 +1261,8 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
 
           <div className={`${CARD} flex flex-col p-5 sm:p-6`}>
             <div className="flex items-start gap-3">
-              <span className={ICON_TILE} style={{ background: '#fdecef', borderColor: '#f6d7dc' }}>
-                <Flame className="h-4 w-4 text-[#d62d4b]" />
+              <span className={`${ICON_TILE} bg-[#fdecef] border-[#f6d7dc] dark:bg-rose-500/10 dark:border-rose-500/25`}>
+                <Flame className="h-4 w-4 text-[#d62d4b] dark:text-rose-400" />
               </span>
               <div>
                 <h3 className={H2}>Lead Temperature</h3>
@@ -1234,7 +1278,15 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                   role="img"
                   aria-label={`Lead temperature: ${metrics.hot} hot, ${metrics.warm} warm, ${metrics.cold} cold, ${metrics.optOut} opt-outs`}
                 >
-                  <circle cx="100" cy="100" r={donutRadius} fill="none" stroke="#f2e9e1" strokeWidth="18" />
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r={donutRadius}
+                    fill="none"
+                    stroke="#f2e9e1"
+                    strokeWidth="18"
+                    className="dark:stroke-white/10"
+                  />
                   {totalClassified > 0 &&
                     donutSegments.map((segment) => {
                       const fraction = segment.value / totalClassified;
@@ -1264,13 +1316,13 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                     })}
                 </svg>
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[28px] font-extrabold leading-none text-[#3c122e]">{totalClassified}</span>
-                  <span className="mt-1 text-[9px] font-bold tracking-[0.16em] text-[#a98c9a]">TOTAL LEADS</span>
+                  <span className="text-[28px] font-extrabold leading-none text-[#3c122e] dark:text-white">{totalClassified}</span>
+                  <span className="mt-1 text-[9px] font-bold tracking-[0.16em] text-[#a98c9a] dark:text-[#c9a9bb]">TOTAL LEADS</span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-x-2 gap-y-1 border-t border-[#f0e2d8] pt-3">
+            <div className="grid grid-cols-2 gap-x-2 gap-y-1 border-t border-[#f0e2d8] dark:border-white/10 pt-3">
               {donutSegments.map((segment) => {
                 const pct = totalClassified ? Math.round((segment.value / totalClassified) * 100) : 0;
                 return (
@@ -1278,13 +1330,13 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                     key={segment.key}
                     type="button"
                     onClick={() => onNavigateLeads({ outcome: TEMP_OUTCOME[segment.key], scope: 'ALL' })}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[#faf4ee]"
+                    className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[#faf4ee] dark:hover:bg-white/[0.08]"
                     title={`Open ${TEMP_OUTCOME[segment.key]} leads in Leads & Calls`}
                   >
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: segment.color }} />
-                    <span className="min-w-0 truncate text-[11px] font-semibold text-[#6f4f62]">{segment.label}</span>
-                    <span className="ml-auto text-[11px] font-extrabold text-[#3c122e]">{segment.value}</span>
-                    <span className="text-[10px] font-medium text-[#b08f9e]">({pct}%)</span>
+                    <span className="min-w-0 truncate text-[11px] font-semibold text-[#6f4f62] dark:text-[#d9bdca]">{segment.label}</span>
+                    <span className="ml-auto text-[11px] font-extrabold text-[#3c122e] dark:text-white">{segment.value}</span>
+                    <span className="text-[10px] font-medium text-[#b08f9e] dark:text-[#cbb0bf]">({pct}%)</span>
                   </button>
                 );
               })}
@@ -1293,8 +1345,8 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
 
           <div className={`${CARD} flex flex-col p-5 sm:p-6`}>
             <div className="flex items-start gap-3">
-              <span className={ICON_TILE} style={{ background: '#f7ecf3', borderColor: '#eddbe7' }}>
-                <Megaphone className="h-4 w-4 text-[#7a2d5c]" />
+              <span className={`${ICON_TILE} bg-[#f7ecf3] border-[#eddbe7] dark:bg-purple-500/10 dark:border-purple-500/25`}>
+                <Megaphone className="h-4 w-4 text-[#7a2d5c] dark:text-[#f0c3dd]" />
               </span>
               <div>
                 <h3 className={H2}>How Did You Hear About Us?</h3>
@@ -1315,7 +1367,15 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                       .join(', ') || 'no sources recorded'
                   }`}
                 >
-                  <circle cx="100" cy="100" r={donutRadius} fill="none" stroke="#f2e9e1" strokeWidth="18" />
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r={donutRadius}
+                    fill="none"
+                    stroke="#f2e9e1"
+                    strokeWidth="18"
+                    className="dark:stroke-white/10"
+                  />
                   {acquisitionTotal > 0 &&
                     acquisitionSources.map((source) => {
                       const fraction = source.value / acquisitionTotal;
@@ -1346,13 +1406,13 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                     })}
                 </svg>
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[28px] font-extrabold leading-none text-[#3c122e]">{acquisitionTotal}</span>
-                  <span className="mt-1 text-[9px] font-bold tracking-[0.16em] text-[#a98c9a]">TOTAL LEADS</span>
+                  <span className="text-[28px] font-extrabold leading-none text-[#3c122e] dark:text-white">{acquisitionTotal}</span>
+                  <span className="mt-1 text-[9px] font-bold tracking-[0.16em] text-[#a98c9a] dark:text-[#c9a9bb]">TOTAL LEADS</span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-x-1.5 gap-y-1 border-t border-[#f0e2d8] pt-3">
+            <div className="grid grid-cols-2 gap-x-1.5 gap-y-1 border-t border-[#f0e2d8] dark:border-white/10 pt-3">
               {acquisitionSources.map((source) => {
                 const pct = acquisitionTotal ? Math.round((source.value / acquisitionTotal) * 100) : 0;
                 return (
@@ -1360,14 +1420,14 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                     key={source.key}
                     type="button"
                     onClick={() => onNavigateLeads({ outcome: 'ALL', scope: 'ALL', source: source.key })}
-                    className="flex cursor-pointer items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-[#faf4ee]"
+                    className="flex cursor-pointer items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-[#faf4ee] dark:hover:bg-white/[0.08]"
                     title={`${source.label} — open matching leads in Leads & Calls`}
                     aria-label={`${source.label}: ${source.value} leads (${pct}%) — open in Leads & Calls`}
                   >
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: source.color }} />
-                    <span className="min-w-0 truncate text-[11px] font-semibold text-[#6f4f62]">{source.shortLabel}</span>
-                    <span className="ml-auto text-[11px] font-extrabold text-[#3c122e]">{source.value}</span>
-                    <span className="text-[10px] font-medium text-[#b08f9e]">({pct}%)</span>
+                    <span className="min-w-0 truncate text-[11px] font-semibold text-[#6f4f62] dark:text-[#d9bdca]">{source.shortLabel}</span>
+                    <span className="ml-auto text-[11px] font-extrabold text-[#3c122e] dark:text-white">{source.value}</span>
+                    <span className="text-[10px] font-medium text-[#b08f9e] dark:text-[#cbb0bf]">({pct}%)</span>
                   </button>
                 );
               })}
@@ -1379,8 +1439,8 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <div className={`${CARD} p-5 sm:p-6`}>
             <div className="flex items-start gap-3">
-              <span className={ICON_TILE} style={{ background: '#fbf0df', borderColor: '#f2e1c8' }}>
-                <TrendingUp className="h-4 w-4 text-[#c08a2e]" />
+              <span className={`${ICON_TILE} bg-[#fbf0df] border-[#f2e1c8] dark:bg-amber-500/10 dark:border-amber-500/25`}>
+                <TrendingUp className="h-4 w-4 text-[#c08a2e] dark:text-[#e5ba73]" />
               </span>
               <div>
                 <h3 className={H2}>Qualification Conversion Funnel</h3>
@@ -1395,25 +1455,25 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                   type="button"
                   onClick={() => onNavigateLeads(stage.target)}
                   title={`Open ${stage.label} in Leads & Calls`}
-                  className="group block w-full cursor-pointer rounded-lg text-left transition-colors hover:bg-[#fbf4ed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9a441]/50"
+                  className="group block w-full cursor-pointer rounded-lg text-left transition-colors hover:bg-[#fbf4ed] dark:hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9a441]/50"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#e9dbd1] bg-[#f8f2ec] text-[9px] font-bold text-[#7a5a6c]">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#e9dbd1] bg-[#f8f2ec] text-[9px] font-bold text-[#7a5a6c] dark:border-white/15 dark:bg-white/[0.08] dark:text-[#e9cfdc]">
                         {stage.step}
                       </span>
-                      <span className="flex items-center gap-1.5 truncate text-[12px] font-semibold text-[#3c122e] transition-colors group-hover:text-[#7a2d5c]">
+                      <span className="flex items-center gap-1.5 truncate text-[12px] font-semibold text-[#3c122e] dark:text-white transition-colors group-hover:text-[#7a2d5c] dark:group-hover:text-[#f3cf7a]">
                         {stage.icon && <stage.icon className="h-3.5 w-3.5 text-[#ef4456]" />}
                         {stage.label}
                       </span>
                     </div>
-                    <span className="shrink-0 text-[11.5px] font-extrabold text-[#3c122e]">
-                      {stage.count} <span className="font-semibold text-[#c08a2e]">({stage.pct}%)</span>
+                    <span className="shrink-0 text-[11.5px] font-extrabold text-[#3c122e] dark:text-white">
+                      {stage.count} <span className="font-semibold text-[#c08a2e] dark:text-[#e5ba73]">({stage.pct}%)</span>
                     </span>
                   </div>
-                  <div className="mt-1.5 h-[9px] overflow-hidden rounded-full bg-[#f3ece5]">
+                  <div className="mt-1.5 h-[9px] overflow-hidden rounded-full bg-[#f3ece5] dark:bg-white/10">
                     <div
-                      className="h-full rounded-full transition-all duration-500 group-hover:brightness-110"
+                      className="h-full rounded-full transition-all duration-500 group-hover:brightness-110 dark:ring-1 dark:ring-inset dark:ring-white/25"
                       style={{
                         width: `${Math.max(stage.barPct > 0 ? 2 : 0, Math.min(100, stage.barPct))}%`,
                         background: stage.color,
@@ -1424,16 +1484,16 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
               ))}
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-[#f0e2d8] pt-3">
-              <span className="text-[11px] text-[#9a7f8c]">Overall Lead-to-Hot Conversion:</span>
-              <span className="text-[11.5px] font-extrabold text-[#1a9c62]">{overallHotPct}% Qualified</span>
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-[#f0e2d8] dark:border-white/10 pt-3">
+              <span className="text-[11px] text-[#9a7f8c] dark:text-[#d3b3c4]">Overall Lead-to-Hot Conversion:</span>
+              <span className="text-[11.5px] font-extrabold text-[#1a9c62] dark:text-emerald-400">{overallHotPct}% Qualified</span>
             </div>
           </div>
 
           <div className={`${CARD} p-5 sm:p-6`}>
             <div className="flex items-start gap-3">
-              <span className={ICON_TILE} style={{ background: '#f7ecf3', borderColor: '#eddbe7' }}>
-                <Sparkles className="h-4 w-4 text-[#7a2d5c]" />
+              <span className={`${ICON_TILE} bg-[#f7ecf3] border-[#eddbe7] dark:bg-purple-500/10 dark:border-purple-500/25`}>
+                <Sparkles className="h-4 w-4 text-[#7a2d5c] dark:text-[#f0c3dd]" />
               </span>
               <div>
                 <h3 className={H2}>Efficiency &amp; Performance Rates</h3>
@@ -1445,15 +1505,18 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
               {rings.map((ring) => (
                 <div
                   key={ring.title}
-                  className="flex items-center gap-3 rounded-2xl border border-[#f0e2d8] bg-[#fefbf8] p-3.5"
+                  className="flex items-center gap-3 rounded-2xl border border-[#f0e2d8] bg-[#fefbf8] p-3.5 dark:border-white/10 dark:bg-white/[0.05]"
                 >
                   <Ring value={ring.value} color={ring.color} />
                   <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 text-[11.5px] font-bold text-[#3c122e]">
-                      <ring.icon className="h-3.5 w-3.5 shrink-0" style={{ color: ring.color }} />
+                    <p className="flex items-center gap-1.5 text-[11.5px] font-bold text-[#3c122e] dark:text-white">
+                      <ring.icon
+                        className="h-3.5 w-3.5 shrink-0 dark:drop-shadow-[0_0_2px_rgba(255,240,248,0.6)]"
+                        style={{ color: ring.color }}
+                      />
                       <span className="truncate">{ring.title}</span>
                     </p>
-                    <p className="mt-0.5 text-[10px] leading-snug text-[#9a7f8c]">{ring.sub}</p>
+                    <p className="mt-0.5 text-[10px] leading-snug text-[#9a7f8c] dark:text-[#d3b3c4]">{ring.sub}</p>
                   </div>
                 </div>
               ))}
@@ -1465,15 +1528,15 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
         <section className={`${CARD} p-5 sm:p-6`}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <span className={ICON_TILE} style={{ background: '#fde9ec', borderColor: '#f7d3da' }}>
-                <Flame className="h-4 w-4 text-[#d62d4b]" />
+              <span className={`${ICON_TILE} bg-[#fde9ec] border-[#f7d3da] dark:bg-rose-500/10 dark:border-rose-500/25`}>
+                <Flame className="h-4 w-4 text-[#d62d4b] dark:text-rose-400" />
               </span>
               <div>
                 <h3 className={H2}>Hot Leads Ready for Sales Handoff</h3>
                 <p className={SUB}>High-intent buyers requiring senior broker contact</p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f3c9d0] bg-[#fdeef1] px-3 py-1 text-[10.5px] font-bold text-[#c02b48]">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f3c9d0] bg-[#fdeef1] px-3 py-1 text-[10.5px] font-bold text-[#c02b48] dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
               <Flame className="h-3 w-3" />
               {metrics.hot > 0
                 ? `${metrics.hot} Hot Lead${metrics.hot === 1 ? '' : 's'}`
@@ -1483,17 +1546,17 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
 
           <div className="mt-4 space-y-3">
             {metrics.handoff.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-[#e7d4c8] bg-[#fcf7f2] px-5 py-8 text-center">
-                <Flame className="mx-auto h-6 w-6 text-[#d8a0aa]" />
-                <p className="mt-2 text-[12.5px] font-semibold text-[#6c4a5e]">No hot-ready leads yet</p>
-                <p className="mx-auto mt-1 max-w-md text-[11px] leading-relaxed text-[#9a7f8c]">
+              <div className="rounded-2xl border border-dashed border-[#e7d4c8] bg-[#fcf7f2] dark:border-white/15 dark:bg-white/[0.03] px-5 py-8 text-center">
+                <Flame className="mx-auto h-6 w-6 text-[#d8a0aa] dark:text-[#e9a9b9]" />
+                <p className="mt-2 text-[12.5px] font-semibold text-[#6c4a5e] dark:text-[#f0dbe6]">No hot-ready leads yet</p>
+                <p className="mx-auto mt-1 max-w-md text-[11px] leading-relaxed text-[#9a7f8c] dark:text-[#d3b3c4]">
                   HOT or WARM buyers with a completed AI conversation appear here for senior broker handoff. Run a
                   qualifying call to populate this section.
                 </p>
                 <button
                   type="button"
                   onClick={onOpenQueue}
-                  className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[#e9d4c6] bg-white px-3.5 py-1.5 text-[11px] font-semibold text-[#6c4a5e] hover:border-[#d9a441]/60"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[#e9d4c6] bg-white px-3.5 py-1.5 text-[11px] font-semibold text-[#6c4a5e] dark:border-white/15 dark:bg-white/[0.06] dark:text-[#f0dbe6] hover:border-[#d9a441]/60 dark:hover:bg-white/[0.1]"
                 >
                   Open calling queue
                   <ArrowRight className="h-3 w-3" />
@@ -1524,23 +1587,23 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                     }
                   }}
                   title={`Open ${item.lead.name || 'lead'} in Leads & Calls`}
-                  className="cursor-pointer rounded-2xl border border-[#f0e2d8] bg-[#fefbf8] p-4 transition-colors hover:border-[#e3cdbb] hover:bg-[#fef8f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9a441]/60 sm:p-5"
+                  className="cursor-pointer rounded-2xl border border-[#f0e2d8] bg-[#fefbf8] p-4 transition-colors hover:border-[#e3cdbb] hover:bg-[#fef8f1] dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-white/20 dark:hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9a441]/60 sm:p-5"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="truncate text-[15px] font-extrabold text-[#3c122e]">
+                        <h4 className="truncate text-[15px] font-extrabold text-[#3c122e] dark:text-white">
                           {item.lead.name || 'Unnamed lead'}
                         </h4>
                         <span
-                          className="rounded-full border border-[#f3c9d0] bg-[#fdeef1] px-2 py-0.5 text-[10px] font-extrabold text-[#c02b48]"
+                          className="rounded-full border border-[#f3c9d0] bg-[#fdeef1] px-2 py-0.5 text-[10px] font-extrabold text-[#c02b48] dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
                           title="Estimated fit score from captured qualification fields"
                         >
                           {item.score}/100
                         </span>
                         {outcome !== 'HOT' && <TempBadge outcome={outcome} small />}
                       </div>
-                      <p className="mt-0.5 text-[11px] font-bold tracking-wide text-[#c08a2e]">
+                      <p className="mt-0.5 text-[11px] font-bold tracking-wide text-[#c08a2e] dark:text-[#e5ba73]">
                         {phone || 'No phone on file'}
                       </p>
                     </div>
@@ -1551,7 +1614,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                           event.stopPropagation();
                           openHandoffSummary(item);
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-[#eadbd1] bg-white px-3.5 py-1.5 text-[11px] font-semibold text-[#4a2a3e] transition-colors hover:border-[#d9a441]/60 hover:bg-[#fdf6ec]"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[#eadbd1] bg-white px-3.5 py-1.5 text-[11px] font-semibold text-[#4a2a3e] dark:border-white/15 dark:bg-white/[0.06] dark:text-[#f2dfe8] transition-colors hover:border-[#d9a441]/60 hover:bg-[#fdf6ec] dark:hover:bg-white/[0.1]"
                       >
                         <FileText className="h-3.5 w-3.5" />
                         View Summary
@@ -1574,8 +1637,8 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                   </div>
 
                   <p
-                    className={`mt-3 rounded-xl border border-[#f0e2d7] bg-[#fbf6f0] px-4 py-3 text-[12px] leading-relaxed ${
-                      summaryText ? 'italic text-[#6c4a5e]' : 'text-[#a78c99]'
+                    className={`mt-3 rounded-xl border border-[#f0e2d7] bg-[#fbf6f0] dark:border-white/10 dark:bg-white/[0.05] px-4 py-3 text-[12px] leading-relaxed ${
+                      summaryText ? 'italic text-[#6c4a5e] dark:text-[#f0dbe6]' : 'text-[#a78c99] dark:text-[#cbb0bf]'
                     }`}
                   >
                     {summaryText ? `“${summaryText}”` : 'No AI summary captured for this lead yet.'}
@@ -1583,18 +1646,20 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
 
                   <div className="mt-3 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
                     {[
-                      { label: 'Budget', value: budget, accent: '#1f8a5b' },
-                      { label: 'Location', value: location, accent: '#3c122e' },
-                      { label: 'Timeline', value: timeline, accent: '#c08a2e' },
-                      { label: 'Callback', value: callback, accent: '#3c122e' },
+                      { label: 'Budget', value: budget, accent: 'text-[#1f8a5b] dark:text-emerald-400' },
+                      { label: 'Location', value: location, accent: 'text-[#3c122e] dark:text-white' },
+                      { label: 'Timeline', value: timeline, accent: 'text-[#c08a2e] dark:text-[#e5ba73]' },
+                      { label: 'Callback', value: callback, accent: 'text-[#3c122e] dark:text-white' },
                     ].map((field) => (
-                      <div key={field.label} className="rounded-xl border border-[#f0e2d8] bg-[#fefbf8] px-3 py-2">
-                        <p className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#a98c9a]">
+                      <div
+                        key={field.label}
+                        className="rounded-xl border border-[#f0e2d8] bg-[#fefbf8] dark:border-white/10 dark:bg-white/[0.04] px-3 py-2"
+                      >
+                        <p className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#a98c9a] dark:text-[#c9a9bb]">
                           {field.label}
                         </p>
                         <p
-                          className="mt-0.5 truncate text-[11px] font-bold"
-                          style={{ color: field.accent }}
+                          className={`mt-0.5 truncate text-[11px] font-bold ${field.accent}`}
                           title={field.value}
                         >
                           {field.value}
@@ -1612,15 +1677,15 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
         <section className={`${CARD} p-5 sm:p-6`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className={ICON_TILE} style={{ background: '#f7eddf', borderColor: '#efdfc8' }}>
-                <Clock className="h-4 w-4 text-[#c08a2e]" />
+              <span className={`${ICON_TILE} bg-[#f7eddf] border-[#efdfc8] dark:bg-amber-500/10 dark:border-amber-500/25`}>
+                <Clock className="h-4 w-4 text-[#c08a2e] dark:text-[#e5ba73]" />
               </span>
               <h3 className={H2}>Calling Queue Activity</h3>
             </div>
             <button
               type="button"
               onClick={onOpenQueue}
-              className="inline-flex items-center gap-1.5 text-[10.5px] font-bold text-[#c08a2e] hover:text-[#9c6c1f]"
+              className="inline-flex items-center gap-1.5 text-[10.5px] font-bold text-[#c08a2e] dark:text-[#e5ba73] hover:text-[#9c6c1f] dark:hover:text-[#f3cf7a]"
             >
               Full Queue
               <ArrowRight className="h-3 w-3" />
@@ -1629,9 +1694,9 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
 
           <div className="mt-4 space-y-2.5">
             {queue.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-[#e7d4c8] bg-[#fcf7f2] px-5 py-6 text-center">
-                <p className="text-[12px] font-semibold text-[#6c4a5e]">Calling queue is clear</p>
-                <p className="mt-1 text-[11px] text-[#9a7f8c]">New consented leads will appear here as they arrive.</p>
+              <div className="rounded-2xl border border-dashed border-[#e7d4c8] bg-[#fcf7f2] dark:border-white/15 dark:bg-white/[0.03] px-5 py-6 text-center">
+                <p className="text-[12px] font-semibold text-[#6c4a5e] dark:text-[#f0dbe6]">Calling queue is clear</p>
+                <p className="mt-1 text-[11px] text-[#9a7f8c] dark:text-[#d3b3c4]">New consented leads will appear here as they arrive.</p>
               </div>
             )}
             {queue.map((lead, index) => (
@@ -1647,16 +1712,16 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                   }
                 }}
                 title={`Open ${lead.name || 'lead'} in Leads & Calls`}
-                className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#f0e2d8] bg-[#fefbf8] px-3.5 py-2.5 transition-colors hover:border-[#e3cdbb] hover:bg-[#fef8f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9a441]/60"
+                className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#f0e2d8] bg-[#fefbf8] px-3.5 py-2.5 transition-colors hover:border-[#e3cdbb] hover:bg-[#fef8f1] dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-white/20 dark:hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9a441]/60"
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#e9dbd1] bg-[#f8f2ec] text-[10px] font-bold text-[#7a5a6c]">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#e9dbd1] bg-[#f8f2ec] text-[10px] font-bold text-[#7a5a6c] dark:border-white/15 dark:bg-white/[0.08] dark:text-[#e9cfdc]">
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12.5px] font-bold text-[#3c122e]">{lead.name || 'Unnamed lead'}</p>
-                  <p className="truncate text-[10.5px] text-[#9a7f8c]">{lead.phone || 'No phone on file'}</p>
+                  <p className="truncate text-[12.5px] font-bold text-[#3c122e] dark:text-white">{lead.name || 'Unnamed lead'}</p>
+                  <p className="truncate text-[10.5px] text-[#9a7f8c] dark:text-[#d3b3c4]">{lead.phone || 'No phone on file'}</p>
                 </div>
-                <span className="hidden shrink-0 text-[10px] italic text-[#a78c99] sm:inline">waiting</span>
+                <span className="hidden shrink-0 text-[10px] italic text-[#a78c99] dark:text-[#cbb0bf] sm:inline">waiting</span>
                 <button
                   type="button"
                   onClick={(event) => {
@@ -1679,8 +1744,8 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
         {/* I. Performance & SLA targets */}
         <section className={`${CARD} p-5 sm:p-6`}>
           <div className="flex items-center gap-3">
-            <span className={ICON_TILE} style={{ background: '#f8ecdf', borderColor: '#f0dfc9' }}>
-              <Target className="h-4 w-4 text-[#c08a2e]" />
+            <span className={`${ICON_TILE} bg-[#f8ecdf] border-[#f0dfc9] dark:bg-amber-500/10 dark:border-amber-500/25`}>
+              <Target className="h-4 w-4 text-[#c08a2e] dark:text-[#e5ba73]" />
             </span>
             <h3 className={H2}>Performance &amp; SLA Targets (Section 29)</h3>
           </div>
@@ -1689,12 +1754,12 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
             {slaRows.map((row) => (
               <div
                 key={row.label}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#f0e2d8] bg-[#fefbf8] px-4 py-2.5"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#f0e2d8] bg-[#fefbf8] dark:border-white/10 dark:bg-white/[0.04] px-4 py-2.5"
               >
-                <span className="text-[11.5px] font-medium text-[#4a2a3e]">{row.label}</span>
+                <span className="text-[11.5px] font-medium text-[#4a2a3e] dark:text-[#f2dfe8]">{row.label}</span>
                 <span
                   className={`inline-flex items-center gap-1.5 text-[10.5px] font-extrabold ${
-                    row.met ? 'text-[#158a5b]' : 'text-[#b97a12]'
+                    row.met ? 'text-[#158a5b] dark:text-emerald-400' : 'text-[#b97a12] dark:text-[#f0b866]'
                   }`}
                 >
                   {row.met ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
@@ -1711,18 +1776,23 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
             const tone = toneStyles[card.tone];
             return (
               <div key={card.label} className={`${CARD} flex items-start gap-3 p-4`}>
-                <span className={`${ICON_TILE} !h-10 !w-10`} style={{ background: tone.bg, borderColor: tone.border }}>
-                  <card.icon className="h-4 w-4" style={{ color: tone.color }} />
+                <span className={`${ICON_TILE} !h-10 !w-10 ${tone.tile}`}>
+                  <card.icon className={`h-4 w-4 ${tone.color} ${tone.darkColor}`} />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#a98c9a]">{card.label}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#a98c9a] dark:text-[#c9a9bb]">{card.label}</p>
                   <p
-                    className="mt-1 text-[20px] font-extrabold leading-none"
-                    style={{ color: card.tone === 'red' ? '#9c2038' : '#3c122e' }}
+                    className={`mt-1 text-[20px] font-extrabold leading-none ${
+                      card.tone === 'red' ? 'text-[#9c2038] dark:text-rose-400' : 'text-[#3c122e] dark:text-white'
+                    }`}
                   >
                     {card.value}
                   </p>
-                  <p className={`mt-1.5 text-[10px] font-semibold ${card.ok ? 'text-[#158a5b]' : 'text-[#b97a12]'}`}>
+                  <p
+                    className={`mt-1.5 text-[10px] font-semibold ${
+                      card.ok ? 'text-[#158a5b] dark:text-emerald-400' : 'text-[#b97a12] dark:text-[#f0b866]'
+                    }`}
+                  >
                     {card.sub}
                   </p>
                 </div>
@@ -1740,14 +1810,14 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
               </span>
               <h3 className={H2}>Live Outbound Stream</h3>
-              <span className="inline-flex items-center rounded-full border border-[#c9e9d8] bg-[#e9f7ef] px-2.5 py-0.5 text-[9px] font-extrabold tracking-[0.12em] text-[#158a5b]">
+              <span className="inline-flex items-center rounded-full border border-[#c9e9d8] bg-[#e9f7ef] px-2.5 py-0.5 text-[9px] font-extrabold tracking-[0.12em] text-[#158a5b] dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
                 STREAM ACTIVE
               </span>
             </div>
             <button
               type="button"
               onClick={onOpenLogs}
-              className="inline-flex items-center gap-1.5 text-[10.5px] font-bold text-[#c08a2e] hover:text-[#9c6c1f]"
+              className="inline-flex items-center gap-1.5 text-[10.5px] font-bold text-[#c08a2e] dark:text-[#e5ba73] hover:text-[#9c6c1f] dark:hover:text-[#f3cf7a]"
             >
               All Logs
               <ArrowRight className="h-3 w-3" />
@@ -1756,9 +1826,9 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
 
           <div className="mt-4 space-y-2.5">
             {streamCalls.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-[#e7d4c8] bg-[#fcf7f2] px-5 py-6 text-center">
-                <p className="text-[12px] font-semibold text-[#6c4a5e]">No outbound calls yet</p>
-                <p className="mt-1 text-[11px] text-[#9a7f8c]">
+              <div className="rounded-2xl border border-dashed border-[#e7d4c8] bg-[#fcf7f2] dark:border-white/15 dark:bg-white/[0.03] px-5 py-6 text-center">
+                <p className="text-[12px] font-semibold text-[#6c4a5e] dark:text-[#f0dbe6]">No outbound calls yet</p>
+                <p className="mt-1 text-[11px] text-[#9a7f8c] dark:text-[#d3b3c4]">
                   Completed conversations will stream here in real time.
                 </p>
               </div>
@@ -1776,22 +1846,22 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                   }
                 }}
                 title={`Open call details for ${call.leadName || 'this call'}`}
-                className="flex cursor-pointer flex-col gap-2 rounded-2xl border border-[#f0e2d8] bg-[#fefbf8] px-4 py-3 transition-colors hover:border-[#e3cdbb] hover:bg-[#fef8f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9a441]/60 sm:flex-row sm:items-center sm:justify-between"
+                className="flex cursor-pointer flex-col gap-2 rounded-2xl border border-[#f0e2d8] bg-[#fefbf8] px-4 py-3 transition-colors hover:border-[#e3cdbb] hover:bg-[#fef8f1] dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-white/20 dark:hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9a441]/60 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#ece0d8] bg-[#fbf6f0] text-[#7a4a66]">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#ece0d8] bg-[#fbf6f0] text-[#7a4a66] dark:border-white/10 dark:bg-white/[0.06] dark:text-[#e9cfdc]">
                     <PhoneCall className="h-3.5 w-3.5" />
                   </span>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                      <p className="truncate text-[12.5px] font-bold text-[#3c122e]">
+                      <p className="truncate text-[12.5px] font-bold text-[#3c122e] dark:text-white">
                         {call.leadName || 'Unknown customer'}
                       </p>
-                      <p className="truncate text-[10.5px] font-medium text-[#b08a72]">
+                      <p className="truncate text-[10.5px] font-medium text-[#b08a72] dark:text-[#d9bdca]">
                         {call.leadPhone || 'No phone on file'}
                       </p>
                     </div>
-                    <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[10.5px] text-[#9a7f8c]">
+                    <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[10.5px] text-[#9a7f8c] dark:text-[#d3b3c4]">
                       <Clock className="h-3 w-3 shrink-0" />
                       <span className="shrink-0">{formatDuration(call.duration)} talk</span>
                       <span>•</span>
@@ -1820,13 +1890,13 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
           aria-label={`Lead summary for ${summary.name}`}
         >
           <div
-            className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-[24px] border border-[#eeded4] dark:border-slate-800 bg-[#fdfaf6] dark:bg-slate-900 p-5 shadow-2xl sm:p-6 text-slate-900 dark:text-slate-100"
+            className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-[24px] border border-[#eeded4] dark:border-white/10 bg-[#fdfaf6] dark:bg-slate-900 p-5 shadow-2xl sm:p-6 text-slate-900 dark:text-slate-100"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="truncate text-[17px] font-extrabold text-[#3c122e] dark:text-slate-100">{summary.name}</h3>
+                  <h3 className="truncate text-[17px] font-extrabold text-[#3c122e] dark:text-white">{summary.name}</h3>
                   {summary.score > 0 && (
                     <span className="rounded-full border border-[#f3c9d0] dark:border-rose-500/30 bg-[#fdeef1] dark:bg-rose-500/15 px-2 py-0.5 text-[10px] font-extrabold text-[#c02b48] dark:text-rose-400">
                       {summary.score}/100
@@ -1841,7 +1911,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setSummary(null)}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#eadbd1] dark:border-slate-700 bg-white dark:bg-slate-800 text-[#7a5a6c] dark:text-slate-300 hover:bg-[#fbf5ef] dark:hover:bg-slate-700"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#eadbd1] dark:border-slate-700 bg-white dark:bg-slate-800 text-[#7a5a6c] dark:text-[#e9cfdc] hover:bg-[#fbf5ef] dark:hover:bg-slate-700"
                 aria-label="Close summary"
               >
                 <X className="h-4 w-4" />
@@ -1849,8 +1919,8 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
             </div>
 
             <p
-              className={`mt-3 rounded-xl border border-[#f0e2d7] bg-[#fbf6f0] px-4 py-3 text-[12px] leading-relaxed ${
-                summary.summary ? 'italic text-[#6c4a5e]' : 'text-[#a78c99]'
+              className={`mt-3 rounded-xl border border-[#f0e2d7] bg-[#fbf6f0] dark:border-white/10 dark:bg-white/[0.05] px-4 py-3 text-[12px] leading-relaxed ${
+                summary.summary ? 'italic text-[#6c4a5e] dark:text-[#f0dbe6]' : 'text-[#a78c99] dark:text-[#cbb0bf]'
               }`}
             >
               {summary.summary ? `“${summary.summary}”` : 'No AI summary captured for this lead yet.'}
@@ -1863,11 +1933,14 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                 { label: 'Timeline', value: summary.timeline },
                 { label: 'Callback', value: summary.callback },
               ].map((field) => (
-                <div key={field.label} className="rounded-xl border border-[#f0e2d8] bg-[#fefbf8] px-3 py-2">
-                  <p className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#a98c9a]">
+                <div
+                  key={field.label}
+                  className="rounded-xl border border-[#f0e2d8] bg-[#fefbf8] dark:border-white/10 dark:bg-white/[0.04] px-3 py-2"
+                >
+                  <p className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#a98c9a] dark:text-[#c9a9bb]">
                     {field.label}
                   </p>
-                  <p className="mt-0.5 truncate text-[11px] font-bold text-[#3c122e]" title={field.value}>
+                  <p className="mt-0.5 truncate text-[11px] font-bold text-[#3c122e] dark:text-white" title={field.value}>
                     {field.value}
                   </p>
                 </div>
@@ -1876,18 +1949,24 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
 
             {summary.transcript.length > 0 && (
               <div className="mt-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#a98c9a]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#a98c9a] dark:text-[#c9a9bb]">
                   Conversation transcript
                 </p>
-                <div className="mt-2 max-h-52 space-y-1.5 overflow-y-auto rounded-xl border border-[#f0e2d8] bg-[#fefbf8] p-3">
+                <div className="mt-2 max-h-52 space-y-1.5 overflow-y-auto rounded-xl border border-[#f0e2d8] bg-[#fefbf8] dark:border-white/10 dark:bg-white/[0.04] p-3">
                   {summary.transcript.slice(-10).map((turn, index) => {
                     const isAgent = turn.role === 'agent' || turn.speaker === 'agent';
                     return (
                       <p key={turn.id || index} className="text-[11px] leading-relaxed">
-                        <span className={`font-bold ${isAgent ? 'text-[#7a2d5c]' : 'text-[#158a5b]'}`}>
+                        <span
+                          className={`font-bold ${
+                            isAgent
+                              ? 'text-[#7a2d5c] dark:text-[#f0c3dd]'
+                              : 'text-[#158a5b] dark:text-emerald-400'
+                          }`}
+                        >
                           {isAgent ? turn.agentName || 'Agent' : 'Customer'}:
                         </span>{' '}
-                        <span className="text-[#5c3a4f]">{turn.text}</span>
+                        <span className="text-[#5c3a4f] dark:text-[#e5d7e0]">{turn.text}</span>
                       </p>
                     );
                   })}
@@ -1899,7 +1978,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setSummary(null)}
-                className="rounded-full border border-[#eadbd1] bg-white px-4 py-2 text-[11.5px] font-semibold text-[#4a2a3e] hover:bg-[#fbf5ef]"
+                className="rounded-full border border-[#eadbd1] bg-white px-4 py-2 text-[11.5px] font-semibold text-[#4a2a3e] dark:border-white/15 dark:bg-white/[0.06] dark:text-[#f2dfe8] dark:hover:bg-white/[0.1] hover:bg-[#fbf5ef]"
               >
                 Close
               </button>

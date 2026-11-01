@@ -738,7 +738,7 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
       ) : (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-colors duration-200">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
+            <table className="w-full min-w-[900px] text-xs text-left">
               <thead className="bg-slate-50 dark:bg-slate-950/80 text-slate-600 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-wide border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="py-2.5 px-3 w-8">

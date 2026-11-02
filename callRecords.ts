@@ -1,6 +1,7 @@
 import { Router, type RequestHandler } from 'express';
 import { getPool } from './db.js';
 import { saveMessage } from './leadService.js';
+import { calculateAuthoritativeLeadScore } from './src/utils/scoring.js';
 
 let schemaReady: Promise<void> | undefined;
 export function ensureCallRecords(): Promise<void> {
@@ -125,6 +126,7 @@ export async function readCalls(id?: string) {
       buyerType: snapshot.buyer_type || '',
       budget: snapshot.budget || (snapshot.budget_max != null ? String(snapshot.budget_max) : ''),
       timeline: snapshot.timeline || '',
+      score: calculateAuthoritativeLeadScore(snapshot, speech.filter((m: any) => !['assistant', 'agent'].includes(m.role)).map((m: any) => m.content).join(' ')).score,
       nextAction: snapshot.next_action || '',
       transcript: speech.map((m: any) => { const isAgent = ['assistant', 'agent'].includes(m.role); return { id: m.id,
         role: isAgent ? 'agent' : m.role === 'system' ? 'system' : 'user',

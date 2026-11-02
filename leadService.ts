@@ -1,5 +1,13 @@
 import { normalizeLeadFields } from './src/utils/leadFields.js';
-import { calculateDeterministicLeadScore } from './src/utils/scoring.js';
+import {
+  calculateAuthoritativeLeadScore,
+  calculateDeterministicLeadScore,
+  determineLeadStatusFromData,
+  extractCallbackTimeframe,
+  checkIsNotInterested,
+  checkIsReachAgain,
+  checkIsOptOut,
+} from './src/utils/scoring.js';
 /**
  * leadService.ts — Single shared lead service for both /api/chat and /api/live-ws.
  * 
@@ -50,6 +58,7 @@ export interface LeadPayload {
   notes?: string;
   // Buyer type (legacy compat)
   buyer_type?: string;
+  assigned_agent?: string;
 }
 
 export interface SaveResult {
@@ -108,7 +117,7 @@ function parseBudget(raw?: string): { min: number | null; max: number | null; cu
 
 // ─── Validate & sanitize payload ─────────────────────────────────────
 
-function sanitize(payload: LeadPayload): LeadPayload {
+export function sanitize(payload: LeadPayload): LeadPayload {
   const clean = normalizeLeadFields(payload) as LeadPayload;
   // Trim strings
   for (const key of Object.keys(clean) as (keyof LeadPayload)[]) {
@@ -118,7 +127,7 @@ function sanitize(payload: LeadPayload): LeadPayload {
     }
   }
   // Validate qualification status
-  const validTemps = ['HOT', 'WARM', 'COLD', 'PENDING', 'REACH_AGAIN', 'OPT_OUT'];
+  const validTemps = ['HOT', 'WARM', 'COLD', 'PENDING', 'REACH_AGAIN', 'OPT_OUT', 'UNWANTED'];
   if (clean.qualification_status && !validTemps.includes(clean.qualification_status.toUpperCase())) {
     delete clean.qualification_status;
   }
@@ -147,6 +156,42 @@ function parseLocation(raw?: string): { city?: string; state_province?: string; 
  * - Validates payload before DB write
  * - Returns actual DB result (not an assumption)
  */
+export function resolveFinalTemperature(
+  existingTemp: string,
+  resolvedStatus: string,
+  clean: LeadPayload
+): string {
+  const normExisting = String(existingTemp || '').toUpperCase();
+  let finalTemp = resolvedStatus;
+
+  if (normExisting === 'OPT_OUT') {
+    return 'OPT_OUT';
+  } else if (normExisting === 'REACH_AGAIN') {
+    if (resolvedStatus === 'OPT_OUT') return 'OPT_OUT';
+    if (resolvedStatus === 'HOT') return 'HOT';
+    return 'REACH_AGAIN';
+  } else if (normExisting === 'HOT') {
+    if (resolvedStatus === 'OPT_OUT') return 'OPT_OUT';
+    if (resolvedStatus === 'COLD' && (checkIsNotInterested(clean.notes || '') || clean.qualification_status === 'COLD')) {
+      return 'COLD';
+    }
+    if (resolvedStatus === 'REACH_AGAIN') return 'REACH_AGAIN';
+    return 'HOT';
+  } else if (normExisting === 'COLD') {
+    if (resolvedStatus === 'OPT_OUT') return 'OPT_OUT';
+    if (resolvedStatus === 'REACH_AGAIN') return 'REACH_AGAIN';
+    if (resolvedStatus === 'HOT') return 'HOT';
+    if (resolvedStatus === 'WARM') {
+      if (clean.property_type || (clean.budget_max && clean.budget_max > 0) || clean.timeline) {
+        return 'WARM';
+      }
+      return 'COLD';
+    }
+    return 'COLD';
+  }
+  return finalTemp;
+}
+
 export async function upsertLead(
   sessionId: string,
   payload: LeadPayload,
@@ -163,28 +208,49 @@ export async function upsertLead(
     await db.beginTransaction();
     // Reuse a known contact across calls without merging by name.
     const [rows] = await db.query(
-      `SELECT id, lead_source FROM leads WHERE guest_session_id = ?
+      `SELECT id, lead_source, temperature, lead_score, notes, best_time_to_contact FROM leads WHERE guest_session_id = ?
        OR id = (SELECT lead_id FROM conversations WHERE id = ?)
        OR (? <> '' AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?)
        ORDER BY (guest_session_id = ?) DESC, created_at DESC LIMIT 1`,
       [sessionId, conversationId || null, (clean.phone || '').replace(/\D/g, ''), (clean.phone || '').replace(/\D/g, ''), sessionId]
     ) as any;
 
-    const existingId = rows?.[0]?.id;
-    const scoreBreakdown = calculateDeterministicLeadScore({
-      timeline: clean.timeline,
-      budget: clean.budget_max ? String(clean.budget_max) : clean.budget,
-      location: clean.location || clean.city,
-      property_type: clean.property_type,
-      buyer_type: clean.intent || clean.buyer_type,
-      phone: clean.phone,
-      notes: clean.notes,
-    });
-    const resolvedScore = typeof clean.lead_score === 'number' ? clean.lead_score : scoreBreakdown.score;
-    const resolvedStatus = clean.qualification_status?.toUpperCase() ||
-      (resolvedScore >= 75 ? 'HOT' : resolvedScore >= 45 ? 'WARM' : 'PENDING');
+    const existingRow = rows?.[0];
+    const existingId = existingRow?.id;
     const budgetInfo = parseBudget(clean.budget);
     const locationInfo = parseLocation(clean.location);
+
+    // Deterministic lead status & scoring from actual available data
+    const leadDataForEval = {
+      ...clean,
+      budget_max: clean.budget_max ?? budgetInfo.max,
+      location: clean.location || clean.city || locationInfo.city,
+      notes: clean.notes,
+      best_time_to_contact: clean.best_time_to_contact,
+      qualification_status: clean.qualification_status,
+    };
+    const determined = determineLeadStatusFromData(leadDataForEval);
+    const scoreBreakdown = calculateAuthoritativeLeadScore(leadDataForEval, clean.notes || '');
+    const resolvedStatus = clean.qualification_status
+      ? clean.qualification_status.toUpperCase()
+      : determined.outcome;
+    const resolvedScore = typeof clean.lead_score === 'number' ? clean.lead_score : scoreBreakdown.score;
+
+    // Callback timeframe & notes processing for REACH_AGAIN
+    if (resolvedStatus === 'REACH_AGAIN') {
+      const cbTime =
+        clean.best_time_to_contact ||
+        extractCallbackTimeframe(clean.notes || '') ||
+        existingRow?.best_time_to_contact;
+      if (cbTime) {
+        clean.best_time_to_contact = cbTime;
+        if (!clean.notes) {
+          clean.notes = `Callback requested: ${cbTime}`;
+        } else if (!clean.notes.toLowerCase().includes(cbTime.toLowerCase())) {
+          clean.notes = `${clean.notes} | Callback: ${cbTime}`;
+        }
+      }
+    }
 
     if (existingId) {
       // UPDATE existing lead — only set non-null fields
@@ -194,8 +260,11 @@ export async function upsertLead(
       const rawName = clean.customer_name_raw || clean.name;
       const preferredName = clean.customer_preferred_name;
 
+      // Overwrite protection: Ensure subsequent updates do not overwrite HOT, COLD, REACH_AGAIN, or OPT_OUT incorrectly
+      const finalTemp = resolveFinalTemperature(existingRow?.temperature || '', resolvedStatus, clean);
+
       // A later extraction that returns Unknown must never erase a real source.
-      const existingSource = rows?.[0]?.lead_source as string | null | undefined;
+      const existingSource = existingRow?.lead_source as string | null | undefined;
       const keepExistingSource =
         !!clean.lead_source &&
         !!existingSource &&
@@ -222,14 +291,14 @@ export async function upsertLead(
         amenities: clean.amenities,
         timeline: clean.timeline,
         lead_score: resolvedScore,
-        temperature: clean.qualification_status?.toUpperCase(),
+        temperature: finalTemp,
         full_name: rawName,
         customer_name_raw: rawName,
         customer_preferred_name: preferredName,
         phone: clean.phone,
         email: clean.email,
         preferred_contact_method: clean.preferred_contact_method,
-        best_time_to_contact: clean.best_time_to_contact,
+        best_time_to_contact: clean.best_time_to_contact || existingRow?.best_time_to_contact,
         notes: clean.notes,
       };
 
@@ -251,7 +320,7 @@ export async function upsertLead(
       // Record interaction
       await db.query(
         'INSERT INTO lead_interactions (id, lead_id, interaction_type, summary, metadata) VALUES (?, ?, ?, ?, ?)',
-        [uuidv4(), existingId, 'ai_extraction', clean.notes || 'Lead updated via AI', JSON.stringify(clean)]
+        [uuidv4(), existingId, 'ai_extraction', clean.notes || 'Lead updated via AI', JSON.stringify({ ...clean, temperature: finalTemp })]
       );
 
       if (conversationId) await db.query('UPDATE conversations SET lead_id = ? WHERE id = ?', [existingId, conversationId]);
@@ -261,7 +330,6 @@ export async function upsertLead(
     } else {
       // CREATE new lead
       const leadId = uuidv4();
-      const phoneNorm = normalizePhone(clean.phone);
       const rawName = clean.customer_name_raw || clean.name;
       const preferredName = clean.customer_preferred_name;
 

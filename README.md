@@ -102,7 +102,31 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
   - Spoken Tanglish FAQs covering common NRI and buyer questions.
 - **Leads & Calls Tab** (`LeadsAndCallsTab.tsx`):
   - Compact single-view layout: call history, summary, and transcript actions are accessible directly from each lead row with zero train-like accordion nesting or separate Call History tables.
-  - Searchable list of qualified prospects with outcome badges (`HOT`, `WARM`, `COLD`, `UNWANTED`), budget, property type, location, and call summary preview snippet.
+  - Searchable list of qualified prospects with outcome badges (`HOT`, `WARM`, `COLD`, `REACH_AGAIN`, `UNWANTED`), budget, property type, location, and call summary preview snippet. Dedicated outcome filter pills (`All`, `HOT`, `WARM`, `COLD`, `Reach Again`, `Unwanted`) allow rapid triage.
+  - **Deterministic 6-Tier Lead Classification & Overwrite Protection Engine**:
+    - **COLD (< 45 pts)**: Caller only says "Hello" / provides no buying intent, or states "Not interested" / "Vendam" (English, Tamil, Tanglish).
+    - **HOT (>= 75 pts)**: Qualified buyer with clear property requirement, budget, and near-term timeline (immediate, 1-3 months).
+    - **WARM (45-74 pts)**: Interested buyer with property requirement or inquiry who is insufficiently qualified (budget flexible/unstated, exploratory timeline).
+    - **REACH_AGAIN**: Caller requests callback later (*"Call me back tomorrow"*, *"Busy now, call next week"*), extracting and persisting callback timeframe in `best_time_to_contact` and interaction notes.
+    - **OPT_OUT (Displayed under UNWANTED)**: Explicit DNC request (*"Don't call me again"*, *"Remove my number"*), displayed under UNWANTED badge and filtered under Unwanted.
+    - **Overwrite Protection**: `resolveFinalTemperature` in `leadService.ts` prevents routine subsequent extractions or updates from overwriting `HOT`, `COLD`, `REACH_AGAIN`, or `OPT_OUT` with default values.
+    - **Historical Data Correction**: Database migration updates legacy default column value on `leads.temperature` from `'WARM'` to `'COLD'` and normalizes fixture records with NULL requirements to `'COLD'`.
+  - **Authoritative 100-Point Lead Scoring Engine**:
+    - Grounded strictly in actual conversation evidence across 6 standardized categories:
+      1. **Interest and Buying Intent (0–25 pts)**: Stated buying/investing goal (25 pts), explicit interest expressed e.g. "I'm interested" (18 pts), exploratory browsing (10 pts). Explicit buying interest never receives zero.
+      2. **Budget Clarity & Suitability (0–20 pts)**: Verified stated budget (20 pts), conversational ballpark range (14 pts), unstated (0 pts).
+      3. **Property Requirements (0–15 pts)**: Detailed configuration e.g. 3 BHK Villa (15 pts), broad category e.g. Apartment/Plot (10 pts), unstated (0 pts).
+      4. **Location Preference (0–10 pts)**: Specific locality e.g. ECR, OMR (10 pts), broad city e.g. Chennai, Dubai (6 pts), unstated (0 pts).
+      5. **Purchase Timeline (0–15 pts)**: Immediate/within 30 days (15 pts), 1–3 months (10 pts), 3–6 months (5 pts), exploratory > 6 months (2 pts), unstated (0 pts).
+      6. **Engagement & Readiness (0–15 pts)**: Site visit requested (15 pts), callback/brochure requested (10 pts), receptive dialogue participation (5 pts).
+    - Total: 100 points. Score ranges: HOT (≥ 75 pts), WARM (45–74 pts), COLD (< 45 pts). Missing information earns 0 pts for that category (never invents customer facts). Numerical score and lead outcome remain separate fields.
+    - **Database Recalculation**: `recalculateAllExistingLeads` in `db.ts` and `POST /api/crm/leads/recalculate-scores` automatically aggregates conversation messages and recalibrates all existing leads safely and idempotently without resetting data or overwriting `REACH_AGAIN` or `OPT_OUT`.
+  - **Natural Representative Voice Conversational Rules**:
+    - **No Proactive AI Announcements**: Agent acts as a professional real estate calling representative from Lyka Realty; never proactively announces itself as an AI, bot, or virtual assistant.
+    - **No Repetitive Apologies**: Eliminated robotic "Sorry sir, I am an AI assistant" phrases.
+    - **Natural Handling of Unrelated Questions**: Context-aware Tanglish responses redirecting naturally to real estate requirements (e.g. *"Enna panreenga?"* → *"Sir, unga property requirement pathi konjam pesalam. Neenga property buy panna plan panreengala?"*, *"Oru joke sollu"* → *"Haha, seri sir! Adhukku appuram pesalam. Neenga property buy panna plan panreengala, illa rent-ku thedureengala?"*).
+    - **Truthful Identity Protocol**: If the customer directly asks whether the agent is AI or human, it answers truthfully without pretending to be human or making robotic excuses (*"Aama sir, naan Lyka Realty-oda automated calling representative dhaan. Ungaloda requirement note pannitu, senior specialist-ku connect panren."*).
+    - **Inappropriate Remarks**: Redirects professionally once without mentioning AI; ends politely if customer persists.
   - **Persisted Numerical Lead Score**: Displays the persisted 100-point deterministic score (`Score: {score}/100`) directly on each customer row and inside the Customer Profile conversation modal, refreshing after calls.
   - **Top Call Date Filters**: Top pills for `All calls`, `Today`, `Last 7 Days`, `Last 30 Days`, and `Custom date range` (with `From` and `To` date pickers). Filters records based on actual call timestamp (`startedAt`), preserving individual timestamps for multi-call customers and providing invalid date range validation (`From > To`).
   - **Single-Click Conversation Modal**: Clicking **View** on any lead row immediately opens a focused, theme-responsive conversation modal showing the complete chronological dialogue between the AI agent and the customer.

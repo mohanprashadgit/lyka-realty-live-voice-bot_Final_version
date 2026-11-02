@@ -205,7 +205,7 @@ export const SimulatedCallScreen: React.FC<SimulatedCallScreenProps> = ({
             pollingIntervalRef.current = null;
 
             if (onRealCallSaved) {
-              const outcomeVal = (callData.outcome as LeadOutcome) || (callData.status === 'completed' ? 'WARM' : 'NO_ANSWER');
+              const outcomeVal = (callData.outcome as LeadOutcome) || (callData.status === 'completed' ? 'COLD' : 'NO_ANSWER');
               const realRecord: CallRecord = {
                 callId: sid,
                 leadId: lead.id,

@@ -3,6 +3,7 @@
  * Uses CREATE TABLE IF NOT EXISTS — never drops existing tables.
  */
 import mysql from 'mysql2/promise';
+import { calculateAuthoritativeLeadScore } from './src/utils/scoring.js';
 
 let pool: mysql.Pool | null = null;
 
@@ -222,6 +223,28 @@ export async function initSchema(): Promise<void> {
     if (!existingNameColsCust.includes('customer_preferred_name')) {
       await db.query('ALTER TABLE customers ADD COLUMN customer_preferred_name VARCHAR(255) NULL AFTER customer_name_raw');
     }
+
+    // Ensure default temperature is COLD rather than WARM
+    try {
+      await db.query("ALTER TABLE leads MODIFY COLUMN temperature VARCHAR(20) DEFAULT 'COLD'");
+    } catch {}
+
+    // Clean up legacy records erroneously defaulted to WARM without any requirements
+    try {
+      await db.query(`
+        UPDATE leads 
+        SET temperature = 'COLD' 
+        WHERE temperature = 'WARM' 
+          AND property_type IS NULL 
+          AND budget_max IS NULL 
+          AND timeline IS NULL 
+          AND (notes IS NULL OR notes = '' OR notes LIKE '%TEST fixture%' OR notes LIKE '%no customer speech%')
+      `);
+    } catch {}
+    // Recalculate lead scores for all existing leads from actual evidence
+    try {
+      await recalculateAllExistingLeads(db);
+    } catch {}
   } catch (migErr) {
     console.warn('[DB] Core schema migration notice:', migErr);
   }
@@ -229,3 +252,72 @@ export async function initSchema(): Promise<void> {
   console.log('[DB] Core 5-Table Schema verified (customers, leads, conversations, conversation_messages, lead_interactions).');
 }
 
+
+/**
+ * recalculateAllExistingLeads — Recalculates all existing leads from their actual available
+ * conversation data, transcripts, extracted slots, and notes using calculateAuthoritativeLeadScore.
+ * Persists corrected scores (0-100) and preserves REACH_AGAIN, OPT_OUT, UNWANTED.
+ * Idempotent and safe to rerun.
+ */
+export async function recalculateAllExistingLeads(dbConn?: any): Promise<{ total: number; updated: number }> {
+  const pool = dbConn || getPool();
+  try {
+    const [leads]: any = await pool.query(`
+      SELECT l.id, l.full_name, l.customer_name_raw, l.phone, l.email, l.lead_source,
+             l.intent, l.property_type, l.location, l.city, l.locality, l.country, l.original_location,
+             l.budget_min, l.budget_max, l.currency, l.timeline, l.temperature, l.lead_score,
+             l.notes, l.best_time_to_contact
+      FROM leads l
+    `);
+
+    if (!leads || leads.length === 0) return { total: 0, updated: 0 };
+
+    // Fetch messages from conversations linked to these leads
+    let messagesByLead: Record<string, string[]> = {};
+    try {
+      const [messages]: any = await pool.query(`
+        SELECT c.lead_id, m.content
+        FROM conversation_messages m
+        JOIN conversations c ON CAST(c.id AS BINARY) = CAST(m.conversation_id AS BINARY)
+        WHERE c.lead_id IS NOT NULL AND m.role IN ('user', 'customer')
+        ORDER BY m.created_at ASC
+      `);
+      if (messages && messages.length > 0) {
+        for (const msg of messages) {
+          if (!messagesByLead[msg.lead_id]) messagesByLead[msg.lead_id] = [];
+          messagesByLead[msg.lead_id].push(msg.content);
+        }
+      }
+    } catch {}
+
+    let updatedCount = 0;
+    for (const lead of leads) {
+      const userTranscript = (messagesByLead[lead.id] || []).join(' ');
+      const calculated = calculateAuthoritativeLeadScore(lead, userTranscript);
+
+      const existingScore = lead.lead_score;
+      const newScore = calculated.score;
+
+      // Preserve existing REACH_AGAIN, OPT_OUT, UNWANTED statuses
+      let newTemp = lead.temperature;
+      const curTempUpper = String(lead.temperature || '').toUpperCase();
+      if (curTempUpper !== 'REACH_AGAIN' && curTempUpper !== 'OPT_OUT' && curTempUpper !== 'UNWANTED') {
+        newTemp = calculated.temperature;
+      }
+
+      if (existingScore !== newScore || lead.temperature !== newTemp) {
+        await pool.query(
+          `UPDATE leads SET lead_score = ?, temperature = ? WHERE id = ?`,
+          [newScore, newTemp, lead.id]
+        );
+        updatedCount++;
+      }
+    }
+
+    console.log(`[DB] Recalculated lead scores for ${leads.length} leads (${updatedCount} updated).`);
+    return { total: leads.length, updated: updatedCount };
+  } catch (err: any) {
+    console.warn('[DB] Lead score recalculation notice:', err.message || err);
+    return { total: 0, updated: 0 };
+  }
+}

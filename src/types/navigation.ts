@@ -2,7 +2,7 @@ import type { AcquisitionSourceKey } from '../utils/acquisitionSource';
 
 export type DashboardPeriod = 'today' | '7d' | '30d';
 
-export type LeadsOutcomeFilter = 'ALL' | 'HOT' | 'WARM' | 'COLD' | 'UNWANTED';
+export type LeadsOutcomeFilter = 'ALL' | 'HOT' | 'WARM' | 'COLD' | 'REACH_AGAIN' | 'UNWANTED';
 
 export type LeadsScopeFilter = 'ALL' | 'ATTEMPTED' | 'ANSWERED' | 'QUALIFIED';
 

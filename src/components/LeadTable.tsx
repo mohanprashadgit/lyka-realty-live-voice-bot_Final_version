@@ -367,7 +367,17 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 
                     {/* Outcome */}
                     <td className="py-2.5 px-3">
-                      {getOutcomeBadge(lead.outcome, lead.isOptedOut)}
+                      <div className="flex flex-col gap-1 items-start">
+                        {getOutcomeBadge(lead.outcome, lead.isOptedOut)}
+                        {lead.score != null && (
+                          <span
+                            className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-semibold bg-slate-800 text-slate-300 border border-slate-700 font-mono"
+                            title="Lead Qualification Score"
+                          >
+                            Score: {lead.score}/100
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Last Call */}

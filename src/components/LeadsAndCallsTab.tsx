@@ -30,7 +30,7 @@ import {
 } from '../utils/acquisitionSource';
 import { renderHighlightedText } from '../utils/highlightKeywords';
 
-const OUTCOME_FILTERS: LeadsOutcomeFilter[] = ['ALL', 'HOT', 'WARM', 'COLD', 'UNWANTED'];
+const OUTCOME_FILTERS: LeadsOutcomeFilter[] = ['ALL', 'HOT', 'WARM', 'COLD', 'REACH_AGAIN', 'UNWANTED'];
 
 const SCOPE_OPTIONS: Array<{ key: LeadsScopeFilter; label: string; hint: string }> = [
   { key: 'ALL', label: 'All records', hint: 'Every saved lead' },
@@ -282,17 +282,11 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
           </span>
         );
       case 'UNWANTED':
+      case 'OPT_OUT':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/15 dark:text-red-400 dark:border-red-500/30">
             <ShieldBan className="w-2.5 h-2.5" />
             UNWANTED
-          </span>
-        );
-      case 'OPT_OUT':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-500/15 dark:text-orange-400 dark:border-orange-500/30">
-            <LogOut className="w-2.5 h-2.5" />
-            OPT-OUT
           </span>
         );
       case 'NO_ANSWER':
@@ -419,8 +413,9 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
       (lead.propertyType && lead.propertyType.toLowerCase().includes(q));
     const matchesOutcome =
       outcomeFilter === 'ALL' ||
-      (lead.outcome && lead.outcome === outcomeFilter) ||
-      (outcomeFilter === 'UNWANTED' && (lead.outcome === 'OPT_OUT' || !!lead.isOptedOut));
+      (outcomeFilter === 'UNWANTED' && (lead.outcome === 'OPT_OUT' || lead.outcome === 'UNWANTED' || !!lead.isOptedOut)) ||
+      (outcomeFilter === 'REACH_AGAIN' && (lead.outcome === 'REACH_AGAIN' || lead.callStatus === 'REACH_AGAIN')) ||
+      (lead.outcome && lead.outcome === outcomeFilter);
     const matchesScope =
       scopeFilter === 'ALL' ||
       (scopeFilter === 'ATTEMPTED' && leadHasAttempt(lead)) ||
@@ -561,7 +556,7 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
                     : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-850'
                 }`}
               >
-                {f}
+                {f === 'ALL' ? 'All' : f === 'REACH_AGAIN' ? 'Reach Again' : f === 'UNWANTED' ? 'Unwanted' : f}
               </button>
             ))}
           </div>

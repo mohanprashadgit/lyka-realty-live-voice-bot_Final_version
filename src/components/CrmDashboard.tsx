@@ -42,12 +42,13 @@ interface CrmDashboardProps {
   onPeriodChange: (period: DashboardPeriod) => void;
 }
 
-type TempKey = 'HOT' | 'WARM' | 'COLD' | 'OPT_OUT';
+type TempKey = 'HOT' | 'WARM' | 'COLD' | 'REACH_AGAIN' | 'OPT_OUT';
 
 const TEMP_OUTCOME: Record<TempKey, LeadsOutcomeFilter> = {
   HOT: 'HOT',
   WARM: 'WARM',
   COLD: 'COLD',
+  REACH_AGAIN: 'REACH_AGAIN',
   OPT_OUT: 'UNWANTED',
 };
 
@@ -89,6 +90,7 @@ const TEMP_STYLES: Record<string, { label: string; bg: string; color: string; bo
   HOT: { label: 'HOT', bg: '#fde8ea', color: '#d62d4b', border: '#f5c9cf' },
   WARM: { label: 'WARM', bg: '#fdf2dd', color: '#b97a12', border: '#f3ddb0' },
   COLD: { label: 'COLD', bg: '#eef3fd', color: '#3a6fce', border: '#d4e2fb' },
+  REACH_AGAIN: { label: 'REACH AGAIN', bg: '#e0f2fe', color: '#0284c7', border: '#bae6fd' },
   OPT_OUT: { label: 'OPT-OUT', bg: '#fbe7f0', color: '#c01c62', border: '#f4c7dc' },
   PENDING: { label: 'PENDING', bg: '#f3efec', color: '#8a6f7c', border: '#e6d9cf' },
 };
@@ -183,6 +185,7 @@ const TempBadge: React.FC<{ outcome?: string; small?: boolean }> = ({ outcome, s
       {key === 'HOT' && <Flame className="h-2.5 w-2.5" />}
       {key === 'WARM' && <SunMedium className="h-2.5 w-2.5" />}
       {key === 'COLD' && <Snowflake className="h-2.5 w-2.5" />}
+      {key === 'REACH_AGAIN' && <Clock className="h-2.5 w-2.5" />}
       {key === 'OPT_OUT' && <UserX className="h-2.5 w-2.5" />}
       {style.label}
     </span>
@@ -332,8 +335,9 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
     const hot = leads.filter((l) => l.outcome === 'HOT').length;
     const warm = leads.filter((l) => l.outcome === 'WARM').length;
     const cold = leads.filter((l) => l.outcome === 'COLD').length;
+    const reachAgain = leads.filter((l) => l.outcome === 'REACH_AGAIN' || l.callStatus === 'REACH_AGAIN').length;
     const optOut = leads.filter((l) => l.outcome === 'OPT_OUT' || l.outcome === 'UNWANTED' || l.isOptedOut).length;
-    const classified = hot + warm + cold + optOut;
+    const classified = hot + warm + cold + reachAgain + optOut;
 
     const attemptedIds = new Set<string>();
     calls.forEach((c) => {
@@ -431,6 +435,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
       hot,
       warm,
       cold,
+      reachAgain,
       optOut,
       classified,
       attempted,
@@ -665,6 +670,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
     { key: 'HOT', label: 'Hot Leads', value: metrics.hot, color: '#ef4456' },
     { key: 'WARM', label: 'Warm Leads', value: metrics.warm, color: '#f0a92e' },
     { key: 'COLD', label: 'Cold Leads', value: metrics.cold, color: '#4f8ef7' },
+    { key: 'REACH_AGAIN', label: 'Reach Again', value: metrics.reachAgain, color: '#0ea5e9' },
     { key: 'OPT_OUT', label: 'Opt-Outs', value: metrics.optOut, color: '#d81b69' },
   ];
 
@@ -1276,7 +1282,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                   viewBox="0 0 200 200"
                   className="h-full w-full"
                   role="img"
-                  aria-label={`Lead temperature: ${metrics.hot} hot, ${metrics.warm} warm, ${metrics.cold} cold, ${metrics.optOut} opt-outs`}
+                  aria-label={`Lead temperature: ${metrics.hot} hot, ${metrics.warm} warm, ${metrics.cold} cold, ${metrics.reachAgain} reach again, ${metrics.optOut} opt-outs`}
                 >
                   <circle
                     cx="100"

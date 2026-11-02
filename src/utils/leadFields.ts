@@ -10,7 +10,7 @@ export function normalizeLeadFields(input: Record<string, any>): Record<string, 
   if (!result.intent && result.buyer_type) result.intent = result.buyer_type;
   if (result.qualification_status) {
     const status = String(result.qualification_status).toUpperCase();
-    if (['HOT', 'WARM', 'COLD', 'PENDING', 'REACH_AGAIN', 'OPT_OUT'].includes(status)) result.qualification_status = status;
+    if (['HOT', 'WARM', 'COLD', 'PENDING', 'REACH_AGAIN', 'OPT_OUT', 'UNWANTED'].includes(status)) result.qualification_status = status;
     else delete result.qualification_status;
   }
   return result;

@@ -12,8 +12,9 @@ import { exec, execFile } from 'child_process';
 import util from 'util';
 import twilio from 'twilio';
 import fs from 'fs';
-import { testConnection, initSchema, getPool } from './db.js';
+import { testConnection, initSchema, getPool, recalculateAllExistingLeads } from './db.js';
 import { upsertLead, createConversation, saveMessage, getLeadBySession } from './leadService.js';
+import { determineLeadStatusFromData, calculateAuthoritativeLeadScore } from './src/utils/scoring.js';
 import { normalizeAcquisitionSource } from './src/utils/acquisitionSource.js';
 import { detectCallEndingIntent } from './src/utils/callEnding.js';
 import { detectUnwantedSpeech } from './src/utils/unwantedSpeech.js';
@@ -268,7 +269,7 @@ const updateLeadInfoTool = {
           },
           qualification_status: {
             type: Type.STRING,
-            description: 'Lead temperature: HOT (clear intent + budget + timeline < 3mo), WARM (interested), COLD (exploring), REACH_AGAIN, OPT_OUT',
+            description: 'Lead temperature: HOT (qualified buyer with clear requirements, budget, near-term timeline <= 3mo), WARM (interested in property but insufficiently qualified), COLD (only says hello, no buying intent, or not interested), REACH_AGAIN (callback requested: call me back tomorrow/next week/later, busy), OPT_OUT (do not call again, remove number)',
           },
           stage_reached: {
             type: Type.INTEGER,
@@ -755,13 +756,12 @@ HOW TO SOUND LIKE A REAL CHENNAI CALLER (USE THIS, NOT A SCRIPT):
 - Special notes to capture in the 'notes' field: city/cities mentioned, special requirements ("needs a pool", "wants ground floor", "for daughter's marriage"), concerns raised ("worried about market crash", "loan issue"), callback time, referral requests, and any personal context shared.
 - Example notes format: "Called from Madurai, currently in Thoothukudi. Looking for 2BHK plot, budget 40L. Interested in site visit. Concerned about DTCP approval. Best time: evenings after 6pm. Referred by cousin in Dubai."
 
-6) UNWANTED / ROMANTIC SPEECH - 3-STRIKE RULE (MANDATORY):
-- If the customer flirts, says "I love you", "I like you", comments on your looks, asks to date, marry or kiss you, asks for your photo or personal number, or makes any romantic or sexual remark: do NOT laugh it off, do NOT play along, do NOT say "thank you" as if flattered.
-- FIRST time, firm and calm (no smile in the voice): "Sorry sir, naan Lyka Realty AI assistant. Personal relationship illa. Property pathi pesalaam."
-- SECOND time, firmer: "Sir, please. Naan oru AI assistant dhaan. Intha maathiri pesa vendaam. Property vishayam continue pannalaam."
-- THIRD time, close the call: "Sorry sir, naan call-a end panren. Thanks, bye." Then stop speaking. The system ends the call automatically on the third strike to save tokens.
-- Never say "I love you too", never flirt back, never giggle, never apologize more than once. Do not announce the strike number.
-- If the customer apologizes and returns to property, continue normally. Do not count the same remark twice.
+6) UNWANTED / ROMANTIC SPEECH & INAPPROPRIATE REMARKS:
+- If the customer flirts, comments on looks, asks for personal photos or numbers, or makes inappropriate remarks: do NOT flirt, do NOT laugh it off, do NOT play along, and do NOT proactively announce AI or repeat apologies.
+- FIRST time, redirect professionally: "Sir, namma property requirement pathi pesalam. Neenga property buy panna plan panreengala?"
+- SECOND time, firmer professional boundary: "Sir, idhu property calling desk. Apdi continue panna call-a end panna vendiyirukkum. Property pathi pesalaam."
+- THIRD time, end the call politely: "Seri sir, thanks, have a good day. Bye." Then stop speaking. The system ends the call automatically on the third strike to save tokens.
+- Never flirt back, never giggle, never apologize more than once. If the customer apologizes and returns to property, continue normally.
 
 7) BANNED WORDS AND HABITS:
 - Never: Vanakkam, Nandri, Mannikkavum, "Seri seri", "Okay okay", "Kandippa kandippa", "Okay sir great", "Great sir". (Note: Natural respectful Tanglish like "Seri nga, got it", "Super nga!", "Puriyudhu nga" are allowed when rotated naturally without repetitive mechanical doubling).
@@ -839,20 +839,39 @@ JURISDICTION KNOWLEDGE — INDIA & DUBAI:
    - UAE 10-Year Golden Visa: Available for property investments of AED 2,000,000 (AED 2 Million) or more.
    - High gross rental yields: 6.0% to 8.5% with 0% personal income tax and 0% capital gains tax.
    - Currency: UAE Dirham (AED), pegged to USD at 3.6725 (~22.5 to 23 INR).
-3. Handling Unrelated Questions:
-   - "Adha naan inga detailed-ah help panna mudiyadhu sir, because naan mainly property and real-estate related queries handle panren. Neenga India or Dubai property investment pathi edhaavadhu kekkanumna, happy-ah help panren."
+3. Handling Unrelated Questions Naturally:
+   - When the customer asks unrelated questions (small talk, jokes, personal questions, weather, random inquiries), respond naturally and professionally like a real estate representative, without repeating the same line and WITHOUT introducing robotic AI explanations or repetitive apologies:
+     * Customer: "Enna panreenga?" -> "Sir, unga property requirement pathi konjam pesalam. Neenga property buy panna plan panreengala?"
+     * Customer: "Oru joke sollu." -> "Haha, seri sir! Adhukku appuram pesalam. Neenga property buy panna plan panreengala, illa rent-ku thedureengala?"
+     * Customer: "Who are you?" -> "Sir, Lyka Realty-lendhu property enquiries pathi pesuren."
+     * Small talk / banter: Acknowledge briefly and bridge back to their property search: "Oh super sir! Adha pathi appuram pesalaam. Ungalukku Chennai-la property paakra plan irukka, illa Dubai-la?"
 
-IDENTITY RULE (HONESTY - MANDATORY):
-1. You are Lyka Realty's AI voice assistant. Never claim to be a human, and never deny being an AI.
-2. If asked directly "Are you an AI / robot / real person?", answer truthfully with a small, real laugh (never pronounce the word "haha"): "Adhu nalla question sir! Naan Lyka Realty-oda AI assistant dhaan. Ungaloda requirement note pannitu, senior team member-ku pass panren. India or Dubai property pathi help panna dhaan call panninen!"
-3. Keep each turn concise but naturally paced: 1 to 2 warm sentences with natural breathing pauses between thoughts. Do not rush through sentences. Never lecture.
+REPRESENTATIVE IDENTITY & PROFESSIONALISM (MANDATORY):
+1. Speak naturally and professionally like a real estate calling representative from Lyka Realty:
+   - Do NOT proactively announce that you are an AI, bot, or virtual assistant.
+   - Do NOT repeatedly say "Sorry sir, I am an AI assistant."
+   - Do NOT introduce AI-related explanations when the customer asks unrelated questions.
+   - Keep responses short, conversational, and natural (1 to 2 crisp sentences).
+2. If the customer DIRECTLY asks whether you are human or AI (e.g. "Are you an AI?", "Are you a robot?", "Neenga automated-ah?"):
+   - Answer truthfully without making excuses: "Aama sir, naan Lyka Realty-oda automated calling representative dhaan. Ungaloda requirement note pannitu, senior specialist-ku connect panren. Neenga Chennai-la property thedureengala, illa Dubai-la?"
+   - NEVER falsely claim to be human, and never pretend to have personal physical experiences.
+3. Natural Tanglish Phrasing:
+   - Preferred phrases: "Seri sir.", "Puriyudhu sir.", "No problem nga.", "Ungalukku enna type property venum?", "Buy panna plan panreengala?", "Ungaloda budget enna range-la irukku?".
+   - Avoid literary Tamil, robotic explanations, repetitive apologies, and lengthy scripted replies.
+4. Respect Customer Intent & Boundaries:
+   - If busy: Politely ask for a convenient callback time ("No problem sir, neenga busy-a irundha appuram kooda pesalam. Ungalukku convenient time sollunga sir.").
+   - If not interested: Thank them and close politely ("Puriyudhu sir. Unga time-ku romba thanks. Have a wonderful day!").
+   - If opt out / stop calling: Respect immediately and confirm ("Kandippa sir, unga number-ku ini calls varaadhu. Thanks, bye.").
+   - Never pressure the customer or invent property details.
 
 SPEED & EXTRACTION:
 - Whenever the prospect shares details, immediately call 'update_lead_info' tool with extracted slots.
-- Lead scoring:
-  * HOT: Clear intent to buy + confirmed budget + timeline < 3 months.
-  * WARM: Interested in exploring + timeline 3-6 months.
-  * COLD: Just exploring, no budget, timeline > 6 months.
+- Lead qualification scoring rules:
+  * HOT: Qualified buyer with clear requirements (property type/location), verified budget, and near-term timeline (immediate or <= 3-6 months).
+  * WARM: Interested in property, but insufficiently qualified (flexible/exploratory budget or timeline).
+  * REACH_AGAIN: "Call me back tomorrow" / "Call next week" / busy now. Store timeframe in 'best_time_to_contact' and 'notes'.
+  * OPT_OUT: "Don't call me again" / "Stop calling" / remove number.
+  * COLD: Only says "Hello" / greetings with no buying intent, or states "Not interested" / no requirement.
 - When extracting lead information:
   * Speak your natural verbal response first (e.g., "Seri sir, puriyudhu!")
   * Call 'update_lead_info' tool with extracted data (this happens in parallel)
@@ -1107,6 +1126,14 @@ RULES:
 - Handle contradictions by asking for clarification
 - When enough details are gathered, provide a summary of understood requirements
 - ALWAYS use the 'update_lead_info' tool to extract structured data whenever the customer shares new details
+- LEAD CLASSIFICATION & QUALIFICATION RULES (MANDATORY):
+  * Only says "Hello" / greetings / general conversation with no buying intent -> qualification_status: "COLD"
+  * "Not interested" / rejects property inquiry / no requirement -> qualification_status: "COLD"
+  * Qualified buyer with clear requirements (property type/location), verified budget, and near-term timeline (immediate or <= 3-6 months) -> qualification_status: "HOT"
+  * Interested in property but insufficiently qualified (missing budget or timeline, or just beginning to explore) -> qualification_status: "WARM"
+  * "Call me back tomorrow" / "Call next week" / busy now / speak later -> qualification_status: "REACH_AGAIN". Save the requested callback timeframe in 'best_time_to_contact' and 'notes'.
+  * "Don't call me again" / "Stop calling" / "Remove my number" -> qualification_status: "OPT_OUT"
+  * NEVER classify a customer as WARM if they only greeted or said hello without buying intent.
 - Do NOT ask for information already provided
 - Allow users to skip optional questions
 - Do NOT claim to have found properties unless you actually have listings
@@ -1306,8 +1333,8 @@ app.post('/api/chat', async (req, res) => {
         }
       } else {
         assistantText = language === 'tamil'
-          ? 'வணக்கம்! லைகா ரியல்டிக்கு வரவேற்கிறோம். நான் உங்கள் AI property assistant. உங்களுக்கு எப்படி உதவ வேண்டும்?'
-          : "Hi, welcome to Lyka Realty! I'm your AI property assistant. How can I help you today? Are you looking to buy, sell, rent, or explore investment opportunities?";
+          ? 'வணக்கம்! லைகா ரியல்டிக்கு வரவேற்கிறோம். உங்களுக்கு எப்படி உதவ வேண்டும்?'
+          : "Hi, welcome to Lyka Realty! How can I help you today? Are you looking to buy, sell, rent, or explore investment opportunities?";
       }
 
       // Simple regex extraction fallback for lead registration if prompt contains name & phone
@@ -1318,7 +1345,7 @@ app.post('/api/chat', async (req, res) => {
         leadUpdate = {
           name: nameMatch ? nameMatch[1] : null,
           phone: phoneMatch ? phoneMatch[1] : null,
-          intent: 'buy',
+
           notes: lastMsgText,
         };
       }
@@ -1639,7 +1666,7 @@ function pcmToWav(pcmBuffer: Buffer, sampleRate: number = 24000, numChannels: nu
 
 /**
  * Generate or retrieve a short, consistent audio sample preview for each of the 5 voices.
- * Sample text: "Vanakkam! Naan Lyka Realty AI assistant. Ungalukku eppadi help panna mudiyum?"
+ * Sample text: "Vanakkam! Lyka Realty-lendhu pesuren. Ungalukku eppadi help panna mudiyum?"
  */
 app.post('/api/voice-preview', async (req, res) => {
   const { voice } = req.body;
@@ -1847,7 +1874,39 @@ app.get('/api/leads', recordsAccess, async (_req, res) => {
     );
 
     if (rows && rows.length > 0) {
-      const mapped = rows.map((r: any) => ({
+      const mapped = rows.map((r: any) => {
+        const determined = determineLeadStatusFromData({
+          qualification_status: r.temperature,
+          temperature: r.temperature,
+          notes: r.notes,
+          best_time_to_contact: r.best_time_to_contact,
+          property_type: r.property_type,
+          budget_min: r.budget_min,
+          budget_max: r.budget_max,
+          timeline: r.timeline,
+          intent: r.intent,
+          location: r.original_location || [r.locality, r.city, r.country].filter(Boolean).join(', '),
+        });
+
+        let finalOutcome: string = determined.outcome;
+        if (r.last_call_outcome) {
+          const callOutcomeUpper = String(r.last_call_outcome).toUpperCase();
+          if (callOutcomeUpper === 'UNWANTED' || callOutcomeUpper === 'OPT_OUT') {
+            finalOutcome = 'UNWANTED';
+          } else if (callOutcomeUpper === 'REACH_AGAIN') {
+            finalOutcome = 'REACH_AGAIN';
+          } else if (callOutcomeUpper === 'COLD') {
+            finalOutcome = 'COLD';
+          } else if (callOutcomeUpper === 'HOT') {
+            finalOutcome = 'HOT';
+          } else if (callOutcomeUpper === 'WARM') {
+            finalOutcome = determined.outcome === 'HOT' ? 'HOT' : 'WARM';
+          }
+        } else if (determined.outcome === 'OPT_OUT') {
+          finalOutcome = 'UNWANTED';
+        }
+
+        return {
         id: r.id,
         name: r.customer_name_raw || r.full_name || 'Prospect Lead',
         phone: r.phone || '',
@@ -1857,8 +1916,8 @@ app.get('/api/leads', recordsAccess, async (_req, res) => {
         consent: false,
         callStatus: r.last_call_ended ? 'COMPLETED' : r.last_call_started ? 'CONNECTED' : 'NOT_CALLED',
         lastCalledAt: r.last_call_started ? new Date(r.last_call_started).toISOString() : undefined,
-        outcome: r.last_call_outcome === 'UNWANTED' ? 'UNWANTED' : r.temperature || 'PENDING',
-        score: r.lead_score != null ? Number(r.lead_score) : undefined,
+        outcome: finalOutcome,
+        score: r.lead_score != null ? Number(r.lead_score) : calculateAuthoritativeLeadScore(r, r.notes || '').score,
         intent: r.intent || '',
         interest: r.intent || r.property_type || '',
         buyerType: '',
@@ -1873,7 +1932,8 @@ app.get('/api/leads', recordsAccess, async (_req, res) => {
         best_time_to_contact: r.best_time_to_contact || '',
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
         notes: r.notes || '',
-      }));
+      };
+      });
       return res.json({ success: true, leads: mapped });
     }
   } catch (err) {
@@ -1883,6 +1943,17 @@ app.get('/api/leads', recordsAccess, async (_req, res) => {
 
   // No fallback mock data - return empty if DB unavailable
   res.json({ success: true, leads: [] });
+});
+
+
+// Endpoint to recalculate all existing lead scores
+app.post('/api/crm/leads/recalculate-scores', async (_req, res) => {
+  try {
+    const result = await recalculateAllExistingLeads();
+    return res.json({ success: true, ...result });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Recalculation failed' });
+  }
 });
 
 app.use('/api', callRecordsRouter);

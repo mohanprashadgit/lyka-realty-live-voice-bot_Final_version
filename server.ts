@@ -17,7 +17,7 @@ import { upsertLead, createConversation, saveMessage, getLeadBySession } from '.
 import { determineLeadStatusFromData, calculateAuthoritativeLeadScore } from './src/utils/scoring.js';
 import { normalizeAcquisitionSource } from './src/utils/acquisitionSource.js';
 import { detectCallEndingIntent } from './src/utils/callEnding.js';
-import { detectUnwantedSpeech } from './src/utils/unwantedSpeech.js';
+import { detectUnwantedSpeech, detectUnrelatedSpeech, isPropertyRelatedSpeech } from './src/utils/unwantedSpeech.js';
 import { detectObjectionSignal } from './src/utils/customerObjection.js';
 import { verifyToken } from './authHelper.js';
 import { extractStructuredRequirements } from './backend/services/requirementExtractor.js';
@@ -616,8 +616,37 @@ If the customer immediately initiates a property inquiry (e.g. asks about Dubai 
 - Finish that answer, take a beat, and only then ask one follow-up (the name, if it is still needed). Never put the answer and the name question in the same breath.
 - When the customer has already given the name, do not ask for it again in any form.
 
-Step 4 — Gradual Qualification (One Question at a Time):
-Progressively explore Purpose, Property Type, Budget, Location, Name, Contact Method, Time to Contact, and Referral Source naturally across the conversation. Never present fields as a checklist.
+Step 4 — Natural Progressive Qualification Flow (One Question at a Time):
+After confirming that the customer is interested, qualify them naturally and progressively in this recommended sequence:
+  1. Confirm buying or renting intent:
+     Agent: "Sir, neenga property buy panna interested-ah irukkeengala?" (or "Neenga buy panna plan panreengala, illa rent-ku thedureengala sir?")
+  2. Ask what type of property they need:
+     Agent: "Super sir. Enna type property thedureenga — apartment, villa, illa plot?"
+     (If customer already specified this, do NOT re-ask! Skip to the next missing detail).
+  3. Ask the preferred location:
+     Agent: "Endha area or location prefer panreenga sir — Chennai-la OMR, ECR, illa Dubai side explore panreengala?"
+     (If customer already mentioned location, do NOT re-ask! Skip to the next missing detail).
+  4. Ask their budget:
+     Agent: "Unga budget enna range-la irukku sir?"
+     (If customer already mentioned budget, do NOT re-ask! Skip to the next missing detail).
+  5. Ask purchase timeline (ALWAYS ask about purchase timeline AFTER collecting the budget when conversation permits):
+     Agent: "Seri sir. Neenga eppo purchase panna plan panreenga — within one month-ah, three months-kulla, illa konjam later-ah?"
+     - Accept natural answers: "next month", "within three months", "six months later", "immediate", "just exploring", "oru 2-3 months-kulla", "next year".
+     - Store the customer's actual answer and extract a timeline only when supported by the conversation.
+  6. Ask any remaining relevant qualification question:
+     - Customer name (if not known yet): "By the way sir, unga name therinjukkalama?"
+     - Follow-up preference: "Follow-up details Phone-la venuma, WhatsApp-la share pannalama sir?"
+     - Best time to contact: "Team contact panna endha time convenient-ah irukkum sir?"
+
+CRITICAL FLOW REQUIREMENTS:
+- Ask ONE question at a time.
+- Ask about the purchase timeline AFTER collecting the budget when the conversation permits.
+- Accept natural answers such as "next month", "within three months", "six months later", or "just exploring".
+- Store the customer's actual answer and extract a timeline only when supported by the conversation.
+- Do NOT ask for information the customer has already provided.
+- If the customer gives several details in one answer (e.g. "Looking for 3 BHK in OMR under 80 Lakhs"), extract ALL of them immediately with 'update_lead_info' and ask only for the next missing detail (e.g. timeline).
+- Do not force the conversation through a rigid script.
+- Use natural English/Tanglish according to the customer's language.
 
 Step 5 — Natural Graceful Closing:
 When finished:
@@ -839,12 +868,18 @@ JURISDICTION KNOWLEDGE — INDIA & DUBAI:
    - UAE 10-Year Golden Visa: Available for property investments of AED 2,000,000 (AED 2 Million) or more.
    - High gross rental yields: 6.0% to 8.5% with 0% personal income tax and 0% capital gains tax.
    - Currency: UAE Dirham (AED), pegged to USD at 3.6725 (~22.5 to 23 INR).
-3. Handling Unrelated Questions Naturally:
-   - When the customer asks unrelated questions (small talk, jokes, personal questions, weather, random inquiries), respond naturally and professionally like a real estate representative, without repeating the same line and WITHOUT introducing robotic AI explanations or repetitive apologies:
-     * Customer: "Enna panreenga?" -> "Sir, unga property requirement pathi konjam pesalam. Neenga property buy panna plan panreengala?"
-     * Customer: "Oru joke sollu." -> "Haha, seri sir! Adhukku appuram pesalam. Neenga property buy panna plan panreengala, illa rent-ku thedureengala?"
-     * Customer: "Who are you?" -> "Sir, Lyka Realty-lendhu property enquiries pathi pesuren."
-     * Small talk / banter: Acknowledge briefly and bridge back to their property search: "Oh super sir! Adha pathi appuram pesalaam. Ungalukku Chennai-la property paakra plan irukka, illa Dubai-la?"
+3. PROTOCOL FOR REPEATED UNRELATED CONVERSATION (MANDATORY 3-TIER ESCALATION):
+   If a customer repeatedly talks about unrelated topics (small talk, jokes, personal questions, recipes, entertainment, sports, weather, politics, non-property banter) instead of property enquiries, strictly apply this 3-tier escalation:
+     * FIRST UNRELATED ATTEMPT: Politely redirect towards property.
+       Example Tanglish: "Seri sir, unga property requirement pathi pesalama? Neenga buy panna plan panreengala?"
+       Example English: "Sure sir, could we talk about your property requirement? Are you planning to purchase or rent a property?"
+     * SECOND CONSECUTIVE UNRELATED ATTEMPT: Give one final, polite warning and redirect.
+       Example Tanglish: "Sir, indha call property enquiries-ku mattum. Ungalukku property requirement illaina, no problem, call-a inga close pannalam."
+       Example English: "Sir, this call is strictly for property enquiries. If you don't have a property requirement right now, no problem, we can close the call here."
+     * THIRD CONSECUTIVE UNRELATED ATTEMPT: End the call politely if the customer still refuses or continues unrelated talk.
+       Example Tanglish: "Puriyudhu sir. Unga time-ku romba thanks. Have a wonderful day! Bye."
+       Example English: "Understood sir. Thank you so much for your time. Have a wonderful day! Bye."
+       Then stop speaking immediately. The system will cleanly close the call and record the outcome as unwanted.
 
 REPRESENTATIVE IDENTITY & PROFESSIONALISM (MANDATORY):
 1. Speak naturally and professionally like a real estate calling representative from Lyka Realty:
@@ -866,12 +901,18 @@ REPRESENTATIVE IDENTITY & PROFESSIONALISM (MANDATORY):
 
 SPEED & EXTRACTION:
 - Whenever the prospect shares details, immediately call 'update_lead_info' tool with extracted slots.
-- Lead qualification scoring rules:
-  * HOT: Qualified buyer with clear requirements (property type/location), verified budget, and near-term timeline (immediate or <= 3-6 months).
-  * WARM: Interested in property, but insufficiently qualified (flexible/exploratory budget or timeline).
-  * REACH_AGAIN: "Call me back tomorrow" / "Call next week" / busy now. Store timeframe in 'best_time_to_contact' and 'notes'.
-  * OPT_OUT: "Don't call me again" / "Stop calling" / remove number.
-  * COLD: Only says "Hello" / greetings with no buying intent, or states "Not interested" / no requirement.
+- Lead qualification scoring rules (100-point evidence-based model):
+  * Buying/renting intent (0–30 pts): Stated purchase/rent/investment goal (30 pts), expressed interest (20 pts), exploratory browsing (10 pts). Explicit buying intent ("I want to buy a property") receives 30 pts.
+  * Budget clarity (0–20 pts): Verified budget (20 pts), ballpark range (12 pts).
+  * Property type (0–15 pts): Specific configuration e.g. 3 BHK (15 pts), broad category (10 pts).
+  * Location (0–10 pts): Specific locality e.g. OMR, ECR (10 pts), broad city (6 pts).
+  * Timeline (0–15 pts): Immediate/within 1 month (15 pts), 1-3 months (10 pts), 3-6 months (5 pts), >6 months (2 pts).
+  * Engagement (0–10 pts): Site visit agreed (10 pts), callback/brochure requested (7 pts), responsive dialogue (4 pts).
+  * HOT: Qualified buyer with score >= 75 (clear intent, requirements, verified budget, near-term timeline <= 3mo).
+  * WARM: Interested buyer with score 45–74 (property interest but flexible/exploratory budget or timeline).
+  * COLD: Score < 45 or stated "Not interested" / no requirement (score = 0).
+  * REACH_AGAIN: Callback requested (stores timeframe in 'best_time_to_contact' and 'notes').
+  * OPT_OUT / UNWANTED: Explicit DNC request or repeated unrelated conversation (score = 0).
 - When extracting lead information:
   * Speak your natural verbal response first (e.g., "Seri sir, puriyudhu!")
   * Call 'update_lead_info' tool with extracted data (this happens in parallel)
@@ -1917,7 +1958,9 @@ app.get('/api/leads', recordsAccess, async (_req, res) => {
         callStatus: r.last_call_ended ? 'COMPLETED' : r.last_call_started ? 'CONNECTED' : 'NOT_CALLED',
         lastCalledAt: r.last_call_started ? new Date(r.last_call_started).toISOString() : undefined,
         outcome: finalOutcome,
-        score: r.lead_score != null ? Number(r.lead_score) : calculateAuthoritativeLeadScore(r, r.notes || '').score,
+        score: ['OPT_OUT', 'UNWANTED'].includes(finalOutcome) || ['OPT_OUT', 'UNWANTED'].includes(String(r.temperature || '').toUpperCase())
+          ? 0
+          : (r.lead_score != null ? Number(r.lead_score) : calculateAuthoritativeLeadScore(r, r.notes || '').score),
         intent: r.intent || '',
         interest: r.intent || r.property_type || '',
         buyerType: '',
@@ -2665,6 +2708,10 @@ wss.on('connection', async (clientWs: WebSocket) => {
   let currentMode: 'agent' | 'chatbot' = 'agent';
   let currentAuthUser: { type: 'employee' | 'customer'; data: any } | null = null;
   let currentRagGrounding: string = '';
+  let recoveryInProgress = false;
+  let recoveryAttempts = 0;
+  const MAX_RECOVERY_ATTEMPTS = 1;
+  let attemptSessionRecovery = async (_reason: string) => {};
 
   const safeSend = (payload: object) => {
     if (clientWs.readyState === WebSocket.OPEN) {
@@ -2762,10 +2809,11 @@ wss.on('connection', async (clientWs: WebSocket) => {
     }, 300);
   };
 
-  // ── Unwanted / romantic speech guard (3 strikes) ───────────────────────────
-  // The model gives two firm warnings. On the third, the call is ended
-  // automatically so the bot does not keep burning tokens on a bad call.
+  // ── Unwanted / romantic / unrelated speech guard (3-tier escalation) ─────────
+  // First attempt: model politely redirects. Second consecutive attempt: final polite warning.
+  // Third consecutive attempt: polite call ending.
   let unwantedStrikes = 0;
+  let consecutiveUnrelatedStrikes = 0;
   let unwantedHangupTimer: NodeJS.Timeout | null = null;
   let unwantedHangupDone = false;
 
@@ -2774,47 +2822,62 @@ wss.on('connection', async (clientWs: WebSocket) => {
     unwantedHangupDone = true;
     clearGoodbyeDetection();
     flushPendingTranscript();
-    journal?.details({ ...callFacts, notes: [callFacts.notes, 'Call ended after three explicit unwanted or unrelated remarks.'].filter(Boolean).join(' ') }, 'unwanted_speech');
+    journal?.details({
+      ...callFacts,
+      qualification_status: 'UNWANTED',
+      lead_score: 0,
+      notes: [callFacts.notes, 'Call ended after three consecutive unrelated or unwanted remarks.'].filter(Boolean).join(' ')
+    }, 'unwanted_speech');
     if (unwantedHangupTimer) {
       clearTimeout(unwantedHangupTimer);
       unwantedHangupTimer = null;
     }
-    console.log('[Unwanted Speech] Strike 3/3 - ending call automatically (token protection).');
+    console.log('[Unwanted/Unrelated Speech] Strike 3/3 - ending call automatically.');
     safeSend({
       type: 'call_ended',
       reason: 'unwanted_speech',
-      strikes: unwantedStrikes,
+      strikes: consecutiveUnrelatedStrikes || unwantedStrikes,
       maxStrikes: 3,
-      message: 'Call ended automatically after 3 unwanted or romantic remarks.',
+      message: 'Call ended politely after 3 consecutive unrelated remarks.',
     });
-    safeSend({ type: 'status', status: 'ending', message: 'Ending call: repeated unwanted speech.' });
+    safeSend({ type: 'status', status: 'ending', message: 'Ending call: repeated unrelated conversation.' });
     setTimeout(() => {
       isClosing = true;
       if (liveSession) {
         try { liveSession.close(); } catch {}
         liveSession = null;
       }
-      safeSend({ type: 'status', status: 'closed', message: 'Call ended: repeated unwanted speech.' });
+      safeSend({ type: 'status', status: 'closed', message: 'Call ended: repeated unrelated conversation.' });
       setTimeout(() => { try { clientWs.close(); } catch {} }, 600);
     }, 1200);
   };
 
   const registerUnwantedSpeech = (text: string) => {
-    if (unwantedHangupDone) return;
+    if (unwantedHangupDone || callFinalized) return;
     const raw = (text || '').trim();
-    if (!raw || !detectUnwantedSpeech(raw)) return;
+    if (!raw) return;
+
+    if (isPropertyRelatedSpeech(raw)) {
+      // Customer spoke about property: reset consecutive unrelated strike counter
+      consecutiveUnrelatedStrikes = 0;
+      return;
+    }
+
+    if (!detectUnwantedSpeech(raw) && !detectUnrelatedSpeech(raw)) return;
+
+    consecutiveUnrelatedStrikes++;
     unwantedStrikes++;
     lastUnwantedAt = Date.now();
-    console.log(`[Unwanted Speech] Strike ${unwantedStrikes}/3: "${raw.slice(0, 140)}"`);
+    console.log(`[Unrelated/Unwanted Speech] Strike ${consecutiveUnrelatedStrikes}/3 (consecutive): "${raw.slice(0, 140)}"`);
     safeSend({
       type: 'unwanted_speech',
-      strike: unwantedStrikes,
+      strike: consecutiveUnrelatedStrikes,
       maxStrikes: 3,
       text: raw,
       timestamp: Date.now(),
     });
-    if (unwantedStrikes >= 3) {
-      // Give the model time to speak the third refusal, then hang up.
+    if (consecutiveUnrelatedStrikes >= 3) {
+      // Give the model time to speak the third polite refusal, then hang up.
       unwantedHangupTimer = setTimeout(closeCallForUnwantedSpeech, 8000);
     }
   };
@@ -3036,9 +3099,18 @@ wss.on('connection', async (clientWs: WebSocket) => {
             console.log('[Gemini Live] Socket opened');
           },
           onmessage: (msg: LiveServerMessage) => {
+            // Track Tool Call Cancellations from Gemini Live
+            const cancelledToolIds = new Set<string>();
+            if ((msg as any).toolCallCancellation?.ids) {
+              const ids: string[] = (msg as any).toolCallCancellation.ids;
+              console.log('[Gemini Live] Tool call cancellation received for IDs:', ids);
+              for (const cid of ids) cancelledToolIds.add(cid);
+            }
+
             // Handle structured Tool Calls for Lead Info Updates
             if (msg.toolCall?.functionCalls) {
-              for (const call of msg.toolCall.functionCalls) {
+              const activeCalls = msg.toolCall.functionCalls.filter((c: any) => !cancelledToolIds.has(c.id));
+              for (const call of activeCalls) {
                 if (call.name === 'update_lead_info') {
                   usageMetrics.totalToolCalls++;
                   // A do-not-call decision is final for this call. A late extraction
@@ -3076,16 +3148,19 @@ wss.on('connection', async (clientWs: WebSocket) => {
               }
 
               // Send tool response confirmation back to Gemini Live
-              if (liveSession) {
-                const responses = msg.toolCall.functionCalls.map((c) => ({
+              if (liveSession && activeCalls.length > 0) {
+                const responses = activeCalls.map((c) => ({
                   id: c.id,
                   name: c.name,
                   response: { output: { success: true, timestamp: Date.now() } },
                 }));
                 try {
                   liveSession.sendToolResponse({ functionResponses: responses });
-                } catch (e) {
-                  console.error('[Gemini Live] Failed to send tool response:', e);
+                } catch (e: any) {
+                  console.error('[Gemini Live] Failed to send tool response:', e?.message || e);
+                  if (!isClosing && !callFinalized) {
+                    void attemptSessionRecovery('tool_response_failed');
+                  }
                 }
               }
             }
@@ -3238,37 +3313,59 @@ wss.on('connection', async (clientWs: WebSocket) => {
           },
           onerror: (err: any) => {
             console.error('[Gemini Live] Session error:', err);
-            safeSend({
-              type: 'error',
-              message: err?.message || 'Connection error with voice service.',
-            });
+            const errStr = String(err?.message || err);
+            const isSpendingCap = /spending cap|quota|exhausted|resource_exhausted/i.test(errStr);
+            if (isSpendingCap) {
+              safeSend({
+                type: 'error',
+                code: 'SPENDING_CAP_EXCEEDED',
+                message: 'Gemini Live Spending Cap Exceeded: Your Google project has exceeded its monthly spending cap. Please visit https://ai.studio/spend to raise your spend cap or update GEMINI_API_KEY in .env.',
+              });
+            } else {
+              safeSend({
+                type: 'error',
+                message: errStr || 'Connection error with voice service.',
+              });
+            }
           },
           onclose: (e: any) => {
             console.log('[Gemini Live] Session closed:', e?.code, e?.reason);
             if (!isClosing && !replaced) {
               if (callFinalized) return;
+              const reasonStr = String(e?.reason || '');
+              const isSpendingCap = /spending cap|quota|exhausted|resource_exhausted/i.test(reasonStr);
+
+              if (isSpendingCap) {
+                callFinalized = true;
+                clearGoodbyeDetection();
+                flushPendingTranscript();
+                journal?.finish('spending_cap_exceeded');
+                const userMsg = 'Gemini Live Spending Cap Exceeded: Your Google project has exceeded its monthly spending cap. Please visit https://ai.studio/spend to raise your spend cap or update GEMINI_API_KEY in .env.';
+                safeSend({ type: 'error', code: 'SPENDING_CAP_EXCEEDED', message: userMsg });
+                safeSend({ type: 'status', status: 'closed', message: userMsg });
+                setTimeout(() => { try { clientWs.close(); } catch {} }, 500);
+                return;
+              }
+
+              // If session closed unexpectedly during an active call, attempt recovery
+              if (recoveryAttempts < MAX_RECOVERY_ATTEMPTS && !goodbyeEnding) {
+                console.log('[Gemini Live] Session disconnected during active call. Initiating recovery...');
+                void attemptSessionRecovery(`onclose_${e?.code || 'unknown'}`);
+                return;
+              }
+
               callFinalized = true;
               clearGoodbyeDetection();
               flushPendingTranscript();
               journal?.finish();
               if (wsConversationId) void getPool().query('UPDATE conversations SET ended_at = COALESCE(ended_at, CURRENT_TIMESTAMP) WHERE id = ?', [wsConversationId]).catch(err => console.error('[History] End save failed:', err.message));
               const isAbnormal = Boolean(e?.code && e.code !== 1000);
-              const reasonStr = String(e?.reason || '');
-              const isSpendingCap = /spending cap|quota|exhausted|resource_exhausted/i.test(reasonStr);
-
-              if (isAbnormal) {
-                const userMsg = isSpendingCap
-                  ? 'Gemini Live Spending Cap Exceeded: Your Google project has exceeded its monthly spending cap. Please visit https://ai.studio/spend to raise your spend cap or update GEMINI_API_KEY in .env.'
-                  : `Gemini Voice session closed (${e?.code || 'abnormal'}): ${reasonStr || 'Connection to Gemini Live ended unexpectedly.'}`;
-                safeSend({
-                  type: 'error',
-                  code: isSpendingCap ? 'SPENDING_CAP_EXCEEDED' : 'LIVE_SESSION_CLOSED',
-                  message: userMsg,
-                });
-                safeSend({ type: 'status', status: 'closed', message: userMsg });
-              } else {
-                safeSend({ type: 'status', status: 'closed', message: 'Call ended.' });
-              }
+              const userMsg = isAbnormal
+                ? `Gemini Voice session ended (${e?.code || 'abnormal'}): ${reasonStr || 'Connection to Gemini Live ended.'}`
+                : 'Call ended.';
+              if (isAbnormal) safeSend({ type: 'error', code: 'LIVE_SESSION_CLOSED', message: userMsg });
+              safeSend({ type: 'status', status: 'closed', message: userMsg });
+              setTimeout(() => { try { clientWs.close(); } catch {} }, 500);
             }
           },
         },
@@ -3362,9 +3459,54 @@ Hello sir! Eppadi irukkeenga? Naan ${persona.name}, Lyka Realty-la irundhu pesur
     }
   };
 
+  attemptSessionRecovery = async (reason: string) => {
+    if (recoveryInProgress || callFinalized || isClosing) return;
+    if (recoveryAttempts >= MAX_RECOVERY_ATTEMPTS) {
+      finalizeLiveCall('session_recovery_failed');
+      return;
+    }
+    recoveryInProgress = true;
+    recoveryAttempts++;
+    console.log(`[Gemini Live] Attempting session recovery (${reason}), attempt ${recoveryAttempts}/${MAX_RECOVERY_ATTEMPTS}...`);
+    safeSend({ type: 'status', status: 'connecting', message: 'Restoring voice connection...' });
+    prepareVoiceSwitch();
+    if (liveSession) {
+      try {
+        liveSession.close();
+      } catch (e) {
+        console.warn('[Gemini Live] Session recovery close old session:', e);
+      }
+      liveSession = null;
+    }
+    try {
+      await initGeminiLiveSession(
+        currentVoice,
+        currentLanguage,
+        currentLeadName,
+        currentGender,
+        currentMode,
+        currentAuthUser,
+        currentRagGrounding,
+        true // isVoiceSwitch: preserves context, does not repeat initial greeting
+      );
+      recoveryInProgress = false;
+      safeSend({ type: 'status', status: 'listening', message: 'Voice connection restored.' });
+    } catch (recErr: any) {
+      console.error('[Gemini Live] Session recovery failed:', recErr);
+      recoveryInProgress = false;
+      safeSend({ type: 'error', message: 'Voice connection could not be restored. Please start a new call.' });
+      finalizeLiveCall('session_recovery_failed');
+    }
+  };
+
   clientWs.on('message', async (raw: Buffer) => {
     try {
       const msg = JSON.parse(raw.toString());
+
+      if (msg.type === 'ping') {
+        safeSend({ type: 'pong', timestamp: Date.now() });
+        return;
+      }
 
       if (msg.type === 'start') {
         if (started) return;

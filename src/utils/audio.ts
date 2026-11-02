@@ -230,6 +230,7 @@ export class LiveAudioPlayer {
   private onPlayStateChange?: (playing: boolean) => void;
   private onAudioEnergy?: (energy: number) => void;
   private stopHangoverTimer: any = null;
+  private safetyWatchdogTimer: any = null;
   // Output routing — send the agent's voice to the same physical device as the mic
   private outputDeviceId: string = 'default';
 
@@ -239,6 +240,29 @@ export class LiveAudioPlayer {
   ) {
     this.onPlayStateChange = onPlayStateChange;
     this.onAudioEnergy = onAudioEnergy;
+  }
+
+  private startSafetyWatchdog() {
+    if (this.safetyWatchdogTimer) return;
+    this.safetyWatchdogTimer = setInterval(() => {
+      if (!this.isPlaying) {
+        this.stopSafetyWatchdog();
+        return;
+      }
+      if (this.ctx && this.activeSources.length === 0 && this.ctx.currentTime >= this.nextPlayTime + 0.25) {
+        this.updatePlayingState(false);
+        this.onAudioEnergy?.(0);
+        this.nextPlayTime = 0;
+        this.stopSafetyWatchdog();
+      }
+    }, 200);
+  }
+
+  private stopSafetyWatchdog() {
+    if (this.safetyWatchdogTimer) {
+      clearInterval(this.safetyWatchdogTimer);
+      this.safetyWatchdogTimer = null;
+    }
   }
 
   private initContext() {
@@ -344,11 +368,17 @@ export class LiveAudioPlayer {
   private updatePlayingState(playing: boolean) {
     if (this.isPlaying !== playing) {
       this.isPlaying = playing;
+      if (playing) {
+        this.startSafetyWatchdog();
+      } else {
+        this.stopSafetyWatchdog();
+      }
       this.onPlayStateChange?.(playing);
     }
   }
 
   public stopAndClear() {
+    this.stopSafetyWatchdog();
     if (this.stopHangoverTimer) {
       clearTimeout(this.stopHangoverTimer);
       this.stopHangoverTimer = null;
@@ -368,6 +398,7 @@ export class LiveAudioPlayer {
   }
 
   public close() {
+    this.stopSafetyWatchdog();
     this.stopAndClear();
     if (this.ctx && this.ctx.state !== 'closed') {
       try {

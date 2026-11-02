@@ -126,7 +126,9 @@ export async function readCalls(id?: string) {
       buyerType: snapshot.buyer_type || '',
       budget: snapshot.budget || (snapshot.budget_max != null ? String(snapshot.budget_max) : ''),
       timeline: snapshot.timeline || '',
-      score: calculateAuthoritativeLeadScore(snapshot, speech.filter((m: any) => !['assistant', 'agent'].includes(m.role)).map((m: any) => m.content).join(' ')).score,
+      score: r.outcome === 'UNWANTED' || r.outcome === 'OPT_OUT'
+        ? 0
+        : calculateAuthoritativeLeadScore({ ...snapshot, outcome: r.outcome }, speech.filter((m: any) => !['assistant', 'agent'].includes(m.role)).map((m: any) => m.content).join(' ')).score,
       nextAction: snapshot.next_action || '',
       transcript: speech.map((m: any) => { const isAgent = ['assistant', 'agent'].includes(m.role); return { id: m.id,
         role: isAgent ? 'agent' : m.role === 'system' ? 'system' : 'user',

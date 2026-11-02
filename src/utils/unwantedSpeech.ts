@@ -36,9 +36,60 @@ const UNWANTED_SPEECH_PATTERNS: RegExp[] = [
   /(?:என்|உன்)\s*(?:கேர்ள்ஃபிரண்ட்|பாய்ஃபிரண்ட்)/,
 ];
 
+/**
+ * Detects whether the speech is related to property / real estate inquiries.
+ * If true, normal real estate inquiries must not be treated as unrelated.
+ */
+export function isPropertyRelatedSpeech(text: string): boolean {
+  if (!text) return false;
+  const t = text.toLowerCase();
+  return (
+    /\b(?:property|project|apartment|flat|villa|plot|house|land|home|veedu|veetu|bhk|sqft|cents|grounds|acres)\b/i.test(t) ||
+    /\b(?:buy|buying|rent|renting|invest|investing|lease|resale|vaanga|vaadagai|muthaleedu|sell)\b/i.test(t) ||
+    /\b(?:budget|price|rate|cost|lakh|lakhs|crore|crores|cr|million|aed|dirham|dirhams|inr|rupee|rupees)\b/i.test(t) ||
+    /\b(?:omr|ecr|chennai|dubai|bangalore|coimbatore|madurai|trichy|thoothukudi|location|area|locality)\b/i.test(t) ||
+    /\b(?:site\s*visit|brochure|whatsapp|catalog|rera|cmda|dtcp|patta|chitta|ec|loan|advance|down\s*payment)\b/i.test(t) ||
+    /\b(?:ready\s*to\s*move|under\s*construction|handover|timeline|1\s*month|3\s*months|next\s*month)\b/i.test(t) ||
+    /\b(?:commercial|residential|gated\s*community|penthouse|duplex)\b/i.test(t)
+  );
+}
+
+/**
+ * Detects off-topic / unrelated requests (jokes, singing, poems, cooking, weather, politics, non-property banter).
+ */
+export function detectUnrelatedSpeech(raw: string): boolean {
+  const text = (raw || '').trim();
+  if (!text) return false;
+  if (isPropertyRelatedSpeech(text)) return false;
+
+  const t = text.toLowerCase();
+
+  // Jokes, stories, entertainment, singing, riddles
+  if (/\b(?:joke|jokes|story|kadhai|song|paatu|paattu|sing|dance|poem|kavithai|riddle)\b/i.test(t)) return true;
+
+  // Personal queries about the representative / eating / sleeping / dressing
+  if (/\b(?:sapteengala|sapteengla|lunch\s*aacha|dinner\s*aacha|breakfast\s*aacha|what\s*did\s*you\s*eat|enna\s*saapda|what\s*are\s*you\s*eating)\b/i.test(t)) return true;
+  if (/\b(?:what\s*are\s*you\s*wearing|enna\s*dress|where\s*do\s*you\s*live|where\s*are\s*you\s*sleeping|sleeping)\b/i.test(t)) return true;
+
+  // Movies, cricket, sports, celebrities
+  if (/\b(?:cricket|ipl|football|match\s*score|cinema|movie|actor|hero|actress|rajini|kamal|vijay|ajith)\b/i.test(t)) return true;
+
+  // Weather, politics, cooking recipes
+  if (/\b(?:weather|climate|rain|mazhai|recipe|biryani|cooking|tea|coffee|sollu|politics|election|modi|stalin)\b/i.test(t)) return true;
+
+  // Repetitive "what are you doing" / "who are you" with no property context
+  if (/^(?:who\s*are\s*you|neenga\s*yaar|neenga\s*yar|enna\s*panreenga|what\s*are\s*you\s*doing)[.!?\s]*$/i.test(t)) return true;
+
+  return false;
+}
+
 export function detectUnwantedSpeech(raw: string): boolean {
   const text = (raw || '').trim();
   if (!text) return false;
+
+  // Also catch unrelated queries (jokes, stories, songs, recipes, personal banter)
+  if (detectUnrelatedSpeech(text)) return true;
+
   if (/^(?:please\s+)?(?:tell me (?:a joke|a story)|sing (?:me )?a song|write (?:me )?a poem|give me a recipe)[.!?\s]*$/i.test(text)) return true;
   // "You're nice / you are so sweet" only counts as a complete short remark,
   // so a genuine "you are nice for helping" does not trigger a warning.

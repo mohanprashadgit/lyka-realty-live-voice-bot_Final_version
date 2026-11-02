@@ -112,15 +112,44 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
     - **Overwrite Protection**: `resolveFinalTemperature` in `leadService.ts` prevents routine subsequent extractions or updates from overwriting `HOT`, `COLD`, `REACH_AGAIN`, or `OPT_OUT` with default values.
     - **Historical Data Correction**: Database migration updates legacy default column value on `leads.temperature` from `'WARM'` to `'COLD'` and normalizes fixture records with NULL requirements to `'COLD'`.
   - **Authoritative 100-Point Lead Scoring Engine**:
-    - Grounded strictly in actual conversation evidence across 6 standardized categories:
-      1. **Interest and Buying Intent (0–25 pts)**: Stated buying/investing goal (25 pts), explicit interest expressed e.g. "I'm interested" (18 pts), exploratory browsing (10 pts). Explicit buying interest never receives zero.
-      2. **Budget Clarity & Suitability (0–20 pts)**: Verified stated budget (20 pts), conversational ballpark range (14 pts), unstated (0 pts).
-      3. **Property Requirements (0–15 pts)**: Detailed configuration e.g. 3 BHK Villa (15 pts), broad category e.g. Apartment/Plot (10 pts), unstated (0 pts).
-      4. **Location Preference (0–10 pts)**: Specific locality e.g. ECR, OMR (10 pts), broad city e.g. Chennai, Dubai (6 pts), unstated (0 pts).
-      5. **Purchase Timeline (0–15 pts)**: Immediate/within 30 days (15 pts), 1–3 months (10 pts), 3–6 months (5 pts), exploratory > 6 months (2 pts), unstated (0 pts).
-      6. **Engagement & Readiness (0–15 pts)**: Site visit requested (15 pts), callback/brochure requested (10 pts), receptive dialogue participation (5 pts).
-    - Total: 100 points. Score ranges: HOT (≥ 75 pts), WARM (45–74 pts), COLD (< 45 pts). Missing information earns 0 pts for that category (never invents customer facts). Numerical score and lead outcome remain separate fields.
-    - **Database Recalculation**: `recalculateAllExistingLeads` in `db.ts` and `POST /api/crm/leads/recalculate-scores` automatically aggregates conversation messages and recalibrates all existing leads safely and idempotently without resetting data or overwriting `REACH_AGAIN` or `OPT_OUT`.
+    - Grounded strictly in actual customer intent and qualification evidence across 6 standardized categories (total 100 points):
+      1. **Buying/Renting Intent (0–30 pts)**: Explicit stated buying/renting intent (e.g. "I want to buy a property", "buy panna plan panren") awards 30 pts; positive interest in property awards 20 pts; exploratory browsing awards 10 pts. Explicit buying intent receives strong points upfront even before budget/timeline are collected.
+      2. **Budget Clarity (0–20 pts)**: Verified specific budget stated (e.g. "1.5 Cr", "$500k") awards 20 pts; conversational ballpark range awards 12 pts; unstated awards 0 pts.
+      3. **Property Type and Requirements (0–15 pts)**: Detailed property configuration specified (e.g. "3 BHK Villa", "penthouse") awards 15 pts; broad category (e.g. "apartment", "plot") awards 10 pts; unstated awards 0 pts.
+      4. **Preferred Location (0–10 pts)**: Specific locality preference identified (e.g. "OMR", "ECR", "Anna Nagar", "Downtown Dubai") awards 10 pts; broad city identified (e.g. "Chennai", "Bangalore", "Dubai") awards 6 pts; unstated awards 0 pts.
+      5. **Purchase Timeline (0–15 pts)**: Urgent/immediate timeline within 30 days awards 15 pts; short-term 1–3 months awards 10 pts; medium-term 3–6 months awards 5 pts; flexible/exploratory > 6 months awards 2 pts; unstated awards 0 pts.
+      6. **Engagement and Readiness (0–10 pts)**: Requested or agreed to site visit / inspection awards 10 pts; requested callback or WhatsApp brochure awards 7 pts; receptive conversation participation awards 4 pts; unstated awards 0 pts.
+    - **Total: 100 points**. Score classification: HOT (≥ 75 pts), WARM (45–74 pts), COLD (< 45 pts).
+    - **Zeroing & Status Decoupling Rules**:
+      * Explicit "Not interested" / "Vendam" sets score strictly to 0 pts and classifies as COLD (never WARM or HOT).
+      * "Don't call me again" / Opt-Out sets score strictly to 0 pts and preserves `OPT_OUT` status.
+      * Callback requests retain `REACH_AGAIN` status and are never misclassified as unwanted.
+      * Unwanted speech or persistent unrelated callers receive score strictly to 0 pts and `UNWANTED` status.
+      * Greeting-only speech without property intent receives 0 pts.
+      * Missing information earns zero points for that category. Details are never invented.
+      * Numerical score, lead outcome classification, callback status, and opt-out status are kept as separate concepts.
+    - **Database Score Recalculation**: `recalculateAllExistingLeads(db)` in `db.ts` automatically runs on server startup and via API, recalculating all historical leads and transcripts to the 100-point model.
+  - **Natural Progressive Qualification Flow**:
+    - Natural, progressive qualification sequence asking **one question at a time**:
+      1. Confirm buying or renting intent (*"Sir, neenga property buy panna interested-ah irukkeengala?"*).
+      2. Ask property type (*"Super sir. Enna type property thedureenga — apartment, villa, illa plot?"*).
+      3. Ask preferred location (*"Endha area or location prefer panreenga sir — Chennai-la OMR, ECR, illa Dubai side explore panreengala?"*).
+      4. Ask budget (*"Unga budget enna range-la irukku sir?"*).
+      5. Ask purchase timeline strictly after budget (*"Seri sir. Neenga eppo purchase panna plan panreenga — within one month-ah, three months-kulla, illa konjam later-ah?"*).
+      6. Ask remaining details (Name if uncollected, WhatsApp vs Phone follow-up preference, convenient callback time).
+    - Multi-slot extraction: extracts all details if caller provides multiple facts in one answer and skips asking for already-provided information.
+  - **Long Call Stability & Agent Freezing Prevention**:
+    - **WebAudio Player Watchdog**: 200ms safety interval timer in `LiveAudioPlayer` (`src/utils/audio.ts`) monitoring playback buffers; forcibly resets `isPlaying` and unblocks microphone if source playback concludes without an `onended` event.
+    - **WebSocket Heartbeat Ping/Pong**: Client sends `{ type: 'ping' }` every 25 seconds; server responds with `{ type: 'pong', timestamp }`, preventing cloud proxy and browser idle timeouts.
+    - **Instant Microphone Unblock on Interruption**: When user speaks during agent speech, the client unblocks the microphone (`recorderRef.current?.setAgentSpeaking(false)`) immediately on barge-in / interrupt event.
+    - **Tool Call Cancellation Handling**: Server gracefully handles `msg.toolCallCancellation` during customer barge-in without blocking subsequent turns.
+    - **Mid-Call Session Recovery (`attemptSessionRecovery`)**: If Gemini Live session drops or expires during an active call, the server reconnects a fresh session with context preservation (`isVoiceSwitch: true`) without repeating greetings or disconnecting the user.
+  - **Repeated Unrelated Conversation Protocol (3-Tier Escalation)**:
+    - Strictly enforced 3-tier escalation for callers talking about unrelated topics (jokes, weather, recipes, politics, personal questions):
+      * **Tier 1 (First attempt)**: Politely redirect to property (*"Seri sir, unga property requirement pathi pesalama? Neenga buy panna plan panreengala?"*).
+      * **Tier 2 (Second consecutive attempt)**: Final polite warning (*"Sir, indha call property enquiries-ku mattum. Ungalukku property requirement illaina, no problem, call-a inga close pannalam."*).
+      * **Tier 3 (Third consecutive attempt)**: Politely end the call (*"Puriyudhu sir. Unga time-ku romba thanks. Have a wonderful day! Bye."*), close connection, and record call as `UNWANTED` with score 0.
+      * Real property remarks immediately reset the consecutive unrelated counter.
   - **Natural Representative Voice Conversational Rules**:
     - **No Proactive AI Announcements**: Agent acts as a professional real estate calling representative from Lyka Realty; never proactively announces itself as an AI, bot, or virtual assistant.
     - **No Repetitive Apologies**: Eliminated robotic "Sorry sir, I am an AI assistant" phrases.

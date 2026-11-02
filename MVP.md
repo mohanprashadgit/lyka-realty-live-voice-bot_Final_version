@@ -8,6 +8,61 @@ A production-grade, human-sounding conversational AI voice calling agent and pro
 
 ## 🔧 Latest Updates & Improvements (November 2026)
 
+### Voice Lifecycle, Lead Scoring & Progressive Flow Release (November 2026)
+1. **Critical Lead Scoring Overhaul (Authoritative 100-Point Model)**:
+   - **Root Cause Identified**: Previous scoring cap on buying intent (25 pts) left explicit buyers with ~35–40 points. Simultaneously, unwanted and uninterested callers received ~34 points due to loose rejection string checks in `determineLeadStatusFromData` and artificial clamping (`Math.max(75, ...)`, `Math.max(45, ...)`).
+   - **Authoritative 100-Point Scoring Function (`calculateAuthoritativeLeadScore`)**:
+     * Buying / renting intent: **0–30 points** (Explicit "I want to buy a property" / "buy panna plan panren" earns 30 pts).
+     * Budget clarity: **0–20 points** (Specific budget: 20 pts; range: 12 pts).
+     * Property type and requirements: **0–15 points** (Detailed specs: 15 pts; category: 10 pts).
+     * Preferred location: **0–10 points** (Specific locality: 10 pts; broad city: 6 pts).
+     * Purchase timeline: **0–15 points** (Immediate/ready: 15 pts; 1–3 months: 10 pts; 3–6 months: 5 pts; flexible: 2 pts).
+     * Engagement and readiness: **0–10 points** (Site visit: 10 pts; callback/brochure: 7 pts; receptive dialogue: 4 pts).
+     * Total: **100 points**. Score classification: HOT (≥ 75 pts), WARM (45–74 pts), COLD (< 45 pts).
+   - **Strict Zeroing Rules**:
+     * Explicit "Not interested" / "Vendam" sets score = 0 and classification = COLD (never WARM/HOT).
+     * "Don't call me again" / Opt-Out sets score = 0 and status = `OPT_OUT`.
+     * Unwanted speech / persistent unrelated callers set score = 0 and status = `UNWANTED`.
+     * Greeting-only conversations set score = 0.
+     * Missing fields earn 0 points without fabricating customer data.
+     * Separate numerical score, temperature, callback status (`REACH_AGAIN`), and opt-out (`OPT_OUT`).
+   - **Database Recalculation**: `recalculateAllExistingLeads(db)` in `db.ts` automatically runs on startup and safely re-scores all historical database records.
+   - **Status**: **VERIFIED** via 10 automated unit tests (`tests/scoring_and_flow.test.ts`).
+
+2. **Natural Progressive Qualification Conversation Flow**:
+   - **Progressive Sequence**:
+     1. Confirm buying or renting intent (*"Sir, neenga property buy panna interested-ah irukkeengala?"*).
+     2. Ask property type (*"Super sir. Enna type property thedureenga — apartment, villa, illa plot?"*).
+     3. Ask preferred location (*"Endha area or location prefer panreenga sir — Chennai-la OMR, ECR, illa Dubai side explore panreengala?"*).
+     4. Ask budget (*"Unga budget enna range-la irukku sir?"*).
+     5. Ask purchase timeline strictly after budget (*"Seri sir. Neenga eppo purchase panna plan panreenga — within one month-ah, three months-kulla, illa konjam later-ah?"*).
+     6. Ask remaining qualification details (customer name if not known, contact preference, best time to call).
+   - **Flow Safeguards**: Ask one question at a time; extract multiple details from single answers without re-asking; accept natural timeline answers ("next month", "within three months", "just exploring"); natural Tanglish/English phrasing.
+   - **Status**: **VERIFIED** via prompt verification and flow test suite.
+
+3. **Agent Freezing Prevention During Long Calls**:
+   - **Root Causes Identified**:
+     * `LiveAudioPlayer` remained stuck in `isPlaying === true` when source audio completed without triggering `onended`, causing `LiveMicRecorder` to gate user speech with a high RMS threshold (>0.040).
+     * Long pauses without WebSocket traffic triggered cloud proxy/browser connection timeouts.
+     * Mid-call Gemini Live session duration expiration (10–15 min limit) caused unhandled WebSocket closure, stranding the customer.
+     * Tool call cancellations (`msg.toolCallCancellation`) during interruptions were unhandled.
+   - **Implemented Solutions**:
+     * Added safety watchdog timer in `LiveAudioPlayer` (`src/utils/audio.ts`) checking every 200ms. If buffer drains or time passes `nextPlayTime + 0.25`, it forcibly resets playing state.
+     * Added client-to-server heartbeat ping/pong: client sends `{ type: 'ping' }` every 25 seconds; server responds with `{ type: 'pong' }`.
+     * Instant microphone unblock on barge-in: client calls `recorderRef.current?.setAgentSpeaking(false)` immediately on `interrupted` event.
+     * Handled `msg.toolCallCancellation` gracefully in `server.ts`.
+     * Added mid-call session recovery (`attemptSessionRecovery`) in `server.ts`: automatically reconnects Gemini Live with context preservation (`isVoiceSwitch: true`) if the session closes unexpectedly, without repeating greetings or disconnecting the user.
+   - **Status**: **VERIFIED** via watchdog tests and TypeScript compilation.
+
+4. **Repeated Unrelated Conversation Escalation (3-Tier Protocol)**:
+   - Added `detectUnrelatedSpeech` and `isPropertyRelatedSpeech` in `src/utils/unwantedSpeech.ts`.
+   - Strictly enforced 3-tier escalation in `server.ts` system prompt and connection tracker:
+     * **Tier 1 (First attempt)**: Politely redirect towards property.
+     * **Tier 2 (Second consecutive attempt)**: Give final polite warning and redirect.
+     * **Tier 3 (Third consecutive attempt)**: Politely close the call, disconnect, and record as `UNWANTED` with score 0.
+     * Property remarks immediately reset the consecutive strike counter.
+   - **Status**: **VERIFIED** via regex detection tests and test suite.
+
 ### Combined Bug Fixes & UI Improvements Release
 1. **Duplicate Agent Speech Resolution**:
    - Traced root causes to: (1) redundant `media` property passed alongside `audio` in `liveSession.sendRealtimeInput` in `server.ts`, sending duplicate ASR input chunks; (2) premature 0ms buffer state drop in `LiveAudioPlayer.source.onended` during network arrival jitter; and (3) immediate un-gated microphone transmission in `LiveMicRecorder` capturing room acoustic reverberation after the agent speaks.
@@ -376,6 +431,7 @@ The CRM system has consolidated all organizational permissions into **5 simplifi
 
 | Test Executed | Command | Result | Verification Details |
 |---|---|---|---|
+| **Voice Lifecycle, Scoring & Progressive Flow Suite** | `node ./node_modules/tsx/dist/cli.mjs --test tests/scoring_and_flow.test.ts` | **PASSED (10/10)** | Full 10-point automated test verification:<br>1. Explicit buyer receives strong buying intent points (30 pts)<br>2. Fully qualified buyer receives 100/100 pts and HOT classification<br>3. Explicit "Not Interested" produces score 0 and COLD classification<br>4. "Don't call me again" produces score 0 and OPT_OUT status<br>5. Callback requests retain REACH_AGAIN without false unwanted classification<br>6. Greeting-only conversation earns 0 points<br>7. Missing information earns 0 points without inventing details<br>8. Unwanted speech and persistent unrelated queries detection<br>9. Contrast verification: Qualified buyer (80-100) vs Early buyer (30+) vs Unwanted caller (0)<br>10. Conversation flow prompt structure verification (progressive 6-step flow with timeline after budget, and 3-tier unrelated conversation protocol). |
 | **Production Build** | `cmd /c npm run build` | **PASSED** | Built in 804ms. 1,701 modules transformed with 0 TypeScript/JSX errors. Output: `dist/index.html` (1.11 kB), CSS (138.01 kB), JS (698.56 kB). |
 | **Stage 3 & Customer RAG Verification** | `node scratch_verify.js` | **PASSED (8/8)** | • Test 1 (Staff Login - Super Admin): PASSED (`admin@lyka`)<br>• Test 2 (Property/Land Image Upload): PASSED (2MB base64 cleanly uploaded without JSON parse error to `/uploads/listings/`)<br>• Test 3 (Customer Registration): PASSED (New customer account created in `customers` table)<br>• Test 4 (Customer Sign In): PASSED (Token issued, customer session verified)<br>• Test 5 (Customer Profile & Inquiries): PASSED (`GET /customer/me` returns customer profile, linked leads & visits)<br>• Test 6 (Customer Profile Update): PASSED (`PATCH /customer/profile` updates budget range & preferences)<br>• Test 7 (Chatbot RAG for Super Admin): PASSED (Speaks and shares live employee directory, active tasks, and team activities)<br>• Test 8 (Chatbot RAG for Customer): PASSED (Personalized response recognizing customer name, budget range, and property preferences). |
 | **5-Role RBAC & Global Assistant Test Suite** | `node scratch/verify_all_roles_rbac.js` | **PASSED (43/43)** | • 5 Seed Account Logins & Token Issuance: PASSED (`admin@lyka`, `CO2`, `CO4`, `CO3`, `CO1`)<br>• 5 Role Dashboard Payloads (`GET /api/crm/dashboard`): PASSED (Super Admin, Operations Admin, Lead Exec, Territory Manager, Sales Exec)<br>• Zero-Trust Backend Auth: PASSED (Unauthenticated request returns 401; Spoofed `x-user-role` without token returns 401; Unauthorized role requesting `/employees` returns 403)<br>• Record Scoping: PASSED (Sales Exec receives only assigned leads; Territory Manager receives only department team members; Sales Exec blocked from employee directory)<br>• Role-Grounded RAG: PASSED (Super Admin receives employee intelligence; Sales Exec receives personal portfolio; Guest chat never leaks staff records). |

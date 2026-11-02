@@ -111,6 +111,7 @@ export default function App() {
   const autoEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoEndSafetyRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const endLiveCallRef = useRef<(() => void) | null>(null);
+  const pingIntervalRef = useRef<any>(null);
 
   // ── Sync Theme with HTML Document Element ──
   useEffect(() => {
@@ -585,6 +586,13 @@ export default function App() {
             notes: leadData.notes || '',
           })
         );
+        // Start WebSocket heartbeat ping (every 25s) to keep long calls responsive and prevent idle timeout
+        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = setInterval(() => {
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: 'ping' }));
+          }
+        }, 25000);
       };
 
       ws.onmessage = (event) => {
@@ -595,6 +603,9 @@ export default function App() {
           if (msg.type === 'ready') {
             setCallStatus('connected');
             setVoiceState('listening');
+            recorderRef.current?.setAgentSpeaking(false);
+          } else if (msg.type === 'pong') {
+            // Heartbeat confirmed; connection healthy
           } else if (msg.type === 'status') {
             if (msg.status === 'connecting') {
               setVoiceState('connecting');
@@ -676,6 +687,13 @@ export default function App() {
             }
             setStreamingAgentTurn(null);
             setInterimTranscript('');
+            // Fallback watchdog: ensure speaking state returns to listening after turn completes
+            setTimeout(() => {
+              if (!playerRef.current?.isPlaying) {
+                setVoiceState('listening');
+                recorderRef.current?.setAgentSpeaking(false);
+              }
+            }, 350);
           } else if (msg.type === 'user_transcript') {
             // Recognized customer speech from Gemini Live neural transcription
             if (msg.isFinal) {
@@ -730,6 +748,7 @@ export default function App() {
           } else if (msg.type === 'interrupted') {
             cancelAutoEnd();
             playerRef.current?.stopAndClear();
+            recorderRef.current?.setAgentSpeaking(false);
             setVoiceState('interrupted');
             // If there was speech before interruption, finalize it gracefully
             if (msg.textSoFar) {
@@ -787,6 +806,10 @@ export default function App() {
       ws.onclose = () => {
         if (wsRef.current !== ws) return;
         wsRef.current = null;
+        if (pingIntervalRef.current) {
+          clearInterval(pingIntervalRef.current);
+          pingIntervalRef.current = null;
+        }
         cancelAutoEnd();
         callTerminatedRef.current = true;
         setCallStatus('ended');
@@ -832,6 +855,10 @@ export default function App() {
         id: pending.turnId, role: 'agent', speaker: 'agent', agentName: pending.agentName,
         text: pending.text, timestamp: new Date().toISOString(), isComplete: true, interrupted: true,
       }]);
+    }
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
     }
     if (wsRef.current) {
       if (wsRef.current.readyState === WebSocket.OPEN) wsRef.current.send(JSON.stringify({ type: 'end' }));

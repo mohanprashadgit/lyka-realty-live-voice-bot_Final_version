@@ -318,21 +318,26 @@ export function extractLeadDetailsFromTranscript(
 /**
  * calculateAuthoritativeLeadScore — Authoritative 100-point lead scoring function.
  * Evaluates strictly from actual evidence across 6 standardized categories:
- *  1. Interest and buying intent: 0–25 points
- *  2. Budget clarity and suitability: 0–20 points
- *  3. Property requirements: 0–15 points
- *  4. Location preference: 0–10 points
+ *  1. Interest and buying/renting intent: 0–30 points
+ *  2. Budget clarity: 0–20 points
+ *  3. Property type and requirements: 0–15 points
+ *  4. Preferred location: 0–10 points
  *  5. Purchase timeline: 0–15 points
- *  6. Engagement and readiness: 0–15 points
+ *  6. Engagement and readiness: 0–10 points
  * Total: 100 points.
  *
  * Rules:
- *  - Explicit buying interest must receive interest points; "I'm interested" never receives zero.
- *  - Strong intent, clear requirements, realistic budget, and near-term timeline increase the score.
- *  - Missing information earns no points for that category; never invents customer details.
- *  - Polite greeting alone earns 0 points.
- *  - "Not interested" reduces score to 0 and classifies lead appropriately.
- *  - REACH_AGAIN and OPT_OUT retain their dedicated outcome classifications.
+ *  - Explicitly saying "I want to buy a property" must receive strong buying-intent points (30 pts),
+ *    even if other details are not yet available.
+ *  - A customer who confirms buying intent, gives a budget, specifies requirements, and plans to
+ *    buy soon receives a substantially higher score than one who only expresses general interest.
+ *  - "Not interested" receives 0 points and must not be classified as HOT or WARM.
+ *  - "Don't call me again" / Opt-Out triggers 0 points and OPT_OUT outcome.
+ *  - Unwanted / off-topic banter triggers 0 points and UNWANTED outcome.
+ *  - A customer who requests a callback retains REACH_AGAIN; do not misclassify as unwanted.
+ *  - A greeting alone earns 0 points across all categories.
+ *  - Missing information earns 0 points for that category; never invent details.
+ *  - Numerical score, temperature, callback status, and opt-out are kept as separate concepts.
  */
 export function calculateAuthoritativeLeadScore(
   data: Partial<LeadData> | Record<string, any>,
@@ -348,7 +353,7 @@ export function calculateAuthoritativeLeadScore(
   const transcriptLower = transcriptText.toLowerCase();
   const combinedText = `${transcriptLower} ${notesLower} ${JSON.stringify(raw).toLowerCase()}`;
 
-  // 0. Explicit "Not Interested" or Opt-Out Detection
+  // 0. Explicit "Not Interested", Opt-Out, or Unwanted Detection
   const isNotInterested =
     checkIsNotInterested(notes) ||
     checkIsNotInterested(transcriptText) ||
@@ -365,31 +370,70 @@ export function calculateAuthoritativeLeadScore(
     raw.temperature === 'OPT_OUT' ||
     raw.qualification_status === 'OPT_OUT';
 
-  // ─── 1. Interest and Buying Intent (0–25 points) ──────────────────────
+  const isUnwanted =
+    raw.temperature === 'UNWANTED' ||
+    raw.qualification_status === 'UNWANTED' ||
+    raw.outcome === 'UNWANTED' ||
+    raw.end_reason === 'unwanted_speech' ||
+    raw.end_reason === 'out_of_scope' ||
+    notesLower.includes('unwanted_speech') ||
+    notesLower.includes('unwanted speech') ||
+    notesLower.includes('unwanted or unrelated') ||
+    notesLower.includes('unwanted or romantic') ||
+    notesLower.includes('unwanted remark') ||
+    notesLower.includes('romantic remark');
+
+  // Check for greeting-only or minimal introductory speech
+  const hasGreetingOnly =
+    !isNotInterested &&
+    !isOptOut &&
+    !isUnwanted &&
+    (transcriptLower.trim() === '' || /^(?:hello|hi|vanakkam|good morning|good afternoon|how are you|hey)[.!?\s]*$/i.test(transcriptLower.trim())) &&
+    (!notes || notesLower.includes('hello') || notesLower.includes('no customer speech') || notesLower.trim() === '');
+
+  // ─── 1. Buying / Renting Intent (0–30 points) ─────────────────────────
   let interestPts = 0;
   let interestReason = '';
 
-  if (isNotInterested || isOptOut) {
+  if (isNotInterested || isOptOut || isUnwanted) {
     interestPts = 0;
-    interestReason = isOptOut ? 'Customer requested opt-out (DNC)' : 'Customer explicitly stated not interested';
+    interestReason = isOptOut
+      ? 'Customer requested opt-out (DNC)'
+      : isUnwanted
+      ? 'Unwanted or off-topic conversation'
+      : 'Customer explicitly stated not interested';
     if (isNotInterested) reasons.push('Customer stated not interested (0 pts)');
+    if (isUnwanted) reasons.push('Flagged as unwanted speech / out of scope (0 pts)');
+  } else if (hasGreetingOnly && !raw.intent && !raw.property_type && !raw.budget && !raw.budget_max) {
+    interestPts = 0;
+    interestReason = 'Greeting only; no property intent stated';
+    missingInformation.push('Interest & buying intent (e.g. buying, investing, renting)');
   } else {
-    const intentLower = String(raw.intent || raw.buyer_type || '').toLowerCase();
-    const hasStrongBuyIntent =
+    const intentLower = String(raw.intent || raw.buyer_type || raw.purpose || '').toLowerCase();
+    const hasExplicitBuyOrRentIntent =
       intentLower.includes('buy') ||
       intentLower.includes('invest') ||
+      intentLower.includes('rent') ||
+      intentLower.includes('purchase') ||
       combinedText.includes('want to buy') ||
       combinedText.includes('looking to buy') ||
       combinedText.includes('ready to buy') ||
       combinedText.includes('planning to buy') ||
+      combinedText.includes('plan to buy') ||
+      combinedText.includes('i want a property') ||
+      combinedText.includes('buy property') ||
+      combinedText.includes('buying property') ||
       combinedText.includes('buy panna') ||
       combinedText.includes('invest panna') ||
+      combinedText.includes('rent-ku') ||
+      combinedText.includes('property vaanga') ||
       combinedText.includes('property investment');
 
     const hasExpressedInterest =
-      hasStrongBuyIntent ||
+      hasExplicitBuyOrRentIntent ||
       transcriptLower.includes('interested') ||
       transcriptLower.includes("i'm interested") ||
+      transcriptLower.includes('yes interested') ||
       transcriptLower.includes('interest irukku') ||
       transcriptLower.includes('share details') ||
       transcriptLower.includes('send details') ||
@@ -407,14 +451,14 @@ export function calculateAuthoritativeLeadScore(
       combinedText.includes('checking prices') ||
       combinedText.includes('paakuren');
 
-    if (hasStrongBuyIntent) {
-      interestPts = 25;
-      interestReason = 'Strong buying or investment intent explicitly stated';
-      reasons.push('High intent: Stated explicit purchase or investment goal (+25 pts)');
+    if (hasExplicitBuyOrRentIntent) {
+      interestPts = 30;
+      interestReason = 'Explicit buying, renting, or investment intent stated';
+      reasons.push('High intent: Stated explicit purchase, rental, or investment goal (+30 pts)');
     } else if (hasExpressedInterest) {
-      interestPts = 18;
+      interestPts = 20;
       interestReason = 'Expressed genuine buying / property inquiry interest';
-      reasons.push('Active interest: Customer confirmed interest in property options (+18 pts)');
+      reasons.push('Active interest: Customer confirmed interest in property options (+20 pts)');
     } else if (hasVagueBrowsing) {
       interestPts = 10;
       interestReason = 'Early discovery / exploratory browsing';
@@ -427,19 +471,22 @@ export function calculateAuthoritativeLeadScore(
   }
 
   factors.push({
-    factor: 'Interest and buying intent',
+    factor: 'Buying/renting intent',
     points: interestPts,
-    maxPoints: 25,
+    maxPoints: 30,
     reason: interestReason,
   });
 
-  // ─── 2. Budget Clarity and Suitability (0–20 points) ───────────────────
+  // ─── 2. Budget Clarity (0–20 points) ──────────────────────────────────
   let budgetPts = 0;
   let budgetReason = '';
   const bg = String(raw.budget || '').trim();
   const bgMax = typeof raw.budget_max === 'number' ? raw.budget_max : parseFloat(raw.budget_max || '0');
 
-  if (bgMax > 0) {
+  if (isNotInterested || isOptOut || isUnwanted) {
+    budgetPts = 0;
+    budgetReason = 'No budget assessed due to negative or unwanted status';
+  } else if (bgMax > 0) {
     budgetPts = 20;
     budgetReason = `Verified stated budget: ${bgMax}`;
     reasons.push(`Budget clarity: Verified stated budget of ${bgMax} (+20 pts)`);
@@ -459,23 +506,23 @@ export function calculateAuthoritativeLeadScore(
     notesLower.includes('aed') ||
     notesLower.includes('budget')
   ) {
-    budgetPts = 14;
+    budgetPts = 12;
     budgetReason = 'Conversational ballpark budget range mentioned';
-    reasons.push('Budget indication: Ballpark budget range mentioned (+14 pts)');
+    reasons.push('Budget indication: Ballpark budget range mentioned (+12 pts)');
   } else {
     budgetPts = 0;
     budgetReason = 'No budget stated';
-    missingInformation.push('Budget range (e.g. ₹1.5 Cr, AED 2M)');
+    missingInformation.push('Budget range (e.g. ₹80 Lakhs, 1.5 Cr, AED 2M)');
   }
 
   factors.push({
-    factor: 'Budget clarity and suitability',
+    factor: 'Budget clarity',
     points: budgetPts,
     maxPoints: 20,
     reason: budgetReason,
   });
 
-  // ─── 3. Property Requirements (0–15 points) ───────────────────────────
+  // ─── 3. Property Type and Requirements (0–15 points) ───────────────────
   let propPts = 0;
   let propReason = '';
   const pType = String(raw.property_type || '').trim();
@@ -501,7 +548,10 @@ export function calculateAuthoritativeLeadScore(
     combinedText.includes('plot') ||
     combinedText.includes('flat');
 
-  if (isSpecificConfig) {
+  if (isNotInterested || isOptOut || isUnwanted) {
+    propPts = 0;
+    propReason = 'No property requirement assessed';
+  } else if (isSpecificConfig) {
     propPts = 15;
     propReason = `Detailed property configuration specified: ${pType}`;
     reasons.push(`Specific requirement: Clear property specifications identified (${pType}) (+15 pts)`);
@@ -516,13 +566,13 @@ export function calculateAuthoritativeLeadScore(
   }
 
   factors.push({
-    factor: 'Property requirements',
+    factor: 'Property type and requirements',
     points: propPts,
     maxPoints: 15,
     reason: propReason,
   });
 
-  // ─── 4. Location Preference (0–10 points) ─────────────────────────────
+  // ─── 4. Preferred Location (0–10 points) ───────────────────────────────
   let locPts = 0;
   let locReason = '';
   const loc = String(raw.location || raw.original_location || raw.city || raw.locality || '').trim();
@@ -550,9 +600,12 @@ export function calculateAuthoritativeLeadScore(
     locLower.includes('coimbatore') ||
     locLower.includes('madurai') ||
     locLower.includes('trichy') ||
-    loc.length > 2;
+    (loc.length > 2 && !['unknown', 'prospect', 'customer'].includes(locLower));
 
-  if (hasSpecificLocality) {
+  if (isNotInterested || isOptOut || isUnwanted) {
+    locPts = 0;
+    locReason = 'No location assessed';
+  } else if (hasSpecificLocality) {
     locPts = 10;
     locReason = `Specific locality preference identified: ${loc}`;
     reasons.push(`Targeted locality: Specific neighborhood identified (${loc}) (+10 pts)`);
@@ -567,13 +620,13 @@ export function calculateAuthoritativeLeadScore(
   }
 
   factors.push({
-    factor: 'Location preference',
+    factor: 'Preferred location',
     points: locPts,
     maxPoints: 10,
     reason: locReason,
   });
 
-  // ─── 5. Purchase Timeline (0–15 points) ───────────────────────────────
+  // ─── 5. Purchase Timeline (0–15 points) ─────────────────────────────────
   let timelinePts = 0;
   let timelineReason = '';
   const tl = String(raw.timeline || '').toLowerCase();
@@ -610,9 +663,13 @@ export function calculateAuthoritativeLeadScore(
     tl.includes('year') ||
     tl.includes('exploring') ||
     combinedText.includes('next year') ||
-    combinedText.includes('flexible');
+    combinedText.includes('flexible') ||
+    combinedText.includes('just exploring');
 
-  if (isImmediate) {
+  if (isNotInterested || isOptOut || isUnwanted) {
+    timelinePts = 0;
+    timelineReason = 'No purchase timeline assessed';
+  } else if (isImmediate) {
     timelinePts = 15;
     timelineReason = 'Urgent / Immediate timeline (within 30 days)';
     reasons.push('High urgency: Target purchase within 30 days (+15 pts)');
@@ -641,7 +698,7 @@ export function calculateAuthoritativeLeadScore(
     reason: timelineReason,
   });
 
-  // ─── 6. Engagement and Readiness (0–15 points) ────────────────────────
+  // ─── 6. Engagement and Readiness (0–10 points) ─────────────────────────
   let engagementPts = 0;
   let engagementReason = '';
 
@@ -668,18 +725,21 @@ export function calculateAuthoritativeLeadScore(
     transcriptText.trim().length > 20 ||
     notes.trim().length > 10;
 
-  if (hasSiteVisit) {
-    engagementPts = 15;
-    engagementReason = 'High engagement: Agreed to or requested property site viewing / appointment';
-    reasons.push('High engagement: Requested site visit or appointment booking (+15 pts)');
-  } else if (hasFollowupOrCallback) {
+  if (isNotInterested || isOptOut || isUnwanted) {
+    engagementPts = 0;
+    engagementReason = 'No positive engagement assessed';
+  } else if (hasSiteVisit) {
     engagementPts = 10;
+    engagementReason = 'High engagement: Agreed to or requested property site viewing / appointment';
+    reasons.push('High engagement: Requested site visit or appointment booking (+10 pts)');
+  } else if (hasFollowupOrCallback) {
+    engagementPts = 7;
     engagementReason = 'Active engagement: Requested callback / follow-up documentation';
-    reasons.push('Active engagement: Agreed to callback or follow-up brochure (+10 pts)');
+    reasons.push('Active engagement: Agreed to callback or follow-up brochure (+7 pts)');
   } else if (hasReceptiveDialogue && interestPts > 0) {
-    engagementPts = 5;
+    engagementPts = 4;
     engagementReason = 'Receptive conversation: Participated in dialogue and shared details';
-    reasons.push('Receptive: Customer actively shared requirements in conversation (+5 pts)');
+    reasons.push('Receptive: Customer actively shared requirements in conversation (+4 pts)');
   } else {
     engagementPts = 0;
     engagementReason = 'No active engagement or follow-up agreed yet';
@@ -689,15 +749,15 @@ export function calculateAuthoritativeLeadScore(
   factors.push({
     factor: 'Engagement and readiness',
     points: engagementPts,
-    maxPoints: 15,
+    maxPoints: 10,
     reason: engagementReason,
   });
 
   // ─── Total Score Calculation ──────────────────────────────────────────
   let totalScore = Math.min(100, Math.max(0, interestPts + budgetPts + propPts + locPts + timelinePts + engagementPts));
 
-  // If customer is explicitly not interested or opted out, final score must be 0
-  if (isNotInterested || isOptOut) {
+  // If customer is explicitly not interested, opted out, or unwanted, final score must be 0
+  if (isNotInterested || isOptOut || isUnwanted) {
     totalScore = 0;
   }
 
@@ -712,7 +772,9 @@ export function calculateAuthoritativeLeadScore(
     nextAction = 'Nurture Priority: Send WhatsApp curated property catalog and schedule follow-up call within 48 hours.';
   } else {
     temperature = 'COLD';
-    nextAction = 'Low Priority: Add to monthly newsletter and automated market insights drip.';
+    nextAction = isNotInterested || isOptOut || isUnwanted
+      ? 'Do not pursue: Prospect opted out, stated no interest, or call was out of scope.'
+      : 'Low Priority: Add to monthly newsletter and automated market insights drip.';
   }
 
   return {
@@ -741,7 +803,7 @@ export function determineLeadStatusFromData(
   const qStatus = String(d.qualification_status || d.temperature || '').toUpperCase();
   const bContact = String(d.best_time_to_contact || '').toLowerCase();
 
-  // 1. Opt Out
+  // 1. Opt Out or Unwanted
   if (
     qStatus === 'OPT_OUT' ||
     qStatus === 'UNWANTED' ||
@@ -751,9 +813,11 @@ export function determineLeadStatusFromData(
     notesLower.includes('opt_out') ||
     notesLower.includes('opt-out') ||
     notesLower.includes('do not call') ||
-    notesLower.includes('unwanted')
+    notesLower.includes('unwanted') ||
+    notesLower.includes('unrelated remarks')
   ) {
-    return { outcome: 'OPT_OUT', score: 0 };
+    const outcome = (qStatus === 'UNWANTED' || notesLower.includes('unwanted') || notesLower.includes('unrelated remarks')) ? 'UNWANTED' : 'OPT_OUT';
+    return { outcome, score: 0 };
   }
 
   // 2. Reach Again (Callback requested)
@@ -839,7 +903,7 @@ export function determineLeadStatusFromData(
     (hasBudget && isNearTermTimeline && hasSpecificRequirement)
   ) {
     const calculated = calculateAuthoritativeLeadScore(data);
-    return { outcome: 'HOT', score: Math.max(75, calculated.score) };
+    return { outcome: 'HOT', score: calculated.score };
   }
 
   // 6. Interested but insufficiently qualified (has requirement, interest notes, budget or location) -> WARM
@@ -853,7 +917,7 @@ export function determineLeadStatusFromData(
     (qStatus === 'WARM' && (hasSpecificRequirement || hasBudget || hasLocation || timeline || notesLower.includes('interest')))
   ) {
     const calculated = calculateAuthoritativeLeadScore(data);
-    return { outcome: 'WARM', score: Math.max(45, Math.min(74, calculated.score)) };
+    return { outcome: 'WARM', score: calculated.score };
   }
 
   // 7. Otherwise COLD

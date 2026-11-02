@@ -296,11 +296,11 @@ export async function recalculateAllExistingLeads(dbConn?: any): Promise<{ total
       const calculated = calculateAuthoritativeLeadScore(lead, userTranscript);
 
       const existingScore = lead.lead_score;
-      const newScore = calculated.score;
+      const curTempUpper = String(lead.temperature || '').toUpperCase();
+      const newScore = (curTempUpper === 'OPT_OUT' || curTempUpper === 'UNWANTED') ? 0 : calculated.score;
 
       // Preserve existing REACH_AGAIN, OPT_OUT, UNWANTED statuses
       let newTemp = lead.temperature;
-      const curTempUpper = String(lead.temperature || '').toUpperCase();
       if (curTempUpper !== 'REACH_AGAIN' && curTempUpper !== 'OPT_OUT' && curTempUpper !== 'UNWANTED') {
         newTemp = calculated.temperature;
       }

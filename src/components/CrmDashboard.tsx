@@ -262,8 +262,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
     let inFlight = false;
     let refreshAgain = false;
     const headers: Record<string, string> = {};
-    const token = localStorage.getItem('lyka_auth_token');
-    if (token) headers.Authorization = `Bearer ${token}`;
+
 
     const refresh = async () => {
       if (inFlight) {
@@ -932,7 +931,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
   }
 
   return (
-    <div className="lyka-dash-page min-h-[70vh] px-3 py-5 text-[#3c122e] dark:text-white transition-colors sm:px-5 lg:px-6">
+    <div className="min-h-[70vh] px-3 py-5 text-[#3c122e] dark:text-white bg-[#f7f1e9] dark:bg-slate-950 transition-colors sm:px-5 lg:px-6">
       <div className="mx-auto max-w-[1500px] space-y-4">
         {loadError && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#f0d2c8] bg-[#fdf0ea] dark:border-rose-500/30 dark:bg-rose-950/30 px-4 py-3">

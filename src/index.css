@@ -1868,13 +1868,6 @@ main button.rounded-full:not([class*='bg-slate-900']):not([class*='bg-slate-950'
 .dark .lyka-dash-loading {
   background: #1f0518;
 }
-/* Page wash: the original light gradient, kept as-is; dark gets flat plum. */
-.lyka-dash-page {
-  background: linear-gradient(165deg, #f7f1e9 0%, #f5eee6 38%, #f1e5df 100%);
-}
-.dark .lyka-dash-page {
-  background: #1f0518;
-}
 
 .lyka-kpi {
   background:

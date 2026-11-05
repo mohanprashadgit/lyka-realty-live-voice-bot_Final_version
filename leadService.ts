@@ -196,16 +196,31 @@ export async function upsertLead(
   sessionId: string,
   payload: LeadPayload,
   conversationId?: string,
+  _retryCount = 0,
 ): Promise<SaveResult> {
-  const db = await getPool().getConnection();
+  let db: any;
+  try {
+    db = await getPool().getConnection();
+  } catch (connErr: any) {
+    console.error('[LeadService] DB connection failed:', connErr);
+    // Retry once on transient connection errors
+    if (_retryCount < 2) {
+      await new Promise(r => setTimeout(r, 500 * (_retryCount + 1)));
+      return upsertLead(sessionId, payload, conversationId, _retryCount + 1);
+    }
+    return { success: false, leadId: '', isNew: false, error: connErr.message || 'Database connection failed' };
+  }
+
   const clean = sanitize(payload);
   let locked = false;
+  let txStarted = false;
 
   try {
     const [lockRows]: any = await db.query("SELECT GET_LOCK('lyka_lead_upsert', 10) AS acquired");
-    if (lockRows[0].acquired !== 1) throw new Error('Lead save is busy; retry.');
+    if (!lockRows?.[0] || lockRows[0].acquired !== 1) throw new Error('Lead save is busy; retry.');
     locked = true;
     await db.beginTransaction();
+    txStarted = true;
     // Reuse a known contact across calls without merging by name.
     const [rows] = await db.query(
       `SELECT id, lead_source, temperature, lead_score, notes, best_time_to_contact FROM leads WHERE guest_session_id = ?
@@ -386,11 +401,24 @@ export async function upsertLead(
       return { success: true, leadId, isNew: true };
     }
   } catch (err: any) {
-    await db.rollback();
+    if (txStarted) {
+      try { await db.rollback(); } catch (rbErr: any) {
+        console.warn('[LeadService] Rollback warning:', rbErr?.message || rbErr);
+      }
+    }
     console.error('[LeadService] upsertLead error:', err);
+    // Retry once on transient connection/lock errors
+    const isTransient = /ECONNRESET|ETIMEDOUT|ENOTFOUND|ER_CON_COUNT_ERROR|busy|retry/i.test(err.message || '');
+    if (isTransient && _retryCount < 2) {
+      try { if (locked) await db.query("SELECT RELEASE_LOCK('lyka_lead_upsert')"); } catch {}
+      try { db.release(); } catch {}
+      await new Promise(r => setTimeout(r, 600 * (_retryCount + 1)));
+      return upsertLead(sessionId, payload, conversationId, _retryCount + 1);
+    }
     return { success: false, leadId: '', isNew: false, error: err.message || 'Database write failed' };
   } finally {
-    try { if (locked) await db.query("SELECT RELEASE_LOCK('lyka_lead_upsert')"); } finally { db.release(); }
+    try { if (locked) await db.query("SELECT RELEASE_LOCK('lyka_lead_upsert')"); } catch {}
+    try { db.release(); } catch {}
   }
 }
 

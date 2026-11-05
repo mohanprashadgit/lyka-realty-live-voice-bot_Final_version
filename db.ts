@@ -24,6 +24,9 @@ export function getPool(): mysql.Pool {
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0,
+        // TiDB Cloud gateway can take 15-20s for TCP+TLS handshake from high-latency
+        // networks; mysql2's default connectTimeout (10s) aborts before it completes.
+        connectTimeout: 60000,
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
         ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
@@ -38,6 +41,9 @@ export function getPool(): mysql.Pool {
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0,
+        // TiDB Cloud gateway can take 15-20s for TCP+TLS handshake from high-latency
+        // networks; mysql2's default connectTimeout (10s) aborts before it completes.
+        connectTimeout: 60000,
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
         ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),

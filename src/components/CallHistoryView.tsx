@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Clock,
   User,
@@ -198,9 +199,18 @@ export const CallHistoryView: React.FC<CallHistoryViewProps> = ({
       )}
 
       {/* Detailed Call Drawer / Modal */}
-      {selectedCall && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 pt-16 sm:pt-20 bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl flex flex-col h-[85vh] sm:h-[88vh] text-slate-900 dark:text-slate-100 space-y-3.5 overflow-hidden transition-colors duration-200">
+      {selectedCall &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 dark:bg-black/85 backdrop-blur-sm animate-fadeIn"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setSelectedCall(null);
+            }}
+          >
+            <div
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-4xl h-[85vh] max-h-[850px] p-4 sm:p-6 shadow-2xl flex flex-col text-slate-900 dark:text-slate-100 space-y-3.5 overflow-hidden transition-colors duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0">
               <div>
@@ -364,7 +374,8 @@ export const CallHistoryView: React.FC<CallHistoryViewProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

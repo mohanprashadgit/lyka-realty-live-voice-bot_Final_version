@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Users,
   PhoneCall,
@@ -19,6 +20,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Calendar,
+  Building,
 } from 'lucide-react';
 import { LeadRecord, CallRecord } from '../types/agent';
 import type { LeadsOutcomeFilter, LeadsScopeFilter, LeadsSourceFilter } from '../types/navigation';
@@ -85,6 +87,7 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
   const [leads, setLeads] = useState<LeadRecord[]>([]);
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [selectedCall, setSelectedCall] = useState<CallRecord | null>(null);
+  const [activeModalTab, setActiveModalTab] = useState<'view' | 'summary'>('view');
   const [highlightLeadId, setHighlightLeadId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -107,7 +110,8 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
     return {};
   };
 
-  const openConversation = async (id: string) => {
+  const openConversation = async (id: string, initialTab: 'view' | 'summary' = 'view') => {
+    setActiveModalTab(initialTab);
     // Instant UI response: use cached call if present while fetching freshest transcript
     const cached = calls.find((c) => c.callId === id);
     if (cached) {
@@ -907,7 +911,7 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
                             <button
                               onClick={() => {
                                 if (latestCall) {
-                                  openConversation(latestCall.callId);
+                                  openConversation(latestCall.callId, 'view');
                                 }
                               }}
                               disabled={callCount === 0}
@@ -930,7 +934,7 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
                             <button
                               onClick={() => {
                                 if (latestCall) {
-                                  openConversation(latestCall.callId);
+                                  openConversation(latestCall.callId, 'summary');
                                 }
                               }}
                               disabled={!summaryText}
@@ -989,334 +993,543 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
         </div>
       )}
 
-      {/* ── Delete Confirmation Modal ── */}
-      {deletion && (
-        <div
-          className="fixed inset-0 z-50 bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="delete-modal-title"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !deleting) setDeletion(null);
-          }}
-        >
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100 transition-colors duration-200">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3
-                  id="delete-modal-title"
-                  className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                  <span>
-                    Delete {deletion.ids.length}{' '}
-                    {deletion.kind === 'leads'
-                      ? deletion.ids.length === 1
-                        ? 'lead'
-                        : 'leads'
-                      : deletion.ids.length === 1
-                      ? 'call'
-                      : 'calls'}
-                    ?
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  These records will be removed from this list. Stored data is retained safely for audit recovery.
-                </p>
-              </div>
-              <button
-                onClick={() => setDeletion(null)}
-                disabled={deleting}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Include Calls Checkbox */}
-            {deletion.kind === 'leads' && (
-              <label className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer bg-slate-50 dark:bg-slate-950/60 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-                <input
-                  type="checkbox"
-                  checked={includeCalls}
-                  onChange={(e) => setIncludeCalls(e.target.checked)}
-                  disabled={deleting}
-                  className="mt-0.5 accent-amber-500"
-                />
-                <span>
-                  Also remove associated calls and transcripts.{' '}
-                  <span className="text-slate-400 dark:text-slate-500 block text-[10px] mt-0.5">
-                    Leave unchecked to keep call history intact.
-                  </span>
-                </span>
-              </label>
-            )}
-
-            {/* Error Message */}
-            {actionError && (
-              <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">
-                {actionError}
-              </p>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-              <button
-                disabled={deleting}
-                onClick={() => setDeletion(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-200 dark:border-slate-700 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={deleting}
-                onClick={confirmDelete}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
-              >
-                {deleting ? 'Deleting…' : 'Confirm Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Full Conversation Modal (Centered, Theme-Responsive, High-Capacity Transcript) ── */}
-      {selectedCall && (
-        <div
-          className="fixed inset-0 z-50 bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 pt-16 sm:pt-20 animate-fadeIn"
-          role="dialog"
-          aria-modal="true"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setSelectedCall(null);
-          }}
-        >
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full p-4 sm:p-5 shadow-2xl flex flex-col h-[85vh] sm:h-[88vh] max-h-[850px] text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-200">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0">
-              <div className="min-w-0 flex-1 pr-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                    {selectedCall.leadName}
-                  </h3>
-                  {getOutcomeBadge(selectedCall.outcome)}
-                  {(() => {
-                    const matchedLead = leads.find(
-                      (l) =>
-                        (selectedCall.leadId && l.id === selectedCall.leadId) ||
-                        (selectedCall.leadPhone && l.phone && l.phone.replace(/\D/g, '') === selectedCall.leadPhone.replace(/\D/g, ''))
-                    );
-                    const score = matchedLead?.score ?? selectedCall.score;
-                    if (score != null) {
-                      return (
-                        <span
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-amber-500/10 text-amber-700 border border-amber-500/30 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40"
-                          title="Deterministic Persisted Lead Score"
-                        >
-                          Score: {score}/100
-                        </span>
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                  {selectedCall.leadPhone || 'No phone'} • Call ID: {selectedCall.callId.slice(-8)}
-                  {selectedCall.startedAt && ` • ${formatDateTime(selectedCall.startedAt)}`}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedCall(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* If the customer has multiple calls, allow switching directly inside the modal */}
-            {selectedCustomerCalls.length > 1 && (
-              <div className="flex items-center gap-1.5 overflow-x-auto py-1 shrink-0">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium shrink-0">
-                  Calls for this customer ({selectedCustomerCalls.length}):
-                </span>
-                {selectedCustomerCalls.map((c, idx) => (
-                  <button
-                    key={c.callId}
-                    onClick={() => openConversation(c.callId)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer shrink-0 ${
-                      selectedCall.callId === c.callId
-                        ? 'bg-amber-500/15 text-amber-800 border border-amber-300 font-semibold dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/40 shadow-xs'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 dark:bg-slate-950 dark:hover:bg-slate-850 dark:text-slate-400 dark:border-slate-800'
-                    }`}
+      {/* ── Delete Confirmation Modal (Portaled & Centered) ── */}
+      {deletion &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] bg-slate-950/70 dark:bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !deleting) setDeletion(null);
+            }}
+          >
+            <div
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100 transition-colors duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3
+                    id="delete-modal-title"
+                    className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2"
                   >
-                    Call #{selectedCustomerCalls.length - idx} ({c.startedAt ? new Date(c.startedAt).toLocaleDateString([], { month: 'short', day: 'numeric' }) : c.callId.slice(-4)})
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Compact Header Intelligence Section (Meta Pills + Qualification Data) */}
-            <div className="shrink-0 space-y-2 mt-3">
-              {/* Call Meta & Extracted Slot Highlights in 1 Compact Row */}
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                {/* Duration */}
-                <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950/70 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
-                  <Clock className="w-3 h-3 text-slate-400" />
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Duration:</span>
-                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
-                    {formatDuration(selectedCall.duration || 0)}
-                  </span>
-                </div>
-
-                {/* Call Time */}
-                <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950/70 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Time:</span>
-                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
-                    {selectedCall.startedAt
-                      ? new Date(selectedCall.startedAt).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
-                      : '—'}
-                  </span>
-                </div>
-
-                {/* Status */}
-                <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950/70 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Status:</span>
-                  <span className="font-semibold text-emerald-700 dark:text-emerald-400">
-                    {selectedCall.callStatus || 'COMPLETED'}
-                  </span>
-                </div>
-
-                {/* Sentiment */}
-                <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950/70 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
-                  {selectedCall.sentiment === 'positive' && <ThumbsUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />}
-                  {selectedCall.sentiment === 'negative' && <ThumbsDown className="w-3 h-3 text-rose-600 dark:text-rose-400" />}
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Sentiment:</span>
-                  <span className="font-semibold capitalize text-slate-800 dark:text-slate-200">
-                    {selectedCall.sentiment || 'Neutral'}
-                  </span>
-                </div>
-
-                {/* Property Type */}
-                {selectedCall.propertyType && (
-                  <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs">
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Property:</span>
-                    <span className="font-semibold">{selectedCall.propertyType}</span>
-                  </div>
-                )}
-
-                {/* Budget */}
-                {selectedCall.budget && (
-                  <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs">
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Budget:</span>
-                    <span className="font-semibold">{selectedCall.budget}</span>
-                  </div>
-                )}
-
-                {/* Location */}
-                {selectedCall.location && (
-                  <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950/70 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 text-xs">
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Loc:</span>
-                    <span className="font-medium text-slate-800 dark:text-slate-200">{selectedCall.location}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Compact Automated Call Summary */}
-              {selectedCall.summary && (
-                <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 sm:p-3 text-xs">
-                  <div className="flex items-center justify-between pb-1 mb-1 border-b border-slate-200/60 dark:border-slate-800/80">
-                    <h4 className="text-[11px] font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>Automated Call Summary</span>
-                    </h4>
-                    {selectedCall.nextAction && (
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Next action: <strong className="text-emerald-700 dark:text-emerald-400 font-bold">{selectedCall.nextAction}</strong>
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-slate-800 dark:text-slate-200 text-xs leading-relaxed font-medium whitespace-pre-wrap max-h-16 overflow-y-auto">
-                    {selectedCall.summary}
+                    <Trash2 className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                    <span>
+                      Delete {deletion.ids.length}{' '}
+                      {deletion.kind === 'leads'
+                        ? deletion.ids.length === 1
+                          ? 'lead'
+                          : 'leads'
+                        : deletion.ids.length === 1
+                        ? 'call'
+                        : 'calls'}
+                      ?
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    These records will be removed from this list. Stored data is retained safely for audit recovery.
                   </p>
                 </div>
-              )}
-            </div>
-
-            {/* ── High-Capacity Conversation Transcript (Flex-1 Max Space) ── */}
-            <div className="flex-1 min-h-0 flex flex-col mt-3 space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-slate-100 shrink-0 px-0.5">
-                <span className="flex items-center gap-1.5">
-                  <MessageSquare className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>Full Call Transcript ({selectedCall.transcript?.length || 0} turns)</span>
-                </span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
-                  Chronological dialogue
-                </span>
+                <button
+                  onClick={() => setDeletion(null)}
+                  disabled={deleting}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              {/* Transcript Scroll Container */}
-              <div className="flex-1 min-h-0 bg-slate-50/80 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 rounded-xl p-3 sm:p-4 overflow-y-auto overscroll-contain space-y-3 text-xs transition-colors duration-200">
-                {!selectedCall.transcript || selectedCall.transcript.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400 dark:text-slate-500">
-                    <MessageSquare className="w-8 h-8 mb-2 opacity-40 text-slate-400" />
-                    <p className="italic">No transcript dialogue recorded for this call.</p>
-                  </div>
-                ) : (
-                  selectedCall.transcript.map((t, idx) => {
-                    const isUser = t.role === 'user' || t.speaker === 'customer';
-                    const speakerName = isUser
-                      ? selectedCall.leadName || 'Customer'
-                      : t.agentName || 'Executive';
+              {/* Include Calls Checkbox */}
+              {deletion.kind === 'leads' && (
+                <label className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer bg-slate-50 dark:bg-slate-950/60 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={includeCalls}
+                    onChange={(e) => setIncludeCalls(e.target.checked)}
+                    disabled={deleting}
+                    className="mt-0.5 accent-amber-500"
+                  />
+                  <span>
+                    Also remove associated calls and transcripts.{' '}
+                    <span className="text-slate-400 dark:text-slate-500 block text-[10px] mt-0.5">
+                      Leave unchecked to keep call history intact.
+                    </span>
+                  </span>
+                </label>
+              )}
 
-                    return (
-                      <div
-                        key={t.id || idx}
-                        className={`flex gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs leading-relaxed transition-colors duration-150 ${
-                            isUser
-                              ? 'bg-amber-50 dark:bg-amber-500/20 text-slate-900 dark:text-amber-100 border border-amber-200 dark:border-amber-500/30 rounded-tr-xs shadow-xs'
-                              : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 rounded-tl-xs shadow-xs'
+              {/* Error Message */}
+              {actionError && (
+                <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">
+                  {actionError}
+                </p>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  disabled={deleting}
+                  onClick={() => setDeletion(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-200 dark:border-slate-700 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={deleting}
+                  onClick={confirmDelete}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                >
+                  {deleting ? 'Deleting…' : 'Confirm Delete'}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* ── View & Summary Dialog (Portaled, Centered, Responsive 750-950px, Max-H 85vh) ── */}
+      {selectedCall &&
+        createPortal(
+          (() => {
+            const matchedLead = leads.find(
+              (l) =>
+                (selectedCall.leadId && l.id === selectedCall.leadId) ||
+                (selectedCall.leadPhone && l.phone && l.phone.replace(/\D/g, '') === selectedCall.leadPhone.replace(/\D/g, '')) ||
+                (selectedCall.leadName && l.name && l.name.toLowerCase() === selectedCall.leadName.toLowerCase())
+            );
+            const score = matchedLead?.score ?? selectedCall.score;
+
+            return (
+              <div
+                className="fixed inset-0 z-[9999] bg-slate-950/70 dark:bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 md:p-6 animate-fadeIn"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="call-dialog-title"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) setSelectedCall(null);
+                }}
+              >
+                <div
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-4xl h-[85vh] max-h-[850px] p-4 sm:p-6 shadow-2xl flex flex-col text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Modal Header */}
+                  <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0">
+                    <div className="min-w-0 flex-1 pr-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 id="call-dialog-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
+                          {selectedCall.leadName || matchedLead?.name || 'Customer'}
+                        </h3>
+                        {getOutcomeBadge(selectedCall.outcome || matchedLead?.outcome)}
+                        {score != null && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-amber-500/10 text-amber-700 border border-amber-500/30 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40"
+                            title="Deterministic Persisted Lead Score"
+                          >
+                            Score: {score}/100
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                        {selectedCall.leadPhone || matchedLead?.phone || 'No phone'} • Call ID: {selectedCall.callId.slice(-8)}
+                        {selectedCall.startedAt && ` • ${formatDateTime(selectedCall.startedAt)}`}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCall(null)}
+                      aria-label="Close dialog"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* If customer has multiple calls, allow switching */}
+                  {selectedCustomerCalls.length > 1 && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto py-1 shrink-0 border-b border-slate-100 dark:border-slate-800/60">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium shrink-0">
+                        Calls for this customer ({selectedCustomerCalls.length}):
+                      </span>
+                      {selectedCustomerCalls.map((c, idx) => (
+                        <button
+                          key={c.callId}
+                          onClick={() => openConversation(c.callId, activeModalTab)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer shrink-0 ${
+                            selectedCall.callId === c.callId
+                              ? 'bg-amber-500/15 text-amber-800 border border-amber-300 font-semibold dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/40 shadow-xs'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 dark:bg-slate-950 dark:hover:bg-slate-850 dark:text-slate-400 dark:border-slate-800'
                           }`}
                         >
-                          {/* Bubble Speaker Header */}
-                          <div className="flex items-center justify-between gap-4 text-[10px] font-semibold uppercase tracking-wider mb-1.5 pb-1 border-b border-black/5 dark:border-white/5">
-                            <span className={isUser ? 'text-amber-800 dark:text-amber-300 font-bold' : 'text-emerald-700 dark:text-emerald-400 font-bold'}>
-                              {speakerName}
-                            </span>
-                            <span className="text-slate-400 dark:text-slate-400 font-mono text-[9px] lowercase">
-                              {formatTime(t.timestamp)}
+                          Call #{selectedCustomerCalls.length - idx} ({c.startedAt ? new Date(c.startedAt).toLocaleDateString([], { month: 'short', day: 'numeric' }) : c.callId.slice(-4)})
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* View & Summary Tab Switcher */}
+                  <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 py-2.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setActiveModalTab('view')}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                        activeModalTab === 'view'
+                          ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300'
+                      }`}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Full Conversation ({selectedCall.transcript?.length || 0} turns)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveModalTab('summary')}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                        activeModalTab === 'summary'
+                          ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Call Summary &amp; Details</span>
+                    </button>
+                  </div>
+
+                  {/* ── TAB 1: VIEW (Full Conversation Transcript) ── */}
+                  {activeModalTab === 'view' && (
+                    <div className="flex-1 min-h-0 flex flex-col pt-3 space-y-2.5 overflow-hidden">
+                      {/* Quick Meta Stats Row */}
+                      <div className="flex flex-wrap items-center gap-2 text-xs shrink-0">
+                        <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950/70 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">Duration:</span>
+                          <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                            {formatDuration(selectedCall.duration || 0)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950/70 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">Time:</span>
+                          <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                            {selectedCall.startedAt
+                              ? new Date(selectedCall.startedAt).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
+                              : '—'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950/70 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">Status:</span>
+                          <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                            {selectedCall.callStatus || 'COMPLETED'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950/70 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                          {selectedCall.sentiment === 'positive' && <ThumbsUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />}
+                          {selectedCall.sentiment === 'negative' && <ThumbsDown className="w-3 h-3 text-rose-600 dark:text-rose-400" />}
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">Sentiment:</span>
+                          <span className="font-semibold capitalize text-slate-800 dark:text-slate-200">
+                            {selectedCall.sentiment || 'Neutral'}
+                          </span>
+                        </div>
+
+                        {(selectedCall.propertyType || matchedLead?.propertyType) && (
+                          <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-300">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">Property:</span>
+                            <span className="font-semibold">{selectedCall.propertyType || matchedLead?.propertyType}</span>
+                          </div>
+                        )}
+
+                        {(selectedCall.budget || matchedLead?.budget) && (
+                          <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">Budget:</span>
+                            <span className="font-semibold">{selectedCall.budget || matchedLead?.budget}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Summary preview banner with link to full summary tab */}
+                      {(selectedCall.summary || matchedLead?.notes) && (
+                        <div className="bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 dark:border-amber-500/30 rounded-xl px-3 py-2 flex items-center justify-between text-xs gap-3 shrink-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span className="text-slate-700 dark:text-slate-300 truncate">
+                              <strong className="text-slate-900 dark:text-slate-100 font-semibold">Summary:</strong>{' '}
+                              {selectedCall.summary || matchedLead?.notes}
                             </span>
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => setActiveModalTab('summary')}
+                            className="text-[11px] font-bold text-amber-700 dark:text-amber-400 hover:underline shrink-0 cursor-pointer"
+                          >
+                            Read full summary &rarr;
+                          </button>
+                        </div>
+                      )}
 
-                          {/* Turn Content with Break-Words & Highlights */}
-                          <div className="leading-relaxed font-medium whitespace-pre-wrap break-words text-slate-900 dark:text-slate-100">
-                            {!isUser ? renderHighlightedText(t.text) : t.text}
+                      {/* Transcript area */}
+                      <div className="flex-1 min-h-0 flex flex-col space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-slate-100 shrink-0 px-0.5">
+                          <span className="flex items-center gap-1.5">
+                            <MessageSquare className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                            <span>Full Call Transcript ({selectedCall.transcript?.length || 0} turns)</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+                            Chronological dialogue
+                          </span>
+                        </div>
+
+                        <div className="flex-1 min-h-0 bg-slate-50/80 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 rounded-xl p-3 sm:p-4 overflow-y-auto overscroll-contain space-y-3 text-xs transition-colors duration-200">
+                          {!selectedCall.transcript || selectedCall.transcript.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400 dark:text-slate-500">
+                              <MessageSquare className="w-8 h-8 mb-2 opacity-40 text-slate-400" />
+                              <p className="italic">No transcript dialogue recorded for this call.</p>
+                            </div>
+                          ) : (
+                            selectedCall.transcript.map((t, idx) => {
+                              const isUser = t.role === 'user' || t.speaker === 'customer';
+                              const speakerName = isUser
+                                ? selectedCall.leadName || 'Customer'
+                                : t.agentName || 'Executive';
+
+                              return (
+                                <div
+                                  key={t.id || idx}
+                                  className={`flex gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}
+                                >
+                                  <div
+                                    className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs leading-relaxed transition-colors duration-150 ${
+                                      isUser
+                                        ? 'bg-amber-50 dark:bg-amber-500/20 text-slate-900 dark:text-amber-100 border border-amber-200 dark:border-amber-500/30 rounded-tr-xs shadow-xs'
+                                        : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 rounded-tl-xs shadow-xs'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between gap-4 text-[10px] font-semibold uppercase tracking-wider mb-1.5 pb-1 border-b border-black/5 dark:border-white/5">
+                                      <span className={isUser ? 'text-amber-800 dark:text-amber-300 font-bold' : 'text-emerald-700 dark:text-emerald-400 font-bold'}>
+                                        {speakerName}
+                                      </span>
+                                      <span className="text-slate-400 dark:text-slate-400 font-mono text-[9px] lowercase">
+                                        {formatTime(t.timestamp)}
+                                      </span>
+                                    </div>
+                                    <div className="leading-relaxed font-medium whitespace-pre-wrap break-words text-slate-900 dark:text-slate-100">
+                                      {!isUser ? renderHighlightedText(t.text) : t.text}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── TAB 2: SUMMARY (Full Automated Summary & Intelligence) ── */}
+                  {activeModalTab === 'summary' && (
+                    <div className="flex-1 min-h-0 overflow-y-auto pt-3 space-y-4 pr-1">
+                      {/* Automated Call Summary Card */}
+                      <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 dark:border-slate-800 pb-2.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                                Automated Call Summary &amp; Notes
+                              </h4>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                AI-synthesized key conversation takeaways and recommended actions
+                              </p>
+                            </div>
+                          </div>
+                          {selectedCall.nextAction && (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                              <span>Next Action:</span>
+                              <strong>{selectedCall.nextAction}</strong>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="text-sm leading-relaxed text-slate-800 dark:text-slate-200 font-medium whitespace-pre-wrap bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800/80">
+                          {selectedCall.summary || (matchedLead?.notes ? matchedLead.notes : 'No automated call summary was generated for this session.')}
+                        </div>
+                      </div>
+
+                      {/* Intelligence & Qualification Metrics Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                        <div className="bg-slate-50 dark:bg-slate-950/80 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Call Duration</span>
+                          </div>
+                          <div className="font-mono text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
+                            {formatDuration(selectedCall.duration || 0)}
+                          </div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                            {selectedCall.startedAt ? formatDateTime(selectedCall.startedAt) : '—'}
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-950/80 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                            <Flame className="w-3.5 h-3.5 text-amber-500" />
+                            <span>Lead Status</span>
+                          </div>
+                          <div className="mt-1">
+                            {getOutcomeBadge(selectedCall.outcome || matchedLead?.outcome)}
+                          </div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                            Status: {selectedCall.callStatus || 'COMPLETED'}
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-950/80 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                            {selectedCall.sentiment === 'positive' ? (
+                              <ThumbsUp className="w-3.5 h-3.5 text-emerald-500" />
+                            ) : selectedCall.sentiment === 'negative' ? (
+                              <ThumbsDown className="w-3.5 h-3.5 text-rose-500" />
+                            ) : (
+                              <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            )}
+                            <span>Customer Sentiment</span>
+                          </div>
+                          <div className="text-sm font-bold capitalize text-slate-900 dark:text-slate-100 mt-1">
+                            {selectedCall.sentiment || 'Neutral'}
+                          </div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                            Conversational tone
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-950/80 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                            <Users className="w-3.5 h-3.5 text-amber-500" />
+                            <span>Lead Score</span>
+                          </div>
+                          <div className="font-mono text-sm font-bold text-amber-700 dark:text-amber-400 mt-1">
+                            {score != null ? `${score} / 100` : '—'}
+                          </div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                            Authoritative qualification
                           </div>
                         </div>
                       </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
 
-            {/* Modal Footer / Close Button (Always Visible at Bottom) */}
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end shrink-0">
-              <button
-                onClick={() => setSelectedCall(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-200 dark:border-slate-700 transition-colors cursor-pointer shadow-xs"
-              >
-                Close Details
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                      {/* Extracted Customer Lead Profile */}
+                      <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                          <Building className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                          <span>Extracted Property &amp; Requirement Profile</span>
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                          <div className="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Property Type</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5 block text-sm">
+                              {selectedCall.propertyType || matchedLead?.propertyType || '—'}
+                            </span>
+                          </div>
+                          <div className="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Budget</span>
+                            <span className="font-semibold text-emerald-700 dark:text-emerald-400 font-mono mt-0.5 block text-sm">
+                              {selectedCall.budget || (matchedLead?.budget ? `${matchedLead.currency || ''} ${matchedLead.budget}` : '—')}
+                            </span>
+                          </div>
+                          <div className="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Target Location</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5 block text-sm">
+                              {selectedCall.location || matchedLead?.location || '—'}
+                            </span>
+                          </div>
+                          <div className="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Lead Source</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300 mt-0.5 block">
+                              {matchedLead ? acquisitionSourceLabel(leadSourceKey(matchedLead)) : 'Direct Voice Call'}
+                            </span>
+                          </div>
+                          <div className="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Preferred Contact / Callback</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300 mt-0.5 block">
+                              {[matchedLead?.preferred_contact_method, matchedLead?.best_time_to_contact].filter(Boolean).join(' · ') || 'Phone'}
+                            </span>
+                          </div>
+                          <div className="bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Timeline / Intent</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300 mt-0.5 block">
+                              {[matchedLead?.timeline, matchedLead?.intent].filter(Boolean).join(' · ') || '—'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Switch to Dialogue Banner */}
+                      <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 rounded-2xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div>
+                          <h5 className="font-bold text-amber-800 dark:text-amber-300">
+                            Verified Call Transcript Available
+                          </h5>
+                          <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                            Inspect all {selectedCall.transcript?.length || 0} verbatim spoken turns between the executive and the customer.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setActiveModalTab('view')}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors cursor-pointer text-xs shadow-xs"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Switch to Full Transcript</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Modal Footer / Close Button (Always Visible at Bottom) */}
+                  <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline font-mono">
+                      Lyka Voice Agent CRM • Call ID: {selectedCall.callId.slice(-8)}
+                    </span>
+                    <div className="flex items-center gap-2 ml-auto">
+                      {activeModalTab === 'summary' ? (
+                        <button
+                          type="button"
+                          onClick={() => setActiveModalTab('view')}
+                          className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30 transition-colors cursor-pointer"
+                        >
+                          View Transcript ({selectedCall.transcript?.length || 0})
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setActiveModalTab('summary')}
+                          className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30 transition-colors cursor-pointer"
+                        >
+                          View Summary &amp; Profile
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCall(null)}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-200 dark:border-slate-700 transition-colors cursor-pointer shadow-xs"
+                      >
+                        Close Details
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })(),
+          document.body
+        )}
     </div>
   );
 };

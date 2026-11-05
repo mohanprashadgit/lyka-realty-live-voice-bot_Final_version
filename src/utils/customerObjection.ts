@@ -126,3 +126,18 @@ export function detectObjectionSignal(raw: string): ObjectionSignal {
   if (INTEREST_PATTERNS.some((re) => re.test(text))) return 'interest';
   return 'none';
 }
+
+/** One instance per call; consume completed utterances, never streaming fragments. */
+export class CallRejectionTracker {
+  count = 0;
+  dnc = false;
+  consume(text: string) {
+    const signal = this.count > 0 && /^(?:no|nope|illa|illai)[.!\s]*$/i.test(text.trim())
+      ? 'rejection' : detectObjectionSignal(text);
+    if (signal === 'do_not_call') this.dnc = true;
+    if (signal === 'rejection') this.count = Math.min(3, this.count + 1);
+    return { signal, count: this.count, dnc: this.dnc,
+      close: this.dnc || this.count >= 2,
+      clarificationAllowed: !this.dnc && this.count === 1 && signal === 'rejection' };
+  }
+}

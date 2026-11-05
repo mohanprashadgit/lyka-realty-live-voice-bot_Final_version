@@ -22,14 +22,35 @@ const getSystemInstruction = new Function(`${js}\nreturn getSystemInstruction;`)
 
 const tamilPrompt = getSystemInstruction('bilingual', 'female');
 
-test('opening greeting is short, warm and asks for time, not the name', () => {
-  assert.ok(
-    tamilPrompt.includes('"Hello! Eppadi irukkeenga? Naan Priya, Lyka Realty-la irundhu pesuren. Ungalukku ippo konjam time irukka?"'),
-    'greeting line missing',
-  );
-  assert.ok(!tamilPrompt.includes('Hello sir!'), 'old "Hello sir!" greeting still present');
-  assert.ok(!tamilPrompt.includes('Ask at the opening'), 'name must not be asked at the opening');
-  assert.ok(tamilPrompt.includes('Step 2b - Name, Only Later'), 'name must be deferred to a later step');
+test('opening checks permission and responds to mood before qualification', () => {
+  for (const rule of ['ONE availability question', 'Silence or unclear audio is not consent', 'Busy: stop qualification', 'Uninterested: follow the permission-only', 'Fillers are optional and contextual', 'A stored name or registration is NOT evidence']) {
+    assert.ok(tamilPrompt.includes(rule), rule);
+  }
+  assert.ok(!tamilPrompt.includes('You are a real person'));
+  assert.ok(!tamilPrompt.includes('FIRST genuine rejection: Do NOT end'));
+});
+
+test('shared openings vary, contain one question, and do not invent history', () => {
+  const build = new Function(`${js}\nreturn buildVoiceOpening;`)();
+  for (const language of ['tamil', 'bilingual', 'english', 'hindi', 'arabic']) {
+    const variants = [0, 1, 2].map(i => build(language, 'Priya', undefined, i));
+    assert.equal(new Set(variants).size, 3);
+    for (const opening of variants) {
+      assert.equal((opening.match(/\?/g) || []).length, 1);
+      assert.ok(opening.includes('Lyka Realty'));
+      assert.ok(opening.includes('Dubai property'));
+      assert.ok(!opening.includes('undefined'));
+    }
+  }
+  assert.ok(build('english', 'Priya', 'Kumar', 0).includes('A name is not proof'));
+  let previous = build('english', 'Priya');
+  for (let i = 0; i < 30; i++) {
+    const next = build('english', 'Priya');
+    assert.notEqual(next, previous);
+    previous = next;
+  }
+  assert.ok(serverSource.includes("buildVoiceOpening('bilingual', persona.name"));
+  assert.ok(serverSource.includes('buildVoiceOpening(language, persona.name'));
 });
 
 test('no placeholder leaks into the prompt when the lead name is missing', () => {
@@ -76,7 +97,7 @@ test('male persona name is used when the agent is male', () => {
 });
 
 test('lead-qualification and safety rules are kept, not weakened', () => {
-  assert.ok(tamilPrompt.includes('OBJECTION HANDLING - EXACTLY THREE LEVELS'), 'three-level objection rule removed');
+  assert.ok(tamilPrompt.includes('PERMISSION-ONLY REJECTION HANDLING'), 'three-level objection rule removed');
   assert.ok(tamilPrompt.includes('"OPT_OUT"'), 'do-not-call status instruction removed');
   assert.ok(tamilPrompt.includes("'update_lead_info'"), 'CRM tool instruction removed');
   assert.ok(tamilPrompt.includes('Answer truthfully without making excuses'), 'AI-disclosure answer rule removed');
@@ -122,5 +143,5 @@ test('live call openers in server.ts no longer ask for the name or use "Hello si
     'English opener still asks for the name immediately');
   assert.ok(!serverSource.includes('Is this a good time to speak for a moment?'),
     'Twilio opener still uses the old time question');
-  assert.ok(serverSource.includes('Ungalukku ippo konjam time irukka?'), 'new time-check greeting missing from openers');
+  assert.ok(serverSource.includes('Dubai property pathi pesa ippo time irukka?'), 'new time-check greeting missing from openers');
 });

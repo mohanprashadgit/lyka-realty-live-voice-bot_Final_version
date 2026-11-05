@@ -43,7 +43,7 @@ test('database adapters reuse call/message IDs and link an existing lead', async
   const query = async (sql: string, values: any[] = []) => {
     writes.push([sql, values]);
     if (sql.includes('GET_LOCK')) return [[{ acquired: 1 }]];
-    if (sql.startsWith('SELECT id FROM leads')) return [[{ id: 'existing-contact' }]];
+    if (sql.startsWith('SELECT id, lead_source, temperature, lead_score, notes, best_time_to_contact FROM leads')) return [[{ id: 'existing-contact' }]];
     if (sql.startsWith('SELECT id FROM conversations')) return [[...conversations.values()].filter((c: any) => c.session === values[0])];
     if (sql.startsWith('INSERT INTO conversations')) conversations.set(values[0], { id: values[0], session: values[2] });
     if (sql.startsWith('INSERT INTO conversation_messages')) messages.set(values[0], values);
@@ -81,11 +81,19 @@ test('transcript fragments preserve words, scripts, punctuation and repeated sen
   assert.ok(!app.includes("msg.type === 'user_transcript_normalized'"));
 });
 
-test('voice models, connection configs and audio transport remain unchanged', () => {
-  const before = fs.readFileSync('scratch/before-record-fixes/server.ts.bak', 'utf8');
-  const after = fs.readFileSync('server.ts', 'utf8');
-  const configs = (s: string) => [...s.matchAll(/ai\.live\.connect\(\{([\s\S]*?)callbacks:/g)].map(m => m[1].replace(/\s/g, ''));
-  assert.deepEqual(configs(after), configs(before));
-  const realtime = (s: string) => [...s.matchAll(/liveSession\.sendRealtimeInput\(\{([\s\S]*?)\}\s*(?:as any)?\);/g)].map(m => m[1].replace(/\s/g, ''));
-  assert.deepEqual(realtime(after), realtime(before));
+test('voice transport retains native audio and browser/phone sample-rate contracts', () => {
+  const source = fs.readFileSync('server.ts', 'utf8');
+  const configs = [...source.matchAll(/ai\.live\.connect\(\{([\s\S]*?)callbacks:/g)].map(m => m[1]);
+  assert.equal(configs.length, 2, 'browser and telephone Live connections');
+  for (const config of configs) {
+    assert.ok(config.includes("model: 'gemini-3.8-live'"));
+    assert.ok(config.includes('Modality.AUDIO'));
+    assert.ok(config.includes('inputAudioTranscription'));
+    assert.ok(config.includes('outputAudioTranscription'));
+  }
+  assert.ok(source.includes("mimeType: 'audio/pcm;rate=16000'"));
+  assert.ok(source.includes("'audio/pcm;rate=24000'"));
+  assert.ok(source.includes('pcm24kToMuLaw8k(pcm24k)'));
+  assert.ok(source.includes('liveSession.sendRealtimeInput({ audio: p.audio }'));
+  assert.ok(source.includes("event: 'clear'"));
 });

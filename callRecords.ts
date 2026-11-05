@@ -21,7 +21,8 @@ export function ensureCallRecords(): Promise<void> {
 const outcomes = new Set(['HOT', 'WARM', 'COLD', 'PENDING', 'REACH_AGAIN', 'OPT_OUT', 'UNWANTED']);
 /** Only an explicit server termination reason can classify a call as unwanted. */
 export function callOutcome(reason?: string, qualification?: string): string {
-  if (['unwanted_speech', 'out_of_scope', 'customer_declined', 'do_not_call'].includes(reason || '')) return 'UNWANTED';
+  if (reason === 'customer_declined') return 'COLD';
+  if (['unwanted_speech', 'out_of_scope', 'do_not_call'].includes(reason || '')) return 'UNWANTED';
   return qualification && outcomes.has(qualification) && qualification !== 'UNWANTED' ? qualification : 'PENDING';
 }
 

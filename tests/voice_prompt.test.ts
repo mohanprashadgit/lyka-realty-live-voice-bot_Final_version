@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
+import { buildNaturalVoiceInstructions } from '../src/utils/naturalVoice.ts';
 
 const serverSource = fs.readFileSync(new URL('../server.ts', import.meta.url), 'utf8');
 const from = serverSource.indexOf('function getAgentPersona(');
@@ -12,7 +13,7 @@ const to = serverSource.indexOf('// Real-time API usage and live quota tracking'
 assert.ok(from > 0 && to > from, 'prompt builder not found in server.ts');
 
 const js = stripTypeScriptTypes(serverSource.slice(from, to));
-const getSystemInstruction = new Function(`${js}\nreturn getSystemInstruction;`)() as (
+const getSystemInstruction = new Function('buildNaturalVoiceInstructions', `${js}\nreturn getSystemInstruction;`)(buildNaturalVoiceInstructions) as (
   language?: string,
   gender?: 'female' | 'male',
   customName?: string,

@@ -1,0 +1,20 @@
+{
+  "instructions/SYSTEM_INSTRUCTIONS.md": {
+    "bytes": 11144,
+    "sha256": "0238fa06b4c0ddae8655bf05a7374439c1536e385d14f9e345300f7f1747e058",
+    "normalizedLength": 10223,
+    "normalizedSha256": "95e9be1819274598592dba77595907ef2cf1e63e7a6ee32d3845a01d6e109696"
+  },
+  "instructions/PERSONAS.md": {
+    "bytes": 7140,
+    "sha256": "2680902e9483c0950ea27e51a6af68ec2a518724add930bda3d94deca1202b9d",
+    "normalizedLength": 6265,
+    "normalizedSha256": "caad90f7fc1556c03a4914f81a21d4c1d199990951dcd56dc1973a0654b8408e"
+  },
+  "instructions/LANGUAGE_GUIDELINES.md": {
+    "bytes": 7002,
+    "sha256": "9acc2b3213ca0caaa144024951b8a581893fa06d3b2f2b0a0653f4cf5473a553",
+    "normalizedLength": 6166,
+    "normalizedSha256": "832db5e811497ddd20765ee6fbe4b821c9ef05a1cbaf87fa5833a3a0dc01f203"
+  }
+}

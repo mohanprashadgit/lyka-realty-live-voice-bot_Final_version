@@ -1,5 +1,6 @@
 import { callRecordsRouter, recordsAccess, CallJournal, saveCallDetails } from './callRecords.js';
 import { normalizeLeadFields } from './src/utils/leadFields.js';
+import { buildNaturalVoiceInstructions } from './src/utils/naturalVoice.js';
 import { randomUUID } from 'node:crypto';
 import express from 'express';
 import http from 'http';
@@ -962,6 +963,8 @@ CALLBACK & SPECIAL SITUATIONS:
    - Call tool 'update_lead_info' with qualification_status: "OPT_OUT".
 4. IF PROSPECT WANTS A HUMAN SENIOR CONSULTANT:
    - "Seri, senior property specialist call pannuvaanga, detailed project brochures-oda."
+
+${buildNaturalVoiceInstructions()}
 `.trim();
 };
 
@@ -2598,7 +2601,7 @@ twilioWss.on('connection', async (ws: WebSocket) => {
                 }
               }
 
-              if (modelTurn?.parts && streamSid) {
+              if (!interrupted && modelTurn?.parts && streamSid) {
                 for (const part of modelTurn.parts) {
                   if (part.inlineData?.data) {
                     const pcm24k = Buffer.from(part.inlineData.data, 'base64');
@@ -2745,6 +2748,9 @@ wss.on('connection', async (clientWs: WebSocket) => {
   let isClosing = false;
   let selectedVoice = 'Sulafat';
   let selectedLanguage = 'bilingual';
+  // Manual barge-in must suppress the abandoned response until Gemini ends it.
+  let suppressInterruptedAudio = false;
+  let browserOutputActive = false;
 
   // Connection-scoped state for seamless mid-call transitions
   let currentVoice = 'Sulafat';
@@ -3029,6 +3035,8 @@ wss.on('connection', async (clientWs: WebSocket) => {
     isVoiceSwitch: boolean = false
   ) => {
     selectedVoice = voiceName;
+    suppressInterruptedAudio = false;
+    browserOutputActive = false;
     selectedLanguage = language;
     currentVoice = voiceName;
     currentLanguage = language;
@@ -3253,9 +3261,10 @@ wss.on('connection', async (clientWs: WebSocket) => {
               }
 
               // Audio chunks from model native speech (24kHz PCM)
-              if (modelTurn?.parts) {
+              if (!interrupted && !suppressInterruptedAudio && modelTurn?.parts) {
                 for (const part of modelTurn.parts) {
                   if (part.inlineData?.data) {
+                    browserOutputActive = true;
                     usageMetrics.totalAudioSecondsReceived += 0.2;
                     safeSend({
                       type: 'audio',
@@ -3287,6 +3296,8 @@ wss.on('connection', async (clientWs: WebSocket) => {
 
               // Genuine User interruption detected by neural server-side VAD
               if (interrupted) {
+                suppressInterruptedAudio = false; // Gemini has cancelled the old turn.
+                browserOutputActive = false;
                 console.log('[Gemini Live] Server interruption detected');
                 if (goodbyeEnding && !callFinalized) clearGoodbyeDetection();
                 safeSend({
@@ -3305,6 +3316,8 @@ wss.on('connection', async (clientWs: WebSocket) => {
 
               // Turn finished - finalize agent utterance into single completed turn
               if (turnComplete) {
+                suppressInterruptedAudio = false;
+                browserOutputActive = false;
                 usageMetrics.totalTurns++;
                 const finalText = currentAgentAccumulatedText.trim();
                 safeSend({
@@ -3697,6 +3710,7 @@ wss.on('connection', async (clientWs: WebSocket) => {
           }
         }
       } else if (msg.type === 'barge_in') {
+        suppressInterruptedAudio = browserOutputActive;
         safeSend({ type: 'interrupted', manual: true });
       } else if (msg.type === 'end') {
         finalizeLiveCall(objectionEndReason || (goodbyeEnding ? 'goodbye' : 'client_end'));

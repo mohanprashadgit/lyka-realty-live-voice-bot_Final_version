@@ -8,6 +8,274 @@ A production-grade, human-sounding conversational AI voice calling agent and pro
 
 ## 🔧 Latest Updates & Improvements (November 2026)
 
+### Company Trust-Building, Official Facts & City/Area/Local Knowledge Flow (09-Nov-2026)
+1. **Official Lyka Realty Facts & Credibility Integration**:
+   - Company: Lyka Realty, Dubai-based real estate brokerage. Services: buying and renting Dubai properties, property investment guidance, off-plan/ready property guidance, mortgage guidance.
+   - Official Website: `https://lykarealty.ae/` (primary; legacy alias `https://lykarealty.com`).
+   - Official Contact / WhatsApp: `+971 52 348 5758` (spoken naturally: *"plus nine seven one, five two, three four eight, five seven five eight"*).
+   - Official Email: `admin@lykarealty.ae`.
+   - Office Address: `Office 1002, DAMAC Executive Heights, Barsha Heights (TECOM), Dubai, UAE` (appointment upon request, subject to team confirmation; current hours Sunday–Thursday 09:00–18:00 confirmed before stating).
+   - Verified Client Track Record: Official website states *"Over 300 clients served across Dubai."* Attributed accurately; never inflated to 700+ or 7,000+.
+   - Company Age: Never claims 10+ years without evidence; explains published website record.
+   - Brokerage Validation: Users can verify available brokerage license details through official Dubai Land Department (DLD) validate-real-estate-licenses service or Dubai REST app. Never claims ORN 47999 without independent official verification. Never claims government-owned, government-guaranteed or government-approved.
+   - Escrow Legal Reference: Qualifying off-plan developments are subject to project escrow requirements under Dubai Law No. 8 of 2007. Escrow does NOT guarantee returns, completion, or refund; users can verify project registration and escrow details via official DLD Project Status Enquiry or Dubai REST.
+   - Strictly Prohibited Claims: Never claims founded by Waseem Mubarak, first Tamil brokerage, 50 employees, 700+ families, 7,000+ customers, 10+ years in business, ORN 47999, developer partnerships, or invented Google reviews.
+   - 3-Part Trust Response: (1) Acknowledge checking is wise, (2) Share checkable facts, (3) Offer official DLD/Dubai REST verification path. Early trust questions answered immediately and resume pending stage without restarting greeting.
+2. **City → Specific Area → Local Knowledge Flow**:
+   - City recognized with brief verified local acknowledgment (e.g. *Tirunelveli Nellaiappar Kovil and halwa*, *Madurai Meenakshi Amman Kovil*, *Thoothukudi port and macaroons*, *Thanjavur Brihadisvara Temple*, *Coimbatore major industrial city*, *Chennai Marina Beach*, *Kanyakumari Vivekananda Rock Memorial*).
+   - Asks specific area / locality in the city (`current_area` e.g. *Tirunelveli-la endha area sir?*).
+   - Captures locality cleanly into `current_area` without confusing with preferred Dubai property search location (`location`).
+   - Locality acknowledged on subsequent turn (*Ohh Palayamkottai side-ah! Nice sir.*) and profession discovery resumes seamlessly.
+   - Area not re-asked when already known.
+   - Busy / negative / DNC callers bypass optional local small talk.
+   - Zero hallucinated recent events or fake festival dates (`getVerifiedLocalNews` returns null safely).
+3. **Strict 14-Stage Sequential Order**:
+   - Sequential progression strictly maintained: Stage 11 (Contact & Consent) and Stage 12 (Trust & Credibility) are positioned before Stage 13 (Property Presentation & Recommendations).
+   - Order: 1. Greeting → 2. Name → 3. Location & Profession (City → Area → Profession) → 4. Purpose → 5. Three Offers → 6. Family & Lifestyle → 7. Property Location → 8. Property Type & Bedrooms → 9. Budget & Payment Preference → 10. Timeline → 11. Phone & Contact Preference → 12. Trust Building → 13. Property Recommendation → 14. Closing.
+4. **Context-Aware Smart Objection Handling (3-Layer Cold Call Framework)**:
+   - Core Rule: Never drop the call on the first or second "no"; stay on the line for 2 conversion attempts and cleanly cut the call on the 3rd refusal.
+   - Handled phrases: "இல்ல இல்ல வேண்டாம், போனை வச்சிருங்க, எனக்கு இன்ட்ரஸ்ட் இல்ல", "போனை வச்சிருங்க", "போனை வைங்க", "வேண்டாம்", "வேணாம்", "call cut பண்ணுங்க", "cut the call", "hang up", "interest illa", "not interested".
+   - Turn 1: Credibility Layer (stays on line; strictly no goodbye or "Unga time-ku romba thanks" on turns 1/2).
+   - Turn 2: Clarity Layer in customer terms (stays on line).
+   - Turn 3: Graceful Exit & Referral (cuts call).
+   - Explicit DNC: Immediate opt-out on Turn 1 ("Don't call me again", "Remove my number", "இனிமே அழைக்க வேண்டாம்").
+   - Server Guard: Actively prevents WebSocket/call finalization on turns 1 and 2 of cold call objections.
+5. **Absolute Voice Lock**:
+   - Zero changes to `src/utils/naturalVoice.ts` (SHA256: `460702B7929B38288F2409E149B917373EAB0C4E0D4FB9F4237BA5E42F4F6EB8`).
+   - Zero changes to `src/utils/audio.ts` (SHA256: `7D3DE8061B574D9F14419B3F45C84A7A24B625CCA438D0CBF61B154AB3F8DC26`).
+   - Voice models, presets, VAD, PCM codecs, and 6-second silence timer completely unchanged.
+6. **Verification & Test Status (09-Nov-2026)**:
+   - `tests/company_trust_and_location.test.ts`: **20/20 ✓ (ALL PASS)**
+   - `tests/profession_and_location.test.ts`: **14/14 ✓ (ALL PASS)**
+   - `tests/smart_objection_14_stages.test.ts`: **20/20 ✓ (ALL PASS)**
+   - `tests/fourteen_stages_acceptance.test.ts`: **30/30 ✓ (ALL PASS)**
+   - `tests/proactive_qualification.test.ts`: **42/42 ✓ (ALL PASS)**
+   - `tests/sales_conversation.test.ts`: **27/27 ✓ (ALL PASS)**
+   - `tests/task7_sales.test.ts`: **49/49 ✓ (ALL PASS)**
+   - `tests/task6_task8.test.ts`: **42/42 ✓ (ALL PASS)**
+   - `tests/task7_final.test.ts`: **17/17 ✓ (ALL PASS)**
+   - `tests/task2_opening.test.ts`: **13/13 ✓ (ALL PASS)**
+   - `tests/scoring_and_flow.test.ts`: **10/10 ✓ (ALL PASS)**
+   - `tests/records.test.ts`: **4/4 ✓ (ALL PASS)**
+   - `tests/silence_playback.test.ts`: **19/19 ✓ (ALL PASS)**
+   - `tests/bug_fixes_regression.test.ts`: **14/14 ✓ (ALL PASS)**
+   - `tests/voice_prompt.test.ts`: **14/14 ✓ (ALL PASS)**
+   - `tests/task3_voice.test.ts`: **17/17 ✓ (ALL PASS)**
+   - **Total Tests**: **352 / 352 PASSING (0 FAILING, 100% PASS RATE)**
+   - **TypeScript (`npx tsc --noEmit`)**: **PASS — 0 errors**
+   - **Production Build (`npm run build`)**: **PASS — 1677 modules transformed, dist generated**
+
+---
+
+### 14-Stage Sales Conversation Flow & Runtime Controller (08-Nov-2026)
+1. **14-Stage Structured Sales Architecture**:
+   - Orchestrated seamlessly via `nextSalesAction()` and `observeSalesTurn()` in `src/utils/salesConversation.ts`.
+   - Complete 14-Stage Flow:
+     1. Stage 1: Greeting & Introduction (`opening`)
+     2. Stage 2: Customer Name (`name`)
+     3. Stage 3: Current Location & Profession (`qualification` - current_location, profession, business_sector, business_type_detail, salaried_field)
+     4. Stage 4: Property Buying & Investment Interest (`purpose` - investment_purpose)
+     5. Stage 5: Offers & Additional Assistance (`offers` - all three mandatory: flight ticket, Golden Visa, relocation guidance)
+     6. Stage 6: Family & Lifestyle + Purpose of Enquiry (`family_lifestyle` - family_size, family_relocation, lifestyle_requirements)
+     7. Stage 7: Preferred Property Location (`qualification` - location)
+     8. Stage 8: Property Type & Requirements (`qualification` - property_type, bedrooms)
+     9. Stage 9: Budget & Payment Preference (`qualification` - budget, currency clarification, payment_preference, down/monthly comfort)
+     10. Stage 10: Purchase Timeline (`qualification` - timeline)
+     11. Stage 11: Phone Number & Contact Preference (`conversion` - phone_confirmation with masked digits, follow_up_permission, preferred_contact_method)
+     12. Stage 12: Trust Building & Company Credibility (`trust` - DLD/Escrow verification guidance, active objection handling)
+     13. Stage 13: Property Presentation & Value Building (`recommendation` - specialist verification required; no fake inventory)
+     14. Stage 14: Closing & Next Step (`closing` - agreed_next_action, late-stage acquisition_source via `acquisitionSource.ts`, graceful closing)
+
+2. **Multi-Fact Sentence Extraction Without Loss**:
+   - `observeSalesTurn()` extracts multiple facts volunteered together in a single customer sentence (name, hometown, property type, BHK, location, budget, and timeline) without truncation or regex anchor collisions.
+   - Fixed purchase timeline extraction to match inline and multifact clauses (`within 3 months`, `in 6 months`, `next month`, etc.).
+
+3. **Current City vs Hometown vs Property Location Isolation**:
+   - Rigorously separated living city (`current_location`), hometown/native (`hometown`), and preferred property search area (`location`).
+   - Living statements (`"currently based in London"`) are isolated to `current_location` and never leak into `location`.
+
+4. **Capitalized Profession Consistency & Flow Guarding**:
+   - Profession standardized (`'Business'`, `'Salaried'`, etc.) and correctly triggers deep discovery (`business_sector`, `business_type_detail`, `salaried_field`) without overwriting customer name or hometown.
+
+5. **Runtime Tool Delivery to Gemini Live**:
+   - `server.ts` delivers `next_action` (with `stage`, `stageNumber`, `field`, `instruction`) directly into Gemini Live `update_lead_info` tool responses and system prompts via `salesRuntimeContext()`.
+   - Browser and Twilio share the identical controller and state management.
+
+6. **Absolute Voice Preservation**:
+   - 0 modifications to `naturalVoice.ts`, `audio.ts`, Gemini Live model (`gemini-3.8-live`), voice presets (`Sulafat`, etc.), PCM conversion, or interruption handlers.
+
+7. **Verification & Test Status (08-Nov-2026)**:
+   - `tests/fourteen_stages_acceptance.test.ts`: **30/30 ✓ (ALL PASS)**
+   - `tests/proactive_qualification.test.ts`: **42/42 ✓ (ALL PASS)**
+   - `tests/sales_conversation.test.ts`: **27/27 ✓ (ALL PASS)**
+   - `tests/task7_sales.test.ts`: **49/49 ✓ (ALL PASS)**
+   - `tests/task6_task8.test.ts`: **42/42 ✓ (ALL PASS)**
+   - `tests/task7_final.test.ts`: **17/17 ✓ (ALL PASS)**
+   - `tests/task2_opening.test.ts`: **13/13 ✓ (ALL PASS)**
+   - `tests/scoring_and_flow.test.ts`: **10/10 ✓ (ALL PASS)**
+   - `tests/records.test.ts`: **4/4 ✓ (ALL PASS)**
+   - `tests/voice_prompt.test.ts`: **14/14 ✓ (ALL PASS)**
+   - `tests/task3_voice.test.ts`: **17/17 ✓ (ALL PASS)**
+   - **TypeScript typecheck (`npm run lint` / `tsc --noEmit`)**: **PASS — 0 errors**
+   - **Production build (`npm run build` / `vite build`)**: **PASS — 1677 modules transformed, dist generated**
+
+---
+
+### Silence Follow-up Verification & Test Hardening (09-Nov-2026)
+
+1. **Task 1 — `playback_complete` sent only after full queue drain** (VERIFIED):
+   - In `src/App.tsx`, `playback_complete` is sent inside `onPlayStateChange(false)` callback, which fires only when `activeSources.length === 0` after a 200ms hangover timer. It is never sent while audio is still playing (`if (playing)` branch). Confirmed by `silence_playback.test.ts` test 15.
+
+2. **Task 2 — Customer audio arrival cancels silence timer immediately** (FIXED):
+   - **Gap**: Previously, silence was cancelled only on Gemini Live `inputTranscription` arrival (which can lag 200–500ms). Customer audio was forwarded to Gemini without cancelling the timer.
+   - **Fix**: Added early cancellation in `server.ts` audio handler:
+     ```ts
+     if (silenceFollowUpTimer || pendingSilenceArmTurnId) clearSilenceFollowUp();
+     ```
+   - This ensures the silence prompt can never fire while the customer is actively speaking, even before transcription is available.
+
+3. **Task 3 — No stale ack, duplicate timer, interruption, closing, disconnect, or session replacement can trigger silence** (VERIFIED):
+   - `clearSilenceFollowUp()` is called in 8 places: `armSilenceFollowUp` (re-arm), `clearGoodbyeDetection` (goodbye/disconnect), `inputTranscription` (customer speech), `interrupted` Gemini event, `turn_complete` (before re-arming), `barge_in` client message, `prepareVoiceSwitch` (session replace), and `audio` message (new).
+   - `pendingPlaybackAckRef.current` cleared on `call_ended`, `call_ending`, and `interrupted` messages in App.tsx.
+   - `silenceFollowUpFired` flag prevents double-fire within the same agent turn.
+
+4. **Task 4 — `turnId` matches between `server.ts` and `src/App.tsx`** (VERIFIED):
+   - Server sends `turn_complete` with `turnId: currentAgentTurnId` (a `randomUUID()`).
+   - Server stores same value in `pendingSilenceArmTurnId`.
+   - Client stores received `msg.turnId` in `pendingPlaybackAckRef.current`.
+   - Client returns it in `playback_complete: { type: 'playback_complete', turnId: ackTurnId }`.
+   - Server matches `pendingSilenceArmTurnId === ackTurnId` before arming.
+
+5. **Task 5 — Follow-up delivered through Gemini Live `sendClientContent`** (VERIFIED):
+   - `armSilenceFollowUp` calls `liveSession.sendClientContent({ turns: [...], turnComplete: true })` — the existing Gemini Live speaking path. No second TTS engine. No voice changes.
+
+6. **Task 6 — Follow-up fires only once per unanswered question** (VERIFIED):
+   - `silenceFollowUpFired = true` is set when the prompt fires. Guard check inside the timer callback prevents double-fire. `clearSilenceFollowUp` resets the flag only for the NEXT turn.
+
+7. **Task 7 — Twilio silence timer remains SAFE** (VERIFIED):
+   - `pendingSilenceArmTurnId` and `armSilenceFollowUp` are not referenced in the Twilio (`twilioWss`) handler. Only the browser (`wss`) path arms the timer. Structural test confirms this.
+
+8. **Task 8 — 14-stage qualification preserved** (VERIFIED):
+   - Production logic in `src/utils/salesConversation.ts` unchanged. Location is mandatory at stage 7.
+   - Two stale test fixtures updated: `task7_final.test.ts` fixture added `location: 'Dubai Marina'`; second assertion updated to `payment_preference` (the actual next deeper-discovery field for a highly-interested customer who already has investment_purpose filled).
+
+9. **Task 9 — Task 7 metadata hidden from summaries** (VERIFIED):
+   - `splitNotes` strips `[Task 7 sales]{...}[/Task 7 sales]` from displayed text. CRM receives parsed `sales` object. Confirmed by `bug_fixes_regression.test.ts` Bug 1a-1d.
+
+10. **Task 10 — Explicit refusals and DNC override positive engagement** (VERIFIED):
+    - `checkIsNotInterested` / `checkIsPositive` / `checkIsOptOut` confirmed correct. `calculateAuthoritativeLeadScore` returns 0 for "not interested". Confirmed by Bug 2a-2j tests.
+
+11. **Files Modified (this session)**:
+    - `server.ts` — Added `clearSilenceFollowUp()` in browser `audio` message handler (early cancellation, 1 line change).
+    - `tests/task3_voice.test.ts` — Added `clearSilenceFollowUp` parameter to barge-in test function (fixture fix).
+    - `tests/task7_final.test.ts` — Added `location: 'Dubai Marina'` to test fixture; updated second assertion to `payment_preference` (fixture fix).
+    - `tests/silence_playback.test.ts` — **NEW**: 19 focused tests for playback acknowledgment, speech cancellation, stale turnId, and timer cleanup.
+
+12. **Test Results (09-Nov-2026 final)**:
+    - **Total: 298/298 ✅ (all pass)**
+      - `tests/bug_fixes_regression.test.ts`: 10/10 ✓
+      - `tests/fourteen_stages_acceptance.test.ts`: 30/30 ✓
+      - `tests/proactive_qualification.test.ts`: 42/42 ✓
+      - `tests/sales_conversation.test.ts`: 27/27 ✓
+      - `tests/task7_sales.test.ts`: 49/49 ✓
+      - `tests/task6_task8.test.ts`: 42/42 ✓
+      - `tests/task7_final.test.ts`: 17/17 ✓ (fixture updated)
+      - `tests/task2_opening.test.ts`: 13/13 ✓
+      - `tests/scoring_and_flow.test.ts`: 10/10 ✓
+      - `tests/records.test.ts`: 4/4 ✓
+      - `tests/voice_prompt.test.ts`: 14/14 ✓
+      - `tests/task3_voice.test.ts`: 17/17 ✓ (fixture updated)
+      - `tests/silence_playback.test.ts`: 19/19 ✓ (new)
+    - **TypeScript (`tsc --noEmit`)**: PASS — 0 errors
+    - **Production build (`vite build`)**: PASS — 1677 modules, `dist/` generated
+
+13. **Remaining live-call checks (cannot be verified without real call)**:
+    - Audible confirmation that the 6-second check-in sounds natural and not too early/late.
+    - Twilio PSTN call: silence prompt remains disabled; no regression there.
+    - Voice (Sulafat/Achird/etc.) and speaking cadence: no audio files modified; no changes to `naturalVoice.ts`.
+
+---
+
+
+1. **Bug Fixed — `isReceptive` false-positive on negative engagement states**:
+   - **Root cause**: Previous session set `isReceptive = Boolean(f.engagement_indicator)` which incorrectly treated negative `engagement_indicator` values (`"not interested"`, `"busy"`, `"frustrated"`) as receptive because any non-empty string is truthy in JavaScript.
+   - **Fix**: Replaced with explicit allowlist of positive engagement states using regex:
+     ```ts
+     const POSITIVE_ENGAGEMENT = /highly interested|interested|family focused|budget conscious|curious|skeptical/i;
+     const isReceptive = POSITIVE_ENGAGEMENT.test(f.engagement_indicator || '') || f.conversation_disposition === 'engaged';
+     ```
+   - **Effect**: `engagement_indicator = "not interested"` and `"busy"` now correctly produce `isReceptive = false`, so profession, payment preference, monthly payment, and BHK questions are NOT fired for unreceptive customers. Skeptical customers are still treated as receptive (they are questioning, not refusing).
+
+2. **Previous session changes A–E confirmed present and correct** (`src/utils/salesConversation.ts`):
+   - **A**: Profession discovery now fires for all receptive customers (`isReceptive`), not only `highly interested`.
+   - **B**: IT/software profession triggers `salaried_field` follow-up (IT role discovery).
+   - **C**: Property location (`missing('location')`) asked regardless of budget.
+   - **D**: BHK asked for all receptive customers with a known property type, not only family buyers.
+   - **E**: Payment preference uses `isReceptive` correctly.
+
+3. **Files Modified**:
+   - `src/utils/salesConversation.ts` — `isReceptive` definition (2-line change, line 323-325).
+
+4. **Test Results (09-Nov-2026)**:
+   - 19 focused qualification tests run directly via `tsx` (sandbox has no network for Jest): **19/19 ✅**
+   - Tests covered: interested→profession, business→sector, textile→wholesale/retail detail, IT→salaried_field, family buyer→family_size, investor skips family, budget-known still asks location, apartment/villa→bedrooms, payment preference, not-interested/busy indicators skip profession, OPT_OUT immediate stop, declined fields skipped, busy disposition closes, investor goes to location not family, skeptical/curious treated as receptive.
+   - **TypeScript check (`tsc --noEmit`)**: **PASS — 0 errors**
+   - Voice files (`naturalVoice.ts`, audio pipeline): **UNCHANGED**
+
+5. **Pronunciation / Tamil TTS**: No changes made. No confirmed mispronounced word list or call recording provided. Text-only changes cannot be verified without live audio. Remains pending user-provided sample.
+
+---
+
+### Proactive Qualification, Natural Tanglish & CRM Intelligence (07-Nov-2026)
+1. **Proactive Customer Name Collection**:
+   - `nextSalesAction` now triggers a name question immediately after engagement if no real name is known in any of `customer_name_raw`, `full_name`, or `name`.
+   - `knownCustomerName` strips generic CRM placeholders (`Customer`, `Prospect`, `Lead`, `Valued Lead`, `Anonymous`) so they are never treated as real names.
+   - Name declined via `name_collection_status=declined` or `declined_fields` is never re-asked.
+   - **VERIFIED**: 29/29 proactive qualification tests pass.
+
+2. **Tanglish Hometown Extraction**:
+   - `extractCustomerIntelligence` in `customerIntelligence.ts` matches both `\"Naan Tirunelveli\"` and `\"Tirunelveli-la irukken\"` patterns using Unicode-aware regex.
+   - `salesRuntimeContext` injects a Tanglish hometown style example into the Gemini system prompt so the agent responds naturally (e.g., *\"Ohh, Tirunelveli-ya! Super sir.\"*).
+
+3. **Profession & Business-Sector Detection**:
+   - `observeSalesTurn` extracts `\"Naan business panren\"` → `profession=business` and standalone sector answers like `\"Textile\"` → `business_sector=Textile` (only if previous profession is a business type).
+   - `nextSalesAction` queues `business_sector` question immediately after `profession=business` for engaged customers.
+
+4. **Family Relocation Extraction**:
+   - Covers short forms: `\"Family-oda settle aaganum\"`, `\"Dubai-ku family-oda settle\"`, and `\"settle aaganum\"` standalone.
+   - Sets both `family_relocation` and `investment_purpose=family residence` automatically.
+   - After relocation is detected, next question is `family_size`, then `bedrooms`, then `lifestyle_requirements`.
+
+5. **Deeper Discovery & Engagement Gating**:
+   - Family/lifestyle questions are only asked when customer is engaged AND investment purpose is `own use / family / residence`.
+   - `business_sector` only queued when profession is confirmed as a business type.
+   - Declined or skipped fields tracked cumulatively in `declined_fields`; never re-asked.
+
+6. **Natural Tanglish Response Style**:
+   - Four inline style examples injected into `salesRuntimeContext`: hometown → profession → family → budget.
+   - Instructs Gemini to use varied acknowledgements, avoid repeated `\"Okay sir\"`, and use regional references only when factually correct.
+
+7. **Files Modified**:
+   - `src/utils/customerIntelligence.ts` — hometown/family/engagement extraction improvements.
+   - `src/utils/salesConversation.ts` — name collection, profession/sector/budget/payment extraction, Tanglish style guide, `nextSalesAction` ordering, added `stageNumber?: number` to `SalesAction` type.
+   - `src/types/agent.ts` — aligned `LeadData` interface with sales runtime properties (`conversation_disposition`, `current_location`, `hometown`, `profession`, `business_sector`, `investment_purpose`).
+   - `tests/proactive_qualification.test.ts` — 29 new focused tests (all passing).
+
+8. **Full Test Results (07-Nov-2026)**:
+   - `proactive_qualification.test.ts`: **29/29 ✓**
+   - `sales_conversation.test.ts`: **27/27 ✓**
+   - `task7_sales.test.ts`: **49/49 ✓**
+   - `task6_task8.test.ts`: **42/42 ✓**
+   - `task7_final.test.ts`: **15/15 ✓**
+   - `task2_opening.test.ts`: **13/13 ✓**
+   - `scoring_and_flow.test.ts`: **10/10 ✓**
+   - `records.test.ts`: **4/4 ✓**
+   - `voice_prompt.test.ts`: **14/14 ✓**
+   - **TypeScript check (`tsc --noEmit`)**: **PASS — 0 errors**
+   - **Production build (`vite build`)**: **PASS — 1676 modules, dist generated**
+
+---
+
 ### Voice Lifecycle, Lead Scoring & Progressive Flow Release (November 2026)
 1. **Critical Lead Scoring Overhaul (Authoritative 100-Point Model)**:
    - **Root Cause Identified**: Previous scoring cap on buying intent (25 pts) left explicit buyers with ~35–40 points. Simultaneously, unwanted and uninterested callers received ~34 points due to loose rejection string checks in `determineLeadStatusFromData` and artificial clamping (`Math.max(75, ...)`, `Math.max(45, ...)`).

@@ -1,3 +1,4 @@
+import { knownCustomerName, qualificationWithName } from './salesIntelligence.js';
 import { LeadData, LeadOutcome, TranscriptTurn } from '../types/agent';
 
 export interface EvaluationResult {
@@ -70,7 +71,7 @@ const POSITIVE_INTENT_PATTERNS = [
   /விசிட்/i,
   /சைட்/i,
   // English markers
-  /interested/i,
+  /(?<!\bnot\s)(?<!\bno\s)\binterested\b/i,
   /looking to buy/i,
   /want to buy/i,
   /want to invest/i,
@@ -148,6 +149,8 @@ export function checkIsNotInterested(text: string): boolean {
 
 export function checkIsPositive(text: string): boolean {
   if (!text) return false;
+  // Negative intent always overrides positive pattern matches.
+  if (checkIsNotInterested(text) || checkIsOptOut(text)) return false;
   return POSITIVE_INTENT_PATTERNS.some((pattern) => pattern.test(text));
 }
 
@@ -431,7 +434,7 @@ export function calculateAuthoritativeLeadScore(
 
     const hasExpressedInterest =
       hasExplicitBuyOrRentIntent ||
-      transcriptLower.includes('interested') ||
+      /(?<!\bnot\s)(?<!\bno\s)\binterested\b/i.test(transcriptLower) ||
       transcriptLower.includes("i'm interested") ||
       transcriptLower.includes('yes interested') ||
       transcriptLower.includes('interest irukku') ||
@@ -439,8 +442,8 @@ export function calculateAuthoritativeLeadScore(
       transcriptLower.includes('send details') ||
       transcriptLower.includes('options paakalaam') ||
       transcriptLower.includes('enquir') ||
-      notesLower.includes('interested') ||
-      notesLower.includes('interest') ||
+      /(?<!\bnot\s)(?<!\bno\s)\binterested\b/i.test(notesLower) ||
+      notesLower.includes('interest irukku') ||
       notesLower.includes('enquir') ||
       Boolean(raw.interest && String(raw.interest).trim().length > 1 && !String(raw.interest).toLowerCase().includes('not'));
 
@@ -766,15 +769,15 @@ export function calculateAuthoritativeLeadScore(
 
   if (totalScore >= 75) {
     temperature = 'HOT';
-    nextAction = 'Immediate Priority: Assign senior relationship manager and schedule site visit within 24 hours.';
+    nextAction = 'Offer a specialist consultation or viewing; ask permission and record the agreed next action before arranging follow-up.';
   } else if (totalScore >= 45) {
     temperature = 'WARM';
-    nextAction = 'Nurture Priority: Send WhatsApp curated property catalog and schedule follow-up call within 48 hours.';
+    nextAction = 'Answer remaining questions and ask permission for specialist follow-up.';
   } else {
     temperature = 'COLD';
     nextAction = isNotInterested || isOptOut || isUnwanted
       ? 'Do not pursue: Prospect opted out, stated no interest, or call was out of scope.'
-      : 'Low Priority: Add to monthly newsletter and automated market insights drip.';
+      : 'Continue only if interested; ask permission before any future contact.';
   }
 
   return {
@@ -911,10 +914,10 @@ export function determineLeadStatusFromData(
     hasSpecificRequirement ||
     hasBudget ||
     (intent.includes('buy') || intent.includes('invest')) ||
-    notesLower.includes('interest') ||
+    /(?<!\bnot\s)(?<!\bno\s)\binterest\b/i.test(notesLower) ||
     notesLower.includes('looking for') ||
     notesLower.includes('enquir') ||
-    (qStatus === 'WARM' && (hasSpecificRequirement || hasBudget || hasLocation || timeline || notesLower.includes('interest')))
+    (qStatus === 'WARM' && (hasSpecificRequirement || hasBudget || hasLocation || timeline || /(?<!\bnot\s)(?<!\bno\s)\binterest\b/i.test(notesLower)))
   ) {
     const calculated = calculateAuthoritativeLeadScore(data);
     return { outcome: 'WARM', score: calculated.score };
@@ -1081,10 +1084,10 @@ export function evaluateCallOutcome(
   // Rule 2: Explicit Qualification from Agent
   else if (leadData.qualification_status === 'HOT') {
     outcome = 'HOT';
-    nextAction = 'Priority lead: Route to senior sales specialist for direct call within 2 hours.';
+    nextAction = 'Offer specialist consultation or viewing; arrange only the customer-agreed next action with permission.';
   } else if (leadData.qualification_status === 'WARM') {
     outcome = 'WARM';
-    nextAction = 'Nurture lead: Send WhatsApp brochure catalog and follow up in 24 hours.';
+    nextAction = 'Ask permission before sharing a brochure or arranging follow-up.';
   }
   // Rule 3: Qualified buyer with clear requirements, budget, and near-term timeline -> HOT
   else if (
@@ -1095,7 +1098,7 @@ export function evaluateCallOutcome(
     sentiment === 'positive'
   ) {
     outcome = 'HOT';
-    nextAction = 'Priority lead: Route to senior sales specialist for direct call within 2 hours.';
+    nextAction = 'Offer specialist consultation or viewing; arrange only the customer-agreed next action with permission.';
   }
   // Rule 4: Interested but insufficiently qualified -> WARM
   else if (
@@ -1103,17 +1106,22 @@ export function evaluateCallOutcome(
     !isExplicitNotInterested
   ) {
     outcome = 'WARM';
-    nextAction = 'Nurture lead: Send WhatsApp brochure catalog and follow up in 24 hours.';
+    nextAction = 'Ask permission before sharing a brochure or arranging follow-up.';
   }
   // Rule 5: Only says "Hello" / no buying intent / greetings -> COLD
   else {
     outcome = 'COLD';
-    nextAction = 'Send automated quarterly market update newsletter.';
+    nextAction = 'Ask permission before any future contact; do not enroll in marketing automatically.';
   }
+
+  outcome = qualificationWithName(outcome, { ...leadData, name: knownCustomerName(leadData.name) || knownCustomerName(leadName) }) as 'HOT' | 'WARM' | 'COLD' | 'PENDING';
+  if (outcome === 'PENDING') nextAction = 'Name remains pending; continue respectfully without pressuring or repeating a refused question.';
 
   // Generate natural descriptive summary
   let summary = '';
-  if (outcome === 'HOT') {
+  if (outcome === 'PENDING') {
+    summary = 'Property requirements captured; required customer name remains pending.';
+  } else if (outcome === 'HOT') {
     summary = `${leadName} is actively looking to purchase ${
       mergedPropertyType || 'a residential property'
     }${mergedLocation ? ` in ${mergedLocation}` : ''} with a verified budget of ${

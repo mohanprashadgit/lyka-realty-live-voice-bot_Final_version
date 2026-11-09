@@ -270,7 +270,7 @@ export async function recalculateAllExistingLeads(dbConn?: any): Promise<{ total
   try {
     const [leads]: any = await pool.query(`
       SELECT l.id, l.full_name, l.customer_name_raw, l.phone, l.email, l.lead_source,
-             l.intent, l.property_type, l.location, l.city, l.locality, l.country, l.original_location,
+             l.intent, l.property_type, l.original_location AS location, l.city, l.locality, l.country, l.original_location,
              l.budget_min, l.budget_max, l.currency, l.timeline, l.temperature, l.lead_score,
              l.notes, l.best_time_to_contact
       FROM leads l

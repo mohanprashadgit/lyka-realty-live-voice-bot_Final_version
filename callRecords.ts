@@ -2,6 +2,7 @@ import { Router, type RequestHandler } from 'express';
 import { getPool } from './db.js';
 import { saveMessage } from './leadService.js';
 import { calculateAuthoritativeLeadScore } from './src/utils/scoring.js';
+import { splitNotes } from './src/utils/salesIntelligence.js';
 
 let schemaReady: Promise<void> | undefined;
 export function ensureCallRecords(): Promise<void> {
@@ -28,7 +29,10 @@ export function callOutcome(reason?: string, qualification?: string): string {
 
 export async function saveCallDetails(callId: string, snapshot: Record<string, any>, reason?: string) {
   await ensureCallRecords();
-  const summary = typeof snapshot.notes === 'string' ? snapshot.notes : null;
+  // Strip internal [Task 7 sales]...[/Task 7 sales] metadata from stored summary.
+  // The full notes (with metadata) remain in the snapshot JSON for CRM use.
+  const rawNotes = typeof snapshot.notes === 'string' ? snapshot.notes : null;
+  const summary = rawNotes ? splitNotes(rawNotes).text || null : null;
   const outcome = reason ? callOutcome(reason, snapshot.qualification_status) :
     snapshot.qualification_status ? callOutcome(undefined, snapshot.qualification_status) : null;
   await getPool().query(`INSERT INTO voice_call_details (call_id, snapshot, summary, outcome, end_reason)
@@ -121,7 +125,7 @@ export async function readCalls(id?: string) {
       leadPhone: snapshot.phone || r.phone || '', startedAt: r.started_at, endedAt: r.ended_at || '',
       duration: r.ended_at ? Math.max(0, Math.round((+new Date(r.ended_at) - +new Date(r.started_at)) / 1000)) : 0,
       callStatus: ['failed', 'busy', 'canceled'].includes(phoneMeta.status) ? 'FAILED' : phoneMeta.status === 'no-answer' ? 'NO_ANSWER' : r.ended_at ? 'COMPLETED' : 'CONNECTED',
-      outcome: r.outcome || 'PENDING', summary: r.summary || '', endReason: r.end_reason || '',
+      outcome: r.outcome || 'PENDING', summary: splitNotes(r.summary || '').text || '', endReason: r.end_reason || '',
       location: snapshot.location || snapshot.city || '', propertyType: snapshot.property_type || '',
       interest: snapshot.intent || snapshot.property_type || '',
       buyerType: snapshot.buyer_type || '',
@@ -171,12 +175,12 @@ callRecordsRouter.post('/records/delete', async (req, res) => {
       for (const id of unique) await db.query('INSERT IGNORE INTO voice_record_deletions (lead_id, actor) VALUES (?, ?)', [id, res.locals.recordActor]);
     }
     if (kind === 'calls' || includeCalls === true) {
-      const [calls]: any = await db.query(`SELECT id, ended_at FROM conversations WHERE ${kind === 'calls' ? 'id' : 'lead_id'} IN (?) AND channel = 'voice' FOR UPDATE`, [unique]);
+      const [calls]: any = await db.query(`SELECT id, started_at, ended_at, (ended_at IS NULL AND started_at > DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 MINUTE)) AS active_now FROM conversations WHERE ${kind === 'calls' ? 'id' : 'lead_id'} IN (?) AND channel = 'voice' FOR UPDATE`, [unique]);
       if (kind === 'calls' && calls.length !== unique.length) { await db.rollback(); res.status(404).json({ success: false, error: 'One or more calls were not found.' }); return; }
       // Allow deletion of stale/orphaned CONNECTED sessions (no ended_at and started more than 30 min ago).
       // Only block deletion of calls that appear genuinely in-progress (started within 30 minutes and no ended_at).
       const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
-      const activeCalls = calls.filter((c: any) => !c.ended_at && c.started_at && new Date(c.started_at) > thirtyMinAgo);
+      const activeCalls = calls.filter((c: any) => Number(c.active_now) === 1);
       if (activeCalls.length > 0) { await db.rollback(); res.status(409).json({ success: false, error: 'One or more calls appear to be in progress. End active calls before deleting them.' }); return; }
       for (const c of calls) await db.query(`INSERT INTO voice_call_details (call_id, deleted_at) VALUES (?, CURRENT_TIMESTAMP)
         ON DUPLICATE KEY UPDATE deleted_at = COALESCE(deleted_at, CURRENT_TIMESTAMP)`, [c.id]);

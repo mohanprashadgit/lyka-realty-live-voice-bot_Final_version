@@ -26,6 +26,19 @@ export interface LeadData {
   stage_reached: number;
   notes?: string;
   updated_at?: string;
+  conversation_disposition?: string;
+  current_location?: string;
+  hometown?: string;
+  profession?: string;
+  business_sector?: string;
+  business_type_detail?: string;
+  salaried_field?: string;
+  investment_purpose?: string;
+  budget_currency_clarification?: string;
+  phone_confirmed?: string;
+  acquisition_source_status?: string;
+  fast_mode?: string;
+  agreed_next_action?: string;
 }
 
 export type CallStatus =
@@ -167,6 +180,9 @@ export interface LeadScoreBreakdown {
 }
 
 export interface LeadRecord {
+  intelligence?: Record<string, string>;
+  bedrooms?: string;
+  city?: string;
   intent?: string;
   preferred_contact_method?: string;
   best_time_to_contact?: string;

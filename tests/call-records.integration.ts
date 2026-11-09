@@ -1,3 +1,7 @@
+import { detectUnwantedSpeech } from '../src/utils/unwantedSpeech.ts';
+import { determineLeadStatusFromData, calculateAuthoritativeLeadScore } from '../src/utils/scoring.ts';
+import { normalizeAcquisitionSource } from '../src/utils/acquisitionSource.ts';
+import { qualificationWithName, splitNotes } from '../src/utils/salesIntelligence.ts';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
@@ -22,7 +26,7 @@ if (process.argv.includes('--restart')) {
   const source = fs.readFileSync('server.ts', 'utf8');
   const start = source.indexOf("app.get('/api/leads'");
   const end = source.indexOf("app.use('/api', callRecordsRouter)", start);
-  new Function('app', 'getPool', 'recordsAccess', stripTypeScriptTypes(source.slice(start, end)))(app, getPool, recordsAccess);
+  new Function('app', 'getPool', 'recordsAccess', 'determineLeadStatusFromData', 'calculateAuthoritativeLeadScore', 'normalizeAcquisitionSource', 'qualificationWithName', 'splitNotes', stripTypeScriptTypes(source.slice(start, end)))(app, getPool, recordsAccess, determineLeadStatusFromData, calculateAuthoritativeLeadScore, normalizeAcquisitionSource, qualificationWithName, splitNotes);
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>(resolve => server.once('listening', resolve));
   const base = `http://127.0.0.1:${(server.address() as any).port}`;
@@ -66,9 +70,7 @@ if (process.argv.includes('--restart')) {
     assert.equal(leadList.leads.find((l: any) => l.id === b.leadId).outcome, 'UNWANTED');
     assert.equal(callOutcome(undefined, 'UNWANTED'), 'PENDING');
     assert.equal(callOutcome('completed', 'HOT'), 'HOT');
-    const detectorStart = source.indexOf('const UNWANTED_SPEECH_PATTERNS');
-    const detectorEnd = source.indexOf('function getAgentPersona', detectorStart);
-    const detect = new Function(stripTypeScriptTypes(source.slice(detectorStart, detectorEnd)) + '\nreturn detectUnwantedSpeech;')();
+    const detect = detectUnwantedSpeech;
     for (const text of ['I love this property.', 'What is your WhatsApp number?', 'Share your office contact number.', 'I want to buy an apartment.']) assert.equal(detect(text), false, text);
     for (const text of ['Tell me a joke.', 'Will you marry me?']) assert.equal(detect(text), true, text);
     assert.equal((await request('/api/calls', undefined, { Origin: 'https://attacker.example' })).status, 200);

@@ -1,0 +1,649 @@
+[
+  {
+    "id": "ownership",
+    "topics": [
+      "ownership",
+      "freehold",
+      "leasehold",
+      "foreign",
+      "namma per",
+      "own name",
+      "land",
+      "plot",
+      "commercial"
+    ],
+    "facts": "Foreign ownership depends on designated areas and the registered right. Freehold and time-limited leasehold rights differ. Verify the particular parcel and ownership documents.",
+    "source": "https://dubailand.gov.ae/en/frequently-asked-questions/",
+    "publisher": "DLD",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 30,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "escrow",
+    "topics": [
+      "escrow",
+      "off plan",
+      "off-plan",
+      "money safe",
+      "developer",
+      "registration",
+      "rera",
+      "DLD",
+      "RERA",
+      "government approval",
+      "developer verification",
+      "money safe"
+    ],
+    "facts": "Off-plan project payments use project escrow arrangements. Verify project registration, developer and account details with DLD. Registration does not eliminate investment risk.",
+    "source": "https://dubailand.gov.ae/en/eservices/register-project/",
+    "publisher": "DLD",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 30,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "delay",
+    "topics": [
+      "delay",
+      "cancel",
+      "refund",
+      "builder stop",
+      "developer close",
+      "construction",
+      "developer obligations",
+      "buyer complaint",
+      "dispute resolution"
+    ],
+    "facts": "Cancellation, delays and recovery depend on project status, agreement and applicable procedure. Court or competent-authority involvement may be necessary; never promise automatic refunds.",
+    "source": "https://dubailand.gov.ae/en/frequently-asked-questions/",
+    "publisher": "DLD",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 30,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "buying",
+    "topics": [
+      "buying process",
+      "booking",
+      "reservation",
+      "spa",
+      "handover",
+      "oqood",
+      "resale",
+      "ready versus off plan",
+      "primary sale",
+      "resale restriction",
+      "sale purchase agreement"
+    ],
+    "facts": "Off-plan contracts have initial registration processes. Review reservation, sale agreement, milestones, completion and handover documents; verify project-specific terms before paying.",
+    "source": "https://dubailand.gov.ae/en/frequently-asked-questions/",
+    "publisher": "DLD",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 30,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "sale",
+    "topics": [
+      "title deed",
+      "transfer",
+      "noc",
+      "passport",
+      "non resident",
+      "registration fee",
+      "hidden charges",
+      "fees"
+    ],
+    "facts": "DLD completed-property sale registration covers land and units, including authorised representatives. Listed documents include identification/passport and developer e-NOC in freehold areas. Listed registration fees are 2% seller and 2% buyer plus applicable certificate, map and service-partner fees; confirm allocation and current invoice for the specific transaction.",
+    "source": "https://dubailand.gov.ae/en/eservices/property-sale-registration/",
+    "publisher": "DLD",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 30,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "title",
+    "topics": [
+      "title deed",
+      "documents",
+      "legal check",
+      "fraud",
+      "ownership document",
+      "trust",
+      "nambalama",
+      "legal",
+      "documents legal",
+      "Dubai safe"
+    ],
+    "facts": "Use the DLD title deed verification service to check document validity. Independently confirm counterparties, project details and payment destination before paying.",
+    "source": "https://dubailand.gov.ae/en/eservices/title-deed-verification-overview/title-deed-verification/",
+    "publisher": "DLD",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 30,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "charges",
+    "topics": [
+      "service charges",
+      "mollak",
+      "property management",
+      "net yield"
+    ],
+    "facts": "DLD provides a project/year service-charge index. Check applicable approved charges; they affect ownership costs and net rental proceeds.",
+    "source": "https://mollak.dubailand.gov.ae/publicpages/service-charge-index.html",
+    "publisher": "DLD",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 30,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "tenancy",
+    "topics": [
+      "tenancy",
+      "rental regulation",
+      "ejari",
+      "rental dispute",
+      "rent increase"
+    ],
+    "facts": "Use the relevant tenancy contract and applicable rent-index procedure. Tenancy disputes may be referred to the Rental Disputes Center; specific remedies require professional assessment.",
+    "source": "https://rdc.gov.ae/frequently-asked-questions",
+    "publisher": "RDC",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 30,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "succession",
+    "topics": [
+      "inheritance",
+      "succession",
+      "joint ownership",
+      "power of attorney",
+      "will"
+    ],
+    "facts": "Inheritance registration requires appropriate inheritance/legal documents and approved decisions. Joint ownership shares, wills and power-of-attorney authority need case-specific UAE professional review.",
+    "source": "https://backoffice.dubailand.gov.ae/en/eservices/real-estate-inheritance-registration/",
+    "publisher": "DLD",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 30,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "mortgage",
+    "topics": [
+      "mortgage",
+      "bank",
+      "lender",
+      "interest rate",
+      "finance",
+      "early settlement",
+      "mortgage reject",
+      "financing cost"
+    ],
+    "facts": "CBUAE mortgage rules require lenders to assess repayment ability and lending limits. Approval, rates, early settlement and fees depend on the lender and product; no rate or approval is promised.",
+    "source": "https://rulebook.centralbank.ae/en/rulebook/regulations-regarding-mortgage-loans",
+    "publisher": "CBUAE",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 30,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "visa-dld",
+    "topics": [
+      "golden visa",
+      "residency",
+      "visa confirm",
+      "family sponsorship"
+    ],
+    "facts": "DLD investor service describes a purchase value of at least AED 2 million and a renewable ten-year permit application. Property, ownership and applicant requirements apply. This is not automatic approval.",
+    "source": "https://dubailand.gov.ae/en/eservices/request-for-golden-visa-investor/",
+    "publisher": "DLD",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 14,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "visa-gdrfa",
+    "topics": [
+      "golden visa",
+      "residency",
+      "mortgaged visa",
+      "joint visa"
+    ],
+    "facts": "GDRFA investor service describes at least AED 2 million in property value certified by DLD, with joint-share value conditions and mortgaged-property provisions. Apply the specific service requirements, not a blend of portals.",
+    "source": "https://gdrfad.gov.ae/en/services/8ea80da4-f43e-11eb-0320-0050569629e8",
+    "publisher": "GDRFA",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 14,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "visa-icp",
+    "topics": [
+      "golden visa",
+      "off plan visa",
+      "residency",
+      "insurance"
+    ],
+    "facts": "ICP guidance describes registered ownership, approved bank financing and qualifying approved-company off-plan purchases, with applicable insurance conditions. Confirm the authority and pathway; do not infer eligibility from budget alone.",
+    "source": "https://icp.gov.ae/en/services/uae-golden-residency/",
+    "publisher": "ICP",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 14,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "market",
+    "topics": [
+      "market rate",
+      "transaction",
+      "price per sqft",
+      "size",
+      "sqm",
+      "sqft",
+      "historical",
+      "asking price",
+      "built up area",
+      "plot area",
+      "square feet",
+      "square metres"
+    ],
+    "facts": "DLD open data distinguishes transactions, rents, land, units and buildings. Areas include square-metre fields. Advertised asking prices are not registered sales. No live transaction dataset is bundled with this application.",
+    "source": "https://dubailand.gov.ae/en/open-data/real-estate-data/",
+    "publisher": "DLD",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 30,
+    "geography": "Dubai",
+    "tier": 1,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "investment",
+    "topics": [
+      "gross yield",
+      "net yield",
+      "vacancy",
+      "return",
+      "appreciation",
+      "liquidity",
+      "currency",
+      "risk",
+      "diversification",
+      "rental yield",
+      "rent guaranteed",
+      "market cycle",
+      "total cost of ownership",
+      "India better"
+    ],
+    "facts": "Gross yield = annual rent / purchase price. Net yield subtracts disclosed operating costs; state the cost basis. Model vacancy, service charges, fees and currency exposure separately. Historical observations cannot guarantee future rent or appreciation.",
+    "source": "internal:investment-methodology",
+    "publisher": "Lyka calculation policy",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 365,
+    "geography": "Dubai",
+    "tier": 3,
+    "confidence": "approved-policy",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "plans",
+    "topics": [
+      "payment plan",
+      "down payment",
+      "post handover",
+      "booking amount",
+      "installment"
+    ],
+    "facts": "Retrieve the actual written developer schedule before quoting amounts or dates. Compare milestones, total costs, cancellation terms and affordability; no generic percentage or availability is approved.",
+    "source": "internal:payment-verification-policy",
+    "publisher": "Lyka verification policy",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 365,
+    "geography": "Dubai",
+    "tier": 3,
+    "confidence": "approved-policy",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "offers",
+    "topics": [
+      "lyka",
+      "flight",
+      "golden visa assistance",
+      "purchase support",
+      "accommodation",
+      "transport"
+    ],
+    "facts": "Eligible Dubai viewing visits: free flight ticket booking. Eligible visa applicants: application/documentation assistance. Dedicated selection, viewing, documentation and purchase support. Accommodation and local transport assistance are not promises of free stays, food or all expenses. Team confirms undocumented eligibility.",
+    "source": "user:approved-task6-task8-brief",
+    "publisher": "Lyka user-approved brief",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 90,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "marina",
+    "topics": [
+      "Dubai Marina"
+    ],
+    "facts": "Dubai Marina has waterfront and high-rise surroundings. Verify each building, school access and unit amenities independently.",
+    "source": "https://www.visitdubai.com/en/explore-dubai/dubai-neighbourhoods",
+    "publisher": "Dubai DET",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "downtown",
+    "topics": [
+      "Downtown Dubai"
+    ],
+    "facts": "Downtown Dubai includes prominent landmarks, shopping and promenades. This is area context, not a unit feature or availability claim.",
+    "source": "https://www.visitdubai.com/en/explore-dubai/dubai-neighbourhoods",
+    "publisher": "Dubai DET",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "business-bay",
+    "topics": [
+      "Business Bay"
+    ],
+    "facts": "Business Bay includes high-rise development and the Dubai Water Canal. Unit views and access vary.",
+    "source": "https://www.dubai.ae/web/dubai.ae/visit/staying-in-dubai/dubai-neighborhoods/",
+    "publisher": "Dubai Government",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "jbr",
+    "topics": [
+      "Jumeirah Beach Residence",
+      "JBR"
+    ],
+    "facts": "JBR is a seaside neighbourhood with The Walk and The Beach. Exact beach access from a particular home must be checked.",
+    "source": "https://www.visitdubai.com/en/explore-dubai/dubai-neighbourhoods",
+    "publisher": "Dubai DET",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "palm",
+    "topics": [
+      "Palm Jumeirah"
+    ],
+    "facts": "Palm Jumeirah includes hotels, dining and beach clubs. Public/private access and fees vary by facility.",
+    "source": "https://www.visitdubai.com/explore-dubai/dubai-neighbourhoods/palm-jumeirah",
+    "publisher": "Dubai DET",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "hills",
+    "topics": [
+      "Dubai Hills Estate"
+    ],
+    "facts": "Emaar describes apartments, townhouses and villas at Dubai Hills Estate. Project brochures must verify individual facilities.",
+    "source": "https://www.emaar.com/en/property-for-sale/dubai-hills-estate",
+    "publisher": "Emaar",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "jvc",
+    "topics": [
+      "Jumeirah Village Circle",
+      "JVC"
+    ],
+    "facts": "Nakheel describes JVC as a community with parks, sports fields and schools. Verify actual facilities, admission and travel from the selected building.",
+    "source": "https://www.nakheel.com/en/developments/nakheel-projects/jumeirahvillagecircle",
+    "publisher": "Nakheel",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "international",
+    "topics": [
+      "International City"
+    ],
+    "facts": "Nakheel describes International City as residential building clusters named after countries. Do not infer specific unit price or amenities.",
+    "source": "https://www.nakheel.com/en/developments/nakheel-projects/internationalcity",
+    "publisher": "Nakheel",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "dso",
+    "topics": [
+      "Dubai Silicon Oasis",
+      "DSO"
+    ],
+    "facts": "Dubai Silicon Oasis combines a residential community, business hub and specialised economic zone. Verify actual commute and facilities.",
+    "source": "https://www.dso.ae/",
+    "publisher": "Dubai Silicon Oasis",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "madurai",
+    "topics": [
+      "Madurai",
+      "Chithirai"
+    ],
+    "facts": "Madurai district describes the Chithirai festival. One optional warm acknowledgement; never infer religion, attendance or current festival timing.",
+    "source": "https://madurai.nic.in/festivals-and-events/",
+    "publisher": "Madurai District",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Tamil Nadu",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "nagercoil",
+    "topics": [
+      "Nagercoil"
+    ],
+    "facts": "Nagercoil is in Kanniyakumari district. Use only a brief optional acknowledgement; no invented personal connection.",
+    "source": "https://kanniyakumari.nic.in/",
+    "publisher": "Kanniyakumari District",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Tamil Nadu",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "arjan",
+    "topics": [
+      "Arjan"
+    ],
+    "facts": "Arjan is a mixed-use community within Dubailand, described by Dubai Holding Community Management as freehold. Verify individual ownership and actual facilities separately.",
+    "source": "https://prod.dubaiholdingcommunities.ae/communities/arjan",
+    "publisher": "Dubai Holding Community Management",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "dubai-south",
+    "topics": [
+      "Dubai South"
+    ],
+    "facts": "Dubai South includes residential living alongside freezone, logistics, commercial and aerospace districts. Confirm the particular residential project and present facilities before discussing suitability.",
+    "source": "https://www.dubaisouth.ae/en",
+    "publisher": "Dubai South",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "dubai-creek-harbour",
+    "topics": [
+      "Dubai Creek Harbour"
+    ],
+    "facts": "Emaar describes Dubai Creek Harbour as a waterfront community with a marina and promenades near Ras Al Khor Wildlife Sanctuary. This does not establish a particular unit view, availability or distance.",
+    "source": "https://www.emaar.com/en/our-communities/dubai-creek-harbour",
+    "publisher": "Emaar",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Dubai",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "salem",
+    "topics": [
+      "Salem",
+      "Salem-ah"
+    ],
+    "facts": "Yercaud is a hill station near Salem in the Servarayan hills. A brief optional local acknowledgement is enough; never claim a personal visit.",
+    "source": "https://salem.nic.in/tourism/tourist-places/",
+    "publisher": "Salem District Administration",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Tamil Nadu",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  },
+  {
+    "id": "tirunelveli",
+    "topics": [
+      "Tirunelveli",
+      "Nellai"
+    ],
+    "facts": "Tirunelveli district tourism lists Manimuthar Dam at the foothills of the Podhigai hills on the Thamirabarani River. Use only if relevant; no invented personal history.",
+    "source": "https://tirunelveli.nic.in/tourism/tourist-places/",
+    "publisher": "Tirunelveli District Administration",
+    "publicationDate": null,
+    "verifiedAt": "2026-11-06",
+    "revalidateDays": 180,
+    "geography": "Tamil Nadu",
+    "tier": 2,
+    "confidence": "source-grounded",
+    "limitations": "General information, not case-specific advice or verified unit availability. Check the applicable service before transacting."
+  }
+]

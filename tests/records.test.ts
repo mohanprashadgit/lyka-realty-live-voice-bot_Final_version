@@ -43,7 +43,7 @@ test('database adapters reuse call/message IDs and link an existing lead', async
   const query = async (sql: string, values: any[] = []) => {
     writes.push([sql, values]);
     if (sql.includes('GET_LOCK')) return [[{ acquired: 1 }]];
-    if (sql.startsWith('SELECT id, lead_source, temperature, lead_score, notes, best_time_to_contact FROM leads')) return [[{ id: 'existing-contact' }]];
+    if (sql.startsWith('SELECT * FROM leads')) return [[{ id: 'existing-contact' }]];
     if (sql.startsWith('SELECT id FROM conversations')) return [[...conversations.values()].filter((c: any) => c.session === values[0])];
     if (sql.startsWith('INSERT INTO conversations')) conversations.set(values[0], { id: values[0], session: values[2] });
     if (sql.startsWith('INSERT INTO conversation_messages')) messages.set(values[0], values);

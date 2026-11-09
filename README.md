@@ -38,6 +38,32 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
   - **Natural Conversation, Subtle Appreciation & Emotional Intelligence**:
     - **Natural Greeting Protocol (Do Not Ask Name at Start)**: Agent starts with a warm, natural greeting (*"Vanakkam sir! Eppadi irukkeenga? Naan Priya, Lyka Realty-la irundhu pesuren."*). Does NOT begin with a checklist interrogation or ask for the customer's name immediately. When customer responds (*"I'm good"*), acknowledges warmly (*"Super sir, happy to hear that! Sollunga sir, eppadi help panna mudiyum?"*). Always answers direct property inquiries first.
     - **Customer Name Integrity Protocol**: Never assumes customer name or uses hardcoded defaults (e.g., "Mohan"). Never shortens, rearranges, splits by spaces, or guesses a customer's name (resolves the bug where `"M. Perkumar"` was erroneously transformed to `"Kumar sir"`). Asks name later when conversation naturally allows (*"By the way sir, unga name therinjukkalama?"*). Acknowledges accurately (*"Nice to meet you! Thanks nga."*). Maintains two distinct fields: `customer_name_raw` and `customer_preferred_name`.
+    - **14-Stage Sales Conversation Orchestration & Proactive Intelligence** (`salesConversation.ts`): Orchestrates the complete 14-stage conversation plan via `nextSalesAction()` and `observeSalesTurn()`, with Stages 11 and 12 strictly preceding Stage 13:
+      1. Stage 1: Greeting & Introduction (`opening`)
+      2. Stage 2: Customer Name (`name` - generic placeholders `Customer`, `Lead`, `Prospect` rejected; declined names never re-asked)
+      3. Stage 3: Current Location & Profession (`qualification` - current living city isolated from hometown; city recognized with brief verified local acknowledgment; asks specific area/locality e.g. `Tirunelveli -> Palayamkottai` via `current_area`; acknowledges area; profession asked for all receptive customers without skipping when `investment_purpose` is known; deep follow-up discovery: `business -> sector -> contracting vs materials supply -> wholesale/retail/both`, `IT/software -> development vs testing`, `teacher/education -> school vs college`, `healthcare/medical -> doctor vs nurse vs specialist`, `salaried -> industry field`; no income or purchasing power inference from profession; questions stop if caller declines)
+      4. Stage 4: Property Buying & Investment Interest (`purpose` - investment vs own use vs exploring)
+      5. Stage 5: Mandatory Three Offers (`offers` - flight ticket booking assistance, Golden Visa documentation guidance, relocation & purchase support)
+      6. Stage 6: Family & Lifestyle + Purpose (`family_lifestyle` - family size, relocation to Dubai, school/community lifestyle)
+      7. Stage 7: Preferred Property Location (`qualification` - Downtown Dubai, Dubai Marina, JVC, Business Bay, etc.)
+      8. Stage 8: Property Type & Requirements (`qualification` - apartment, villa, townhouse, BHK configuration asked for all including investors, flexible accepted)
+      9. Stage 9: Budget & Payment Preference (`qualification` - budget range, INR vs AED currency clarification, installment vs full payment preference asked without inferring income from profession)
+      10. Stage 10: Purchase Timeline (`qualification` - immediate, 1-3 months, 3-6 months, or future exploration)
+      11. Stage 11: Phone Number & Contact Preference (`conversion` - masked 4-digit confirmation e.g. `ending 4567`, explicit callback consent, WhatsApp/phone preference)
+      12. Stage 12: Trust Building & Company Credibility (`trust` - regulatory facts, Dubai-based brokerage, direct DLD-registered developers, Dubai Law No. 8 of 2007 project escrow for qualifying off-plan developments, DLD license validation via Dubai REST, verified website `https://lykarealty.ae/`, official office at Barsha Heights Dubai, over 300 clients served, zero fabricated guarantees; delivered before recommendations)
+      13. Stage 13: Property Presentation & Value Building (`recommendation` - requirement summary, specialist shortlist verification required, no unverified units)
+      14. Stage 14: Closing & Next Step (`closing` - agreed next action, late-stage acquisition source inquiry e.g. Instagram/Google/Referral via `acquisitionSource.ts`, graceful polite closing)
+      - **Multi-Fact Clause Extraction**: Extracts all volunteered details together without loss (e.g. name, hometown, property type, bedrooms, location, budget, and timeline in one sentence).
+      - **Runtime Context Delivery**: `server.ts` injects selected `next_action` directly into Gemini Live `update_lead_info` tool responses and system prompts. Browser and Twilio telephony share identical orchestration logic. Strict voice preservation ensures audio pipelines, models, and voice presets remain completely untouched.
+      - **Receptive-Customer Discovery Gate**: Missing questions across all 14 stages fire for interested, curious, receptive or actively participating customers without requiring `"highly interested"` status or skipping because `engagement_indicator` is omitted.
+    - **Context-Aware Smart Objection Handling (3-Layer Cold Call Framework)** (`customerObjection.ts`, `salesConversation.ts`, `server.ts`):
+      - *Core Rule*: Never drop the call on the 1st or 2nd "no"; stay on the line for up to 2 conversion attempts and cleanly cut the call on the 3rd refusal.
+      - *Turn 1 (1st "No" / Customer: "not interested", "வேண்டாம்", "போனை வச்சிருங்க", "interest illa")*: **Credibility Layer**. Acknowledges politely and shares a quick credibility fact before asking a light question: *"புரியுது. ஒண்ணு மட்டும் கேளுங்க: Dubai-la தமிழ்ல real estate guidance provide panrom, direct DLD registered developers-oda work panrom. Dubai real estate pathi rough idea இருக்கா?"*. Stays on the line; waits for customer response!
+      - *Turn 2 (2nd "No" / Customer: "இதெல்லாம் வேணாம்", still not interested)*: **Clarity Layer (In their terms)**. Confirms no pressure, explains the value simply in familiar terms (rental return 6-8% in Dirhams like renting a flat back home), and asks a gentle check question: *"சரி, force பண்ண மாட்டேன். ஒண்ணு மட்டும்: நம்ம ஊர்ல flat வாங்கி வாடகைக்கு விடுற மாதிரி தான் Dubai-லயும், வருஷம் 6-8 percent வாடகை, அதுவும் Dirhams-ல. அந்த மாதிரி income நல்லா இருக்கும் இல்லையா?"*. Stays on the line; waits for customer response!
+      - *Turn 3 (3rd "No" / Customer: "வேணாம்னு சொல்லிட்டேன் இல்ல", 3rd rejection)*: **Graceful Exit & Referral**. Immediately stops pitching, asks a light referral question, thanks them, says bye, and cleanly ends the call: *"சரி, புரியுது, இனிமே இதப் பத்தி பேச மாட்டேன். உங்களுக்கு தெரிஞ்சவங்க யாராவது Dubai-ல invest பண்ற plan-ல இருந்தா சொல்லுங்க, help பண்றோம். ரொம்ப தேங்க்ஸ், bye."*.
+      - *Immediate Termination Exception (ONLY DNC)*: Explicit do-not-call requests (*"Don't call me again"*, *"Remove my number"*, *"இனிமே call பண்ணாதீங்க"*) trigger immediate apology, promise of zero calls, and hang up (*"Sorry nga, disturb பண்ணிட்டேன். இனிமே இந்த number-க்கு call வராது. ரொம்ப தேங்க்ஸ், bye."*).
+      - *Busy / Unavailable*: Fast exit with optional callback timeframe offer only if permitted, respecting caller time.
+      - *Customer Resumes Interest*: When customer agrees to explore (*"Seri sollunga"* / *"Okay investment-ku paakalaam"*), clears soft objection counter and resumes qualification from the next missing field without restarting greeting.
     - **Advanced Natural Voice Tuning & Real South Indian Spoken Cadence**: Authentic Tamil Nadu phone conversational expressions with respectful gender-neutral `-nga` marker rotated with `sir/madam` across 10 conversational categories:
       * *Acknowledgement & Listening*: *"Hmm..."*, *"Mmmmm, seri nga..."*, *"Aah, okay nga."*, *"Right, right..."*, *"Ohhh, appadiya sir?"*, *"Achaaa, ippo puriyudhu."*, *"Seri nga, got it."*, *"Correct nga, puriyudhu."*
       * *Warmth & Friendliness*: *"Super nga!"*, *"Nice, that's good to hear!"*, *"Oh, that's great!"*, *"Semma nga!"*, *"Happy to help nga."*, *"Nalla choice nga!"*, *"That's actually a good option."*
@@ -51,15 +77,17 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
       * *Natural Closing*: *"Seri nga, anything else you'd like to know?"*, *"Happy to help nga!"*, *"Super nga, thanks for sharing those details."*
       * *Pitch & Cadence Modulation*: Natural South Indian phone call vocal delivery using slightly higher, engaged pitch on greetings and curiosity, and slower, relaxed tempo with realistic pauses (`...`) when explaining, reassuring, or waiting. Strict prohibition of raw XML/bracketed tags (`<laugh>`, `<softly>`, etc.) ensures seamless text-to-audio synthesis without code or tags leaking into transcripts.
     - **Sentence Anti-Repetition Filter**: Strictly prevents repeating sentences or doubled phrases ("seri seri", "okay okay") during speaking. Removes internal consecutive sentence repeats and deduplicates turn beginnings.
-    - **3-Attempt Objection Handling Protocol**: When a customer declines ("no" / "not interested"):
-      1. *First decline*: Acknowledges warmly (*"Seri sir, puriyudhu."*) and pivots to a referral or brief value point (*"Unga friends or family-la Dubai property pathi interest irukka?"*).
-      2. *Second decline*: Respects their stance and offers a low-pressure next step (*"Future-la property need irundha Lyka Realty-a nenachukonga. WhatsApp-la brochure share pannalama sir?"*).
-      3. *Third decline*: Gracefully accepts, thanks the caller warmly, and leaves immediately (*"Puriyudhu sir. Unga time-ku romba thanks. Have a wonderful day! Bye."*). Never pushes on a fourth attempt.
+    - **3-Layer Cold Call Objection Handling Protocol**: When a customer declines ("no" / "not interested" / "வேண்டாம்" / "போனை வச்சிருங்க" / "இல்ல இல்ல வேண்டாம், போனை வச்சிருங்க, எனக்கு இன்ட்ரஸ்ட் இல்ல" / "call cut பண்ணுங்க"):
+      1. *First decline (Turn 1)*: **Credibility Layer**. Acknowledges politely and shares a quick credibility fact before asking a light question (*"Puriyudhu nga. Dubai-la Tamil-la verified real estate guidance provide panrom, direct DLD registered developers-oda work panrom. Ungalukku Dubai real estate pathi rough idea irukka?"*). Never says goodbye, never says *"Unga time-ku romba thanks, bye"*, stays on the line, and waits for customer response.
+      2. *Second decline (Turn 2)*: **Clarity Layer (In their terms)**. Confirms no pressure, explains value simply in familiar terms (6-8% rental return in Dirhams like buying a flat back home), and asks a gentle check question (*"Seri nga, force panna maatten. Namma oorla flat vaangi vaadagaikku vidura maadhiri dhaan Dubai-layum, varusham 6-8% rental return, adhuvum Dirhams-la. Andha maadhiri passive income nalla irukkum illaiya?"*). Stays on the line; waits for response.
+      3. *Third decline (Turn 3)*: **Graceful Exit & Referral**. Immediately stops pitching, asks a light referral question, thanks them, says bye, and cleanly ends the call (*"Seri nga, puriyudhu, inime idha pathi pesa maatten. Ungalukku therinjavanga yaaravadhu Dubai-la invest panna plan irundha sollunga, help panrom. Romba thanks, bye."*).
+      * *Explicit DNC*: Only explicit do-not-call commands (*"Don't call me again"*, *"Remove my number"*, *"இனிமே call பண்ணாதீங்க"*, *"இனிமே அழைக்க வேண்டாம்"*) end the call immediately on Turn 1.
+      * *Server-Side Live Call Ending Guard*: The server actively blocks premature WebSocket goodbye termination on Turns 1 and 2 of cold call objections, ensuring the call stays open for both conversion attempts.
     - **Cumulative Multi-Location Memory**: Retains and displays ALL cities and locations mentioned across the dialogue in chronological order (e.g. if the caller mentions *Madurai* first and later *Thoothukudi*, both are captured as *"Madurai, Thoothukudi"*).
     - **Cumulative Conversation Notes & Special Expectations**: The AI automatically records special expectations, property preferences, concerns, family context, and follow-up requests into a cumulative conversation summary that updates live and persists to the database.
     - **Synchronous Customer Transcript Stream**: Eliminates UI turn mismatches by rendering user speech immediately without blocking for async transliteration, ensuring customer turns always appear before agent responses.
     - **Full Conversation Persistence & Call History**: Automatically creates conversation records, links leads, and streams turn-by-turn messages into `conversation_messages`, allowing the Leads & Call Records tab to display authentic full call transcripts.
-    - **Natural City / Location Acknowledgment**: Responds naturally when a customer mentions their city (e.g. Thoothukudi, Chennai, Coimbatore, Dubai) with relevant, conversational observations (*"Ohh, Thoothukudi-ah sir! Nice nga. Appo neenga anga irundhu property options paakureengala, illa vera location-la interest irukka?"*). Never invents facts or claims personal visits.
+    - **Natural City / Location Acknowledgment & Local Knowledge** (`localKnowledge.ts`): Responds naturally when a customer mentions their city with authentic regional cultural touchpoints and local specialties across 35+ Tamil Nadu, UAE, and Indian cities (e.g., Tirunelveli halwa/Nellaiappar temple, Madurai Meenakshi Amman temple, Thoothukudi pearl city/macaroon, Coimbatore, Trichy, Salem, Chennai, Bangalore, Dubai, Abu Dhabi). Strictly factual with zero hallucinated current events (`getVerifiedLocalNews` returns null safely). Delivered once and tracked via `location_acknowledged` so the agent never repeats local small talk in subsequent turns.
     - **Gradual 7-Field Lead Information Collection**: Gathers 7 core lead fields one question at a time across the dialogue without presenting a checklist:
       1. Customer Name (asked later when naturally suitable)
       2. Phone Number (asked when follow-up is relevant; respects caller choice)
@@ -71,7 +99,16 @@ The application opens directly into the **Lyka Realty AI Voice Calling Agent** w
     - **Everyday Tamil Nadu Tanglish**: Spoken Tanglish mixing Tamil in English script with everyday English words (e.g., *"Seri nga!"*, *"Aaaah, okay okay, puriyudhu sir!"*, *"Ohhh, appadiya? Super nga!"*, *"No problem, neenga comfortable-ah sollunga"*). Avoids textbook/literary Tamil translations.
     - **Context-Aware Emotional Expression & Pitch Variation**: Dynamic pitch and delivery tailored to customer mood (Happy/Positive, Curious, Understanding, Reassuring, Frustrated/Angry with sincere empathy, and Appreciative). Natural conversational speed with short pauses.
     - **Balanced Conversation**: One question at a time, listens completely, remembers previously shared details, answers customer questions before qualifying, respects busy callers, and ends gracefully without pushy tactics.
-    - **Lyka Realty Company & Social Channels**: Explains services in India and Dubai, verified website (`https://lykarealty.com`), email (`contact@lykarealty.com`), and transparently explains that social channels are undergoing verification.
+    - **Lyka Realty Company Knowledge & Verified Channels**:
+      * Business: Dubai-based real estate brokerage specializing in residential and commercial buying, renting, property investment guidance, off-plan/ready properties, and mortgage guidance.
+      * Official Website: `https://lykarealty.ae/` (primary official website; also official domain `https://lykarealty.com`).
+      * Official Contact & WhatsApp: `+971 52 348 5758` (spoken naturally: *"plus nine seven one, five two, three four eight, five seven five eight"*).
+      * Official Email: `admin@lykarealty.ae` (also `contact@lykarealty.com`).
+      * Office Address: `Office 1002, DAMAC Executive Heights, Barsha Heights (TECOM), Dubai, UAE` (visits by appointment request, subject to team confirmation).
+      * Published Client Record: Over 300 clients served across Dubai (accurately cited from official website; never inflated).
+      * Brokerage Validation: Dubai Land Department (DLD) validate-real-estate-licenses service (`https://dubailand.gov.ae/en/eservices/validate-real-estate-licenses-and-permits`) or Dubai REST app.
+      * Legal Escrow Reference: Dubai Law No. 8 of 2007 project escrow accounts for qualifying off-plan developments (never claims all payments automatically go to escrow or that escrow guarantees returns/completion/refunds).
+      * Prohibited Claims: Strictly avoids unsupported claims (founded by Waseem Mubarak, 50 employees, 700+ families, 7,000+ customers, 10+ years in business, unverified ORN 47999, unverified developer partnerships, or fabricated reviews).
   - Extracted Prospect Profile Panel: Real-time display of all 7 captured lead fields (Customer Name, Phone, Location, Source, Purpose, Contact Method, Best Time to Contact) plus property specifications (type, budget, timeline, score) without fabricating unconfirmed details.
   - Pre-call / live qualification form fields: `Customer Name`, `Phone`, `City / Location` (e.g., Chennai, Dubai), `Language` (Tamil Nadu Tanglish, English, Tamil), and `Reason for call`.
   - High-visibility action pill button: `📞 Start new call with Priya/Harish` / `🔴 End call` + Mic Mute + Barge-in Interrupt.
@@ -581,7 +618,7 @@ npm run dev
 ```
 
 The application will be live at:
-- **Direct AI Chatbot & Voice Assistant**: `http://localhost:3000/` (opens directly into conversational chatbot)
+- **Direct AI Chatbot & Voice Assistant**: `http://localhost:10000/` (or configured port, e.g. `http://localhost:3000/`)
 
 ### 3. Production Build & Vercel Deployment
 ```bash
@@ -638,7 +675,23 @@ For public cloud deployments on Vercel, Supabase, TiDB Serverless, Aiven, or AWS
 - **Inline Keyword Highlighting**: Subtle regex highlights for names, budgets, locations, property types, and priorities (`src/utils/highlightKeywords.tsx`).
 - **Real-Time Gemini Live Audio**: Low-latency 16kHz PCM mic capture, 24kHz audio playback, voice orb visualizer, and live barge-in / interruption handling.
 
-### 5. Automated Test Suites & Verification
+### 5. Running the Application Locally
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Build production assets (Vite)
+npm run build
+
+# 3. Start the full-stack application (Express + WebSocket + Gemini Live)
+npm start
+# or: npx tsx server.ts
+```
+
+The application runs at **`http://localhost:3000`** (or configured `PORT`).
+
+### 6. Automated Test Suites & Verification
 ```bash
 # Run Unified AI Land & Property Recommendation 25-Point Test Suite
 npx tsx scratch/test_unified_land_property_recommendation.ts
@@ -749,4 +802,57 @@ This application is ready for 1-click deployment on [Render](https://render.com)
 1. **AI Chatbot Integrity**: The client AI chatbot, Gemini Live voice streaming, microphone capture, audio playback, VAD noise immunity, `src/utils/audio.ts`, and WebSocket protocols are completely isolated and protected.
 2. **Database Safety**: All database schema operations use `CREATE TABLE IF NOT EXISTS`. Destructive migrations (`DROP TABLE`, `TRUNCATE`) are strictly forbidden.
 3. **Data Authenticity**: All CRM metrics and dashboard tables reflect real MySQL database records. Static mock data is prohibited.
+
+---
+
+## 🐛 Bug Fixes (Session: 2026-11-09)
+
+### Bug 1 — Call Summary Metadata Leakage (FIXED)
+- **Problem**: `saveCallDetails()` stored raw `snapshot.notes` (which may contain `[Task 7 sales]...[/Task 7 sales]` JSON metadata) directly as the `summary` column in `voice_call_details`.
+- **Fix**: `callRecords.ts` now imports `splitNotes()` from `salesIntelligence.ts` and strips Task 7 metadata before writing to `summary`. Historical summaries are also cleaned on read via `splitNotes()`. The full notes (with metadata) are preserved in the snapshot JSON for CRM use.
+- **Files changed**: `callRecords.ts`
+
+### Bug 2 — "Not Interested" Detected as Positive Interest (FIXED)
+- **Problem**: `POSITIVE_INTENT_PATTERNS` contained `/interested/i` which matched the substring inside `"not interested"`. Several `String.includes('interest')` checks in `calculateAuthoritativeLeadScore` and `determineLeadStatusFromData` also matched `"not interested"`.
+- **Fix**:
+  - `POSITIVE_INTENT_PATTERNS[/interested/i]` → `(?<!\bnot\s)(?<!\bno\s)\binterested\b` (negative lookbehind).
+  - `checkIsPositive()` now explicitly gates on `checkIsNotInterested()` returning false.
+  - `hasExpressedInterest` raw `includes('interested')` / `includes('interest')` → `regex with negative lookbehind`.
+  - `determineLeadStatusFromData` WARM gate uses same regex guard.
+- **Files changed**: `src/utils/scoring.ts`
+
+### Bug 3 — Tamil/Tanglish `-la` Locative Suffix Pronunciation (PARTIAL — AUDIBLE VERIFICATION PENDING)
+- **Action**: Added a targeted pronunciation hint in the main system prompt (`getSystemInstruction`): instructs the model to blend `-la` as a continuous syllable with the preceding word (e.g., `"Dubaila"` not `"Dubai" + pause + "la"`). Added to both Tamil language instruction blocks.
+- **Note**: Since Gemini native audio is a generative audio model (not a text-to-speech pipeline), the hyphenated Romanized Tamil convention `Dubai-la` is understood correctly by the model. The added pronunciation guidance is a soft hint. Audible verification on a live call is required to confirm.
+- **Files changed**: `server.ts` (system prompt, language instruction section only)
+- **Voice model, voice config, naturalVoice.ts**: UNCHANGED.
+
+### Bug 4 — Gentle 6-Second Silence Follow-Up (FIXED — REAL-CALL VERIFICATION PENDING)
+- **Implementation**: Added a `silenceFollowUpTimer` (6,000 ms) in the browser WebSocket session scope in `server.ts`.
+  - Timer **starts** ONLY after the browser sends `playback_complete` for the matching agent `turnId` — confirming the full audio queue has drained and the agent voice is no longer audible.
+  - `playback_complete` is sent in App.tsx inside `onPlayStateChange(false)` callback only when all queued audio sources have finished (`activeSources.length === 0` after a 200ms hangover), never while audio is still playing.
+  - Timer **cancels** on: customer `audio` chunk arrival (earliest possible signal, before transcription lag), `inputTranscription` received, `interrupted` signal (barge-in VAD), manual `barge_in` message, voice switch, call closing/disconnect.
+  - Stale `playback_complete` acks (mismatched `turnId`) are silently ignored — the timer only arms for the most-recent agent turn.
+  - On fire: injects a system prompt to Gemini instructing it to say `"Sir, line-la irukkeengala?"` **once only** (`silenceFollowUpFired` gate prevents double-fire within the same turn). `clearSilenceFollowUp` resets this flag for the next turn.
+  - Silence follow-up delivered through the existing Gemini Live `sendClientContent` path (same voice, same model, no second TTS engine).
+  - Safety: timer scoped per call, cleared in `clearGoodbyeDetection()` and `prepareVoiceSwitch()`.
+- **Twilio**: Timer intentionally NOT enabled on Twilio path — no reliable `playback_complete` acknowledgment available from PSTN. `pendingSilenceArmTurnId` and `armSilenceFollowUp` are absent from the Twilio (`twilioWss`) handler; structural test verifies this.
+- **Files changed**: `server.ts` (audio message handler + silence timer arm/clear logic)
+
+### Silence Follow-up Test Hardening (09-Nov-2026)
+- **New test file**: `tests/silence_playback.test.ts` — 19 focused tests covering:
+  - Matching `turnId` → timer arms and fires once
+  - Stale `turnId` → timer does NOT arm
+  - Customer audio arrival → `pendingSilenceArmTurnId` cleared before timer arms
+  - Already-armed timer cancelled by customer audio
+  - `silenceFollowUpFired` prevents double-fire; resets for next turn
+  - Mode/state guards: chatbot, `callFinalized`, `goodbyeEnding`, `isClosing` all block arming
+  - Structural checks: `playback_complete` handler, audio early cancellation, interruption, barge-in, disconnect, Twilio exclusion, App.tsx drain-only send, `pendingPlaybackAckRef` clearing
+- **Stale test fixtures updated**:
+  - `tests/task3_voice.test.ts` — barge-in function now receives `clearSilenceFollowUp` as parameter
+  - `tests/task7_final.test.ts` — fixture adds `location: 'Dubai Marina'` (stage 7 is mandatory); second assertion updated to `payment_preference` (actual deeper-discovery field for highly-interested customer after investment_purpose is known)
+- **Total tests: 298/298 ✅ — 0 failures**
+- **TypeScript (`tsc --noEmit`)**: PASS — 0 errors
+- **Production build (`vite build`)**: PASS — 1677 modules
+
 

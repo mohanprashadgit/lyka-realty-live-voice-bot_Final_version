@@ -83,21 +83,32 @@ export function detectUnrelatedSpeech(raw: string): boolean {
   return false;
 }
 
+/**
+ * Specifically checks for inappropriate / romantic advances / sexual remarks
+ * toward the voice representative (Condition Two).
+ * Harmless compliments (e.g. "you are nice", "good job", "thanks for helping")
+ * and normal friendly humor must NEVER trigger this.
+ */
+export function isInappropriateRemark(raw: string): boolean {
+  const text = (raw || '').trim();
+  if (!text) return false;
+  // Exclude harmless compliments
+  if (/\b(?:nice\s+speaking|helpful|good\s+job|great\s+service|thanks\s+for|thank\s+you)\b/i.test(text)) return false;
+  return UNWANTED_SPEECH_PATTERNS.some((re) => re.test(text));
+}
+
 export function detectUnwantedSpeech(raw: string): boolean {
   const text = (raw || '').trim();
   if (!text) return false;
 
-  // Also catch unrelated queries (jokes, stories, songs, recipes, personal banter)
+  // Romantic advances, sexual remarks or inappropriate personal comments
+  if (isInappropriateRemark(text)) return true;
+
+  // Specific demanding off-topic commands (sing, joke, recipe)
+  if (/^(?:please\s+)?(?:tell me (?:a joke|a story)|sing (?:me )?a song|write (?:me )?a poem|give me a recipe)[.!?\s]*$/i.test(text)) return true;
+
+  // Unrelated off-topic requests
   if (detectUnrelatedSpeech(text)) return true;
 
-  if (/^(?:please\s+)?(?:tell me (?:a joke|a story)|sing (?:me )?a song|write (?:me )?a poem|give me a recipe)[.!?\s]*$/i.test(text)) return true;
-  // "You're nice / you are so sweet" only counts as a complete short remark,
-  // so a genuine "you are nice for helping" does not trigger a warning.
-  const compact = text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s']/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (/^(?:you'?re|you are|your)\s+(?:so\s+|really\s+|very\s+)?(?:nice|sweet)$/.test(compact)) return true;
-  return UNWANTED_SPEECH_PATTERNS.some((re) => re.test(text));
+  return false;
 }

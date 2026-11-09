@@ -1,3 +1,7 @@
+import { customerFacts } from '../utils/customerIntelligence';
+import { knownCustomerName } from '../utils/salesIntelligence';
+import { usableContactPhone } from '../utils/leadFields';
+import { CustomerIntelligence } from './CustomerIntelligence';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   PhoneCall,
@@ -41,7 +45,7 @@ interface LiveCallWorkspaceProps {
   onVoiceChange: (voice: string) => void;
   onLanguageChange: (lang: string) => void;
   onToggleMic: () => void;
-  onStartCall: () => void;
+  onStartCall: (details: Record<string, string>) => void;
   onEndCall: () => void;
   onInterrupt: () => void;
   onSendText: (text: string) => void;
@@ -81,9 +85,13 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
   serverStatus,
 }) => {
   const [inputText, setInputText] = useState('');
-  const [leadName, setLeadName] = useState(leadData?.name || '');
-  const [leadPhone, setLeadPhone] = useState(leadData?.phone || '');
-  const [leadCity, setLeadCity] = useState(leadData?.city || leadData?.location || '');
+  const facts = customerFacts(leadData || {});
+  const customerName = knownCustomerName(facts.customer_name_raw) || knownCustomerName(facts.full_name) || knownCustomerName(facts.name) || '';
+  const customerPhone = usableContactPhone(facts.phone) || '';
+  const customerCity = facts.current_location || facts.hometown || '';
+  const [leadName, setLeadName] = useState(customerName);
+  const [leadPhone, setLeadPhone] = useState(customerPhone);
+  const [leadCity, setLeadCity] = useState(customerCity);
   const [callReason, setCallReason] = useState(leadData?.property_type || '');
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [isVoicePresetOpen, setIsVoicePresetOpen] = useState(false);
@@ -188,12 +196,10 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
   const isCallActive = callStatus !== 'idle' && callStatus !== 'ended' && callStatus !== 'error';
   const persona = getAgentPersona(gender, selectedLanguage, selectedVoice);
 
-  // Sync state if external lead updates
-  useEffect(() => {
-    if (leadData?.name && leadData.name !== leadName) setLeadName(leadData.name);
-    if (leadData?.phone && leadData.phone !== leadPhone) setLeadPhone(leadData.phone);
-    if (leadData?.location && leadData.location !== leadCity) setLeadCity(leadData.location);
-  }, [leadData]);
+  // Keep each editable preset input in sync with its own incoming fact.
+  useEffect(() => setLeadName(customerName), [customerName]);
+  useEffect(() => setLeadPhone(customerPhone), [customerPhone]);
+  useEffect(() => setLeadCity(customerCity), [customerCity]);
 
   // Enhanced 3D Interactive Celestial Particle Orb (Stitch Celestial Void)
   useEffect(() => {
@@ -565,7 +571,7 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
+    <div className="lyka-live-layout max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
       {/* ── Sub-header Controls Bar matching Google Stitch specifications ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs border-b border-slate-200 dark:border-slate-800 pb-3">
         {/* Voice Persona Selector */}
@@ -706,9 +712,9 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
       {/* ═════════════════════════════════════════════════════════════════
           TWO-COLUMN WORKSPACE: LEFT COMPACT PANEL & RIGHT MAIN TRANSCRIPT
           ═════════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* ── LEFT COLUMN: Voice calling orb & customer controls (approx 4.5 cols) ── */}
-        <div className="lg:col-span-5 space-y-4">
+        <div className="xl:col-span-5 space-y-4">
           {/* Black Card: Celestial Interactive 3D Orb Visualizer */}
           <div className="bg-[#1f0518] text-white rounded-2xl p-5 shadow-lg flex flex-col items-center justify-center relative overflow-hidden min-h-[320px] border border-slate-800 ring-1 ring-violet-500/20">
             {/* Interactive Canvas Wrapper with drag & hover */}
@@ -1024,7 +1030,7 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="Where they live or invest"
+                placeholder="Current city or hometown"
                 value={leadCity}
                 onChange={(e) => setLeadCity(e.target.value)}
                 className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
@@ -1071,13 +1077,14 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
               {!isCallActive ? (
                 <button
                   onClick={() => {
-                    onUpdateLeadData({
-                      name: leadName || 'Customer',
-                      phone: leadPhone || '',
-                      location: leadCity || '',
+                    const details = {
+                      name: leadName,
+                      phone: leadPhone,
+                      ...(leadCity !== customerCity ? { current_location: leadCity } : {}),
                       notes: callReason,
-                    });
-                    onStartCall();
+                    };
+                    onUpdateLeadData(details);
+                    onStartCall(details);
                   }}
                   className="w-full py-3 rounded-full bg-slate-950 dark:bg-slate-100 text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-200 active:scale-98 transition-all font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md"
                 >
@@ -1132,7 +1139,7 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
         </div>
 
         {/* ── RIGHT COLUMN: Main Conversation Transcript (WhatsApp Style) ── */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className="xl:col-span-7 space-y-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-[600px] sm:h-[740px]">
           {/* Header Bar matching Google Stitch & WhatsApp console specifications */}
           <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800 text-xs">
@@ -1370,96 +1377,7 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
           </div>
           </div>
 
-          {/* ── Extracted Customer Information Panel (Section 4 & 14) ── */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-              <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200">
-                <User className="w-3.5 h-3.5 text-violet-600" />
-                <span>Extracted Prospect Profile</span>
-              </div>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                leadData?.qualification_status === 'HOT'
-                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
-                  : leadData?.qualification_status === 'WARM'
-                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-              }`}>
-                {leadData?.qualification_status || 'COLD'}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-[11px]">
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">1. Customer Name</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
-                  {leadData?.customer_preferred_name
-                    ? `${leadData.customer_preferred_name} (Raw: ${leadData?.customer_name_raw || leadData?.name})`
-                    : leadData?.customer_name_raw || leadData?.name || leadName || 'Not provided'}
-                </span>
-              </div>
-
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">2. Phone Number</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
-                  {leadData?.phone || leadPhone || 'Pending consent'}
-                </span>
-              </div>
-
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">3. Location(s) Mentioned</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 block text-[11px]">
-                  {leadData?.all_locations_mentioned || leadData?.location || leadData?.city || leadCity || 'Not provided'}
-                </span>
-              </div>
-
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">4. How Heard / Source</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block capitalize">
-                  {leadData?.lead_source || 'Not asked yet'}
-                </span>
-              </div>
-
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">5. Purpose of Enquiry</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block capitalize">
-                  {leadData?.intent || leadData?.buyer_type || 'Exploring'}
-                </span>
-              </div>
-
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">6. Contact Method</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
-                  {leadData?.preferred_contact_method || 'To be confirmed'}
-                </span>
-              </div>
-
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">7. Best Time to Contact</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
-                  {leadData?.best_time_to_contact || 'Flexible'}
-                </span>
-              </div>
-
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">Property &amp; Budget</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
-                  {leadData?.property_type || 'Property'} {leadData?.budget ? `· ${leadData.budget}` : ''}
-                </span>
-              </div>
-            </div>
-
-            {/* Special Notes & Cumulative Summary */}
-            {leadData?.notes && (
-              <div className="p-2.5 rounded-xl bg-amber-50/90 dark:bg-slate-950/80 border border-amber-300 dark:border-amber-500/30 text-xs">
-                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider block mb-1">
-                  Special Notes &amp; Spoken Summary:
-                </span>
-                <p className="text-[11px] leading-relaxed text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-medium">
-                  {leadData.notes}
-                </p>
-              </div>
-            )}
-          </div>
+          <CustomerIntelligence data={leadData || {}} saveState={leadData?._saveState || 'Waiting for customer details'} />
         </div>
       </div>
     </div>

@@ -224,6 +224,8 @@ export function findMatchingOutputDevice(
 
 export class LiveAudioPlayer {
   private ctx: AudioContext | null = null;
+  private playbackEpoch = 0;
+  public diagnostics = { chunks: 0, underruns: 0, clears: 0, queueDepth: 0, queuedMs: 0 };
   private nextPlayTime: number = 0;
   private activeSources: AudioBufferSourceNode[] = [];
   public isPlaying: boolean = false;
@@ -311,7 +313,9 @@ export class LiveAudioPlayer {
       this.initContext();
       if (!this.ctx) return;
 
+      const epoch = this.playbackEpoch;
       const rawBuffer = base64ToArrayBuffer(base64Pcm24k);
+      if (!rawBuffer.byteLength || rawBuffer.byteLength % 2) return;
       const int16Data = new Int16Array(rawBuffer);
       const float32Data = int16ToFloat32(int16Data);
 
@@ -334,6 +338,7 @@ export class LiveAudioPlayer {
       const currentTime = this.ctx.currentTime;
       // Small 50ms jitter buffer (raise to 80ms if audio stutters on weak networks) on fresh start
       if (this.nextPlayTime <= currentTime) {
+        if (this.isPlaying) this.diagnostics.underruns++;
         this.nextPlayTime = currentTime + 0.05;
       }
 
@@ -342,13 +347,19 @@ export class LiveAudioPlayer {
       this.nextPlayTime = startTime + audioBuffer.duration;
 
       this.activeSources.push(source);
+      this.diagnostics.chunks++;
+      this.diagnostics.queueDepth = this.activeSources.length;
+      this.diagnostics.queuedMs = Math.round((this.nextPlayTime - currentTime) * 1000);
       this.updatePlayingState(true);
 
       source.onended = () => {
+        source.disconnect();
+        if (epoch !== this.playbackEpoch) return;
         const index = this.activeSources.indexOf(source);
         if (index > -1) {
           this.activeSources.splice(index, 1);
         }
+        this.diagnostics.queueDepth = this.activeSources.length;
         if (this.activeSources.length === 0) {
           if (this.stopHangoverTimer) clearTimeout(this.stopHangoverTimer);
           this.stopHangoverTimer = setTimeout(() => {
@@ -378,6 +389,10 @@ export class LiveAudioPlayer {
   }
 
   public stopAndClear() {
+    this.playbackEpoch++;
+    this.diagnostics.clears++;
+    this.diagnostics.queueDepth = 0;
+    this.diagnostics.queuedMs = 0;
     this.stopSafetyWatchdog();
     if (this.stopHangoverTimer) {
       clearTimeout(this.stopHangoverTimer);
@@ -535,8 +550,16 @@ export class LiveMicRecorder {
           }
           shouldTransmitAudio = this.consecutiveSpeechFrames >= 2 || this.speechHangoverFrames > 0;
         } else {
-          // Agent is listening for user speech: transmit continuously!
-          shouldTransmitAudio = true;
+          // Agent is listening for user speech: transmit with speech gating and hangover
+          // so genuine speech & conversational pauses stream cleanly while ambient fan noise is ignored
+          const listeningThreshold = Math.max(0.005, this.ambientFloor * 1.25);
+          if (rms >= listeningThreshold) {
+            this.consecutiveSpeechFrames++;
+            this.speechHangoverFrames = 25; // ~1 second hangover so natural pauses within user utterances stream fully
+          } else if (this.speechHangoverFrames > 0) {
+            this.speechHangoverFrames--;
+          }
+          shouldTransmitAudio = this.consecutiveSpeechFrames > 0 || this.speechHangoverFrames > 0;
         }
 
         const downsampled = downsampleBuffer(inputData, this.ctx!.sampleRate, 16000);

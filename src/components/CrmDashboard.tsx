@@ -1,3 +1,4 @@
+import { CustomerIntelligence } from './CustomerIntelligence';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -252,6 +253,7 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
   period,
   onPeriodChange,
 }) => {
+  const [intelligenceLeadId, setIntelligenceLeadId] = useState('');
   const [leads, setLeads] = useState<LeadRecord[]>([]);
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1884,6 +1886,15 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:bg-[#181818] dark:border-[#555]" aria-label="Saved customer intelligence">
+          <label className="block mb-4 text-sm font-medium" htmlFor="intelligence-customer">Review customer requirements</label>
+          <select id="intelligence-customer" className="ci-select mb-4" value={intelligenceLeadId || leads[0]?.id || ''} onChange={e => setIntelligenceLeadId(e.target.value)}>
+            {!leads.length && <option value="">No saved customers yet</option>}
+            {leads.map(lead => <option key={lead.id} value={lead.id}>{lead.name} {lead.phone ? `(${lead.phone})` : ''}</option>)}
+          </select>
+          <CustomerIntelligence data={leads.find(lead => lead.id === intelligenceLeadId) || leads[0] || {}} saveState={loadError ? 'Refresh failed. Showing last loaded details.' : leads.length ? 'Saved CRM record' : 'No saved details yet'} />
         </section>
       </div>
 

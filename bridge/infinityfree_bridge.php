@@ -4,7 +4,7 @@
  * 
  * Instructions:
  * 1. Upload this file to your InfinityFree account under `htdocs/api_bridge.php`.
- * 2. Set your custom secure token below in BRIDGE_SECRET.
+ * 2. Configure LYKA_BRIDGE_SECRET as a strong, private environment variable on the PHP host.
  * 3. Test connectivity by visiting:
  *    https://<your-infinityfree-subdomain>/api_bridge.php?ping=1
  */
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // ── Security Configuration ──────────────────────────────────────────
-define('BRIDGE_SECRET', 'lyka-crm-secure-bridge-key-2026'); // Change to your preferred key
+define('BRIDGE_SECRET', getenv('LYKA_BRIDGE_SECRET') ?: ''); // Must be configured securely on the PHP host
 
 // Database Configuration
 define('DB_HOST', 'sql308.infinityfree.com');
@@ -30,14 +30,20 @@ define('DB_NAME', 'if0_41190104_lyka_voice_agent');
 // In InfinityFree, the MySQL password is your vPanel Account Password (found in Client Area -> Account Details)
 define('DB_PASS', 'YOUR_INFINITYFREE_ACCOUNT_PASSWORD_HERE');
 
+// Disable the bridge until its authorization key is configured.
+if (BRIDGE_SECRET === '') {
+    http_response_code(503);
+    echo json_encode(['success' => false, 'error' => 'Bridge authentication is not configured.']);
+    exit;
+}
+
 // ── Authentication Check ────────────────────────────────────────────
 $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-if (!preg_match('/Bearer\s+(\S+)/', $authHeader, $matches) && ($_GET['token'] ?? '') !== BRIDGE_SECRET) {
-    if (($_GET['ping'] ?? '') !== '1') {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'error' => 'Unauthorized: Invalid or missing bridge token.']);
-        exit;
-    }
+if ((!preg_match('/Bearer\s+(\S+)/', $authHeader, $matches) || !hash_equals(BRIDGE_SECRET, $matches[1]))
+    && !hash_equals(BRIDGE_SECRET, (string)($_GET['token'] ?? ''))) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'Unauthorized: Invalid or missing bridge token.']);
+    exit;
 }
 
 // ── Database Connection ─────────────────────────────────────────────

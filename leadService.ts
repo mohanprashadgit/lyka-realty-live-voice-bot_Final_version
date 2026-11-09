@@ -1,3 +1,5 @@
+import { resolveMemoryCandidate } from './customerMemory.js';
+import { mergeSalesLead, qualificationWithName, splitNotes } from './src/utils/salesIntelligence.js';
 import { normalizeLeadFields } from './src/utils/leadFields.js';
 import {
   calculateAuthoritativeLeadScore,
@@ -123,7 +125,7 @@ export function sanitize(payload: LeadPayload): LeadPayload {
   for (const key of Object.keys(clean) as (keyof LeadPayload)[]) {
     const val = clean[key];
     if (typeof val === 'string') {
-      (clean as any)[key] = val.trim().substring(0, 1000); // cap length
+      (clean as any)[key] = val.trim().substring(0, key === 'notes' ? 32000 : 1000); // cap length
     }
   }
   // Validate qualification status
@@ -198,6 +200,10 @@ export async function upsertLead(
   conversationId?: string,
   _retryCount = 0,
 ): Promise<SaveResult> {
+  if (['pending','rejected'].includes(String((payload as any).memory_identity_pending))) {
+    if(payload.qualification_status==='OPT_OUT') payload={phone:payload.phone,qualification_status:'OPT_OUT'};
+    else return {success:false,leadId:'',isNew:false,error:'Customer identity not confirmed; previous CRM record was not changed.'};
+  }
   let db: any;
   try {
     db = await getPool().getConnection();
@@ -211,7 +217,7 @@ export async function upsertLead(
     return { success: false, leadId: '', isNew: false, error: connErr.message || 'Database connection failed' };
   }
 
-  const clean = sanitize(payload);
+  let clean = sanitize(payload);
   let locked = false;
   let txStarted = false;
 
@@ -223,32 +229,43 @@ export async function upsertLead(
     txStarted = true;
     // Reuse a known contact across calls without merging by name.
     const [rows] = await db.query(
-      `SELECT id, lead_source, temperature, lead_score, notes, best_time_to_contact FROM leads WHERE guest_session_id = ?
+      `SELECT * FROM leads WHERE guest_session_id = ?
        OR id = (SELECT lead_id FROM conversations WHERE id = ?)
        OR (? <> '' AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?)
-       ORDER BY (guest_session_id = ?) DESC, created_at DESC LIMIT 1`,
+       ORDER BY (guest_session_id = ?) DESC, created_at DESC LIMIT 2`,
       [sessionId, conversationId || null, (clean.phone || '').replace(/\D/g, ''), (clean.phone || '').replace(/\D/g, ''), sessionId]
     ) as any;
 
-    const existingRow = rows?.[0];
+    if (rows?.length > 1 && !rows.some((r: any) => r.guest_session_id === sessionId)) throw new Error('Ambiguous customer phone; do not merge records.');
+    const existingRow = rows?.find((r: any) => r.guest_session_id === sessionId) || rows?.[0];
     const existingId = existingRow?.id;
+    clean = mergeSalesLead(existingRow || {}, clean) as LeadPayload;
+    const previousFacts = {...existingRow, ...splitNotes(existingRow?.notes).sales};
+    let provenance:Record<string,any> = {};
+    try { provenance=JSON.parse(previousFacts.fact_provenance || '{}'); } catch {}
+    for (const [key,value] of Object.entries(clean)) {
+      if (!['notes','fact_provenance','previous_call_memory','knowledge_sources','comparison_result','memory_identity_pending'].includes(key) && value !== previousFacts[key])
+        provenance[key]={source:'CRM update: customer extraction or operator',recordedAt:new Date().toISOString(),confidence:'reported, not independently verified',sessionId};
+    }
+    clean={...clean,...mergeSalesLead(clean,{fact_provenance:JSON.stringify(provenance)})} as LeadPayload;
     const budgetInfo = parseBudget(clean.budget);
     const locationInfo = parseLocation(clean.location);
 
     // Deterministic lead status & scoring from actual available data
     const leadDataForEval = {
+      ...existingRow,
       ...clean,
-      budget_max: clean.budget_max ?? budgetInfo.max,
-      location: clean.location || clean.city || locationInfo.city,
-      notes: clean.notes,
+      budget_max: clean.budget_max ?? budgetInfo.max ?? existingRow?.budget_max,
+      location: clean.location || clean.city || locationInfo.city || existingRow?.original_location || existingRow?.city,
+      notes: splitNotes(clean.notes).text,
       best_time_to_contact: clean.best_time_to_contact,
       qualification_status: clean.qualification_status,
     };
     const determined = determineLeadStatusFromData(leadDataForEval);
-    const scoreBreakdown = calculateAuthoritativeLeadScore(leadDataForEval, clean.notes || '');
-    const resolvedStatus = clean.qualification_status
-      ? clean.qualification_status.toUpperCase()
-      : determined.outcome;
+    const scoreBreakdown = calculateAuthoritativeLeadScore(leadDataForEval, splitNotes(clean.notes).text);
+    const requestedStatus = clean.qualification_status?.toUpperCase();
+    const resolvedStatus = qualificationWithName(
+      requestedStatus === 'HOT' ? determined.outcome : requestedStatus || determined.outcome, leadDataForEval); 
     const resolvedScore = typeof clean.lead_score === 'number' ? clean.lead_score : scoreBreakdown.score;
 
     // Callback timeframe & notes processing for REACH_AGAIN
@@ -276,7 +293,7 @@ export async function upsertLead(
       const preferredName = clean.customer_preferred_name;
 
       // Overwrite protection: Ensure subsequent updates do not overwrite HOT, COLD, REACH_AGAIN, or OPT_OUT incorrectly
-      const finalTemp = resolveFinalTemperature(existingRow?.temperature || '', resolvedStatus, clean);
+      const finalTemp = qualificationWithName(resolveFinalTemperature(existingRow?.temperature || '', resolvedStatus, clean), leadDataForEval);
 
       // A later extraction that returns Unknown must never erase a real source.
       const existingSource = existingRow?.lead_source as string | null | undefined;
@@ -298,7 +315,7 @@ export async function upsertLead(
         property_size: clean.property_size,
         area_unit: clean.area_unit,
         budget_min: clean.budget_min ?? budgetInfo.min,
-        budget_max: clean.budget_max ?? budgetInfo.max,
+        budget_max: clean.budget_max ?? budgetInfo.max ?? existingRow?.budget_max,
         currency: clean.currency || budgetInfo.currency,
         rental_period: clean.rental_period,
         bedrooms: clean.bedrooms,
@@ -470,14 +487,14 @@ export async function saveMessage(
 
 // ─── Get lead by session ─────────────────────────────────────────────
 
-export async function getLeadBySession(sessionId: string): Promise<any | null> {
+export async function getLeadBySession(sessionId: string, phone = ''): Promise<any | null> {
   const db = getPool();
   try {
     const [rows] = await db.query(
-      'SELECT * FROM leads WHERE guest_session_id = ? ORDER BY created_at DESC LIMIT 1',
-      [sessionId]
+      `SELECT * FROM leads WHERE guest_session_id = ? OR (? <> '' AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?) ORDER BY (guest_session_id = ?) DESC, created_at DESC LIMIT 2`,
+      [sessionId, phone.replace(/\D/g, ''), phone.replace(/\D/g, ''), sessionId]
     ) as any;
-    return rows?.[0] || null;
+    return resolveMemoryCandidate(rows || [], sessionId, phone);
   } catch {
     return null;
   }

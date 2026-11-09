@@ -112,6 +112,10 @@ export default function App() {
   const autoEndSafetyRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const endLiveCallRef = useRef<(() => void) | null>(null);
   const pingIntervalRef = useRef<any>(null);
+  // Tracks the most-recent agent turn_complete turnId that is awaiting playback drain.
+  // Once audio finishes (onPlayStateChange → false) this is sent as playback_complete
+  // to the server so the 6-second silence timer starts only after audible playback.
+  const pendingPlaybackAckRef = useRef<string | null>(null);
 
   // ── Sync Theme with HTML Document Element ──
   useEffect(() => {
@@ -500,7 +504,7 @@ export default function App() {
   };
 
   // ── Start Live Call Flow ──
-  const startLiveCall = async () => {
+  const startLiveCall = async (details: Record<string, any> = leadData) => {
     if (callStatus === 'connected' || callStatus === 'calling') return;
     setErrorMsg('');
     setCallStatus('calling');
@@ -528,6 +532,14 @@ export default function App() {
             setVoiceState('listening');
             recorderRef.current?.setAgentSpeaking(false);
             if (autoEndPendingRef.current) scheduleAutoEndCheck(300);
+            // Notify server that browser audio playback has fully drained.
+            // Server uses this to safely arm the 6-second silence follow-up,
+            // ensuring the prompt never fires while the agent voice is still playing.
+            const ackTurnId = pendingPlaybackAckRef.current;
+            if (ackTurnId && wsRef.current?.readyState === WebSocket.OPEN && !callTerminatedRef.current) {
+              pendingPlaybackAckRef.current = null;
+              wsRef.current.send(JSON.stringify({ type: 'playback_complete', turnId: ackTurnId }));
+            }
           }
           setAudioEnergy(playing ? 0.6 : 0);
         },
@@ -581,9 +593,9 @@ export default function App() {
             language: selectedLanguage,
             gender: gender,
             mode: 'agent',
-            leadName: leadData.name || '',
-            phone: leadData.phone || '',
-            notes: leadData.notes || '',
+            leadName: details.name || '',
+            phone: details.phone || '',
+            notes: details.notes || '',
           })
         );
         // Start WebSocket heartbeat ping (every 25s) to keep long calls responsive and prevent idle timeout
@@ -628,6 +640,7 @@ export default function App() {
             console.warn(`[Unwanted Speech] strike ${msg.strike}/${msg.maxStrikes || 3}`, msg.text || '');
           } else if (msg.type === 'call_ended') {
             cancelAutoEnd();
+            pendingPlaybackAckRef.current = null;
             callTerminatedRef.current = true;
             playerRef.current?.stopAndClear();
             recorderRef.current?.stop();
@@ -643,6 +656,7 @@ export default function App() {
           } else if (msg.type === 'call_ending') {
             // The agent finished a closing turn. Wait until its audio has fully
             // played (onPlayStateChange:false) before hanging up.
+            pendingPlaybackAckRef.current = null; // silence ack not needed during closing
             armAutoEndAfterGoodbye();
           } else if (msg.type === 'audio') {
             playerRef.current?.playChunk(msg.data);
@@ -687,6 +701,18 @@ export default function App() {
             }
             setStreamingAgentTurn(null);
             setInterimTranscript('');
+            // Record this turnId so the playback_complete ack is sent once audio drains.
+            // If audio is already not playing (e.g. very short turn), ack immediately.
+            if (msg.turnId) {
+              if (!playerRef.current?.isPlaying) {
+                // Audio already drained — ack right away
+                if (wsRef.current?.readyState === WebSocket.OPEN && !callTerminatedRef.current) {
+                  wsRef.current.send(JSON.stringify({ type: 'playback_complete', turnId: msg.turnId }));
+                }
+              } else {
+                pendingPlaybackAckRef.current = msg.turnId;
+              }
+            }
             // Fallback watchdog: ensure speaking state returns to listening after turn completes
             setTimeout(() => {
               if (!playerRef.current?.isPlaying) {
@@ -733,20 +759,23 @@ export default function App() {
               setInterimTranscript(msg.text);
             }
           } else if (msg.type === 'lead_update') {
-            if (msg.lead) setLeadData((prev: any) => ({ ...prev, ...normalizeLeadFields(msg.lead) }));
+            if (msg.lead) setLeadData((prev: any) => ({ ...prev, ...normalizeLeadFields(msg.lead), next_sales_action: msg.lead.next_sales_action || prev.next_sales_action, _saveState: 'Saving customer details' }));
           } else if (msg.type === 'lead_save_result') {
             if (msg.sessionId && msg.sessionId !== leadSessionRef.current) return;
             if (msg.success) {
+              setLeadData((prev: any) => ({ ...prev, _saveState: 'Saved to CRM' }));
               conversationIdRef.current = msg.conversationId || conversationIdRef.current;
               setErrorMsg(prev => prev === leadSaveErrorRef.current ? '' : prev);
               leadSaveErrorRef.current = '';
               window.dispatchEvent(new Event('lyka:records-updated'));
             } else {
+              setLeadData((prev: any) => ({ ...prev, _saveState: 'Save failed. Details remain in this call.' }));
               leadSaveErrorRef.current = 'Lead information was captured but could not be saved. ' + (msg.error || 'Please check database availability.');
               setErrorMsg(leadSaveErrorRef.current);
             }
           } else if (msg.type === 'interrupted') {
             cancelAutoEnd();
+            pendingPlaybackAckRef.current = null; // discard stale ack — audio was interrupted
             playerRef.current?.stopAndClear();
             recorderRef.current?.setAgentSpeaking(false);
             setVoiceState('interrupted');
@@ -831,16 +860,23 @@ export default function App() {
       alert(`${lead.name || 'This lead'} is on the Do-Not-Call list. Outbound marketing calls are blocked unless the customer gives fresh permission.`);
       return;
     }
-    setLeadData({
+    const details = {
+      ...lead.intelligence,
+      intent: lead.intent,
+      qualification_status: lead.outcome,
+      preferred_contact_method: lead.preferred_contact_method,
+      best_time_to_contact: lead.best_time_to_contact,
+      currency: lead.currency,
       name: lead.name,
       phone: lead.phone,
       location: lead.location,
       property_type: lead.propertyType,
       budget: lead.budget,
       timeline: lead.timeline,
-    });
+    };
+    setLeadData(details);
     selectTab('live');
-    setTimeout(() => startLiveCall(), 300);
+    setTimeout(() => startLiveCall(details), 300);
   };
 
   // ── End Live Call Flow ──
@@ -969,12 +1005,13 @@ export default function App() {
 
   // ── Save Operator Edits to Lead Data ──
   const updateLeadData = async (updated: any) => {
-    setLeadData(updated);
+    const patch = normalizeLeadFields(updated);
+    setLeadData((prev: any) => ({ ...prev, ...patch }));
     try {
       const response = await fetch('/api/lead/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: leadSessionRef.current, conversationId: conversationIdRef.current, leadData: normalizeLeadFields(updated) }),
+        body: JSON.stringify({ sessionId: leadSessionRef.current, conversationId: conversationIdRef.current, leadData: patch }),
       });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || 'Lead save failed');
@@ -1069,9 +1106,10 @@ export default function App() {
         {activeTab === 'dial' && (
           <DialTab
             onStartBrowserCall={(num) => {
-              setLeadData((prev: any) => ({ ...prev, phone: num }));
+              const details = { phone: num };
+              setLeadData(details);
               selectTab('live');
-              setTimeout(() => startLiveCall(), 300);
+              setTimeout(() => startLiveCall(details), 300);
             }}
             onStartTwilioCall={(num) => {
               fetch('/api/call', {

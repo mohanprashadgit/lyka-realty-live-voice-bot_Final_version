@@ -1,3 +1,4 @@
+import { CustomerProfileButton } from './CustomerIntelligence';
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -479,7 +480,7 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
     : [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
+    <div className="lyka-leads-layout max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
       {/* ── Top Header Bar ── */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 shadow-sm transition-colors duration-200">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -737,7 +738,18 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
       ) : (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-colors duration-200">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-xs text-left">
+            <table className="lead-table w-full text-xs text-left">
+              <colgroup>
+                <col style={{ width: 32 }} />
+                <col style={{ width: 126 }} />
+                <col style={{ width: 118 }} />
+                <col style={{ width: 96 }} />
+                <col style={{ width: 110 }} />
+                <col style={{ width: 130 }} />
+                <col style={{ width: 160 }} />
+                <col style={{ width: 130 }} />
+                <col style={{ width: 315 }} />
+              </colgroup>
               <thead className="bg-slate-50 dark:bg-slate-950/80 text-slate-600 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-wide border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="py-2.5 px-3 w-8">
@@ -892,20 +904,11 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
                           </div>
                         </td>
 
-                        {/* Actions: View, Summary, Delete aligned neatly */}
-                        <td className="py-3 px-3 text-right">
-                          <div className="flex items-center justify-end gap-1.5 flex-nowrap">
-                            {/* Start Call Button (if callable) */}
-                            {onStartCallWithLead && (
-                              <button
-                                onClick={() => onStartCallWithLead(lead)}
-                                title={`Start call with ${lead.name}`}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 h-7 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30 dark:hover:bg-emerald-500/25 transition-colors cursor-pointer"
-                              >
-                                <PhoneCall className="w-3 h-3" />
-                                <span>Call</span>
-                              </button>
-                            )}
+                        {/* Actions: Details → View → Summary in one aligned row; Call and Delete preserved */}
+                        <td className="lead-actions-cell py-3 px-3 text-right">
+                          <div className="lead-actions">
+                            {/* Details Button: opens the existing customer details view */}
+                            <CustomerProfileButton data={lead} />
 
                             {/* View Button: 1 Click immediately opens conversation modal */}
                             <button
@@ -920,7 +923,7 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
                                   ? `View full conversation (${callCount} call${callCount > 1 ? 's' : ''})`
                                   : 'No call records yet'
                               }
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 h-7 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                              className={`inline-flex h-7 items-center gap-1 whitespace-nowrap px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                                 callCount > 0
                                   ? 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:hover:bg-amber-500/25 shadow-xs'
                                   : 'bg-slate-100 text-slate-400 border border-slate-200 dark:bg-slate-800/40 dark:text-slate-600 dark:border-slate-800 cursor-not-allowed'
@@ -939,7 +942,7 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
                               }}
                               disabled={!summaryText}
                               title={summaryText || 'No summary recorded'}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 h-7 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                              className={`inline-flex h-7 items-center gap-1 whitespace-nowrap px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                                 summaryText
                                   ? 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-750'
                                   : 'bg-slate-100 text-slate-400 border border-slate-200 dark:bg-slate-800/40 dark:text-slate-600 dark:border-slate-800 cursor-not-allowed'
@@ -948,6 +951,18 @@ export const LeadsAndCallsTab: React.FC<LeadsAndCallsTabProps> = ({
                               <FileText className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                               <span>Summary</span>
                             </button>
+
+                            {/* Start Call Button (if callable) */}
+                            {onStartCallWithLead && (
+                              <button
+                                onClick={() => onStartCallWithLead(lead)}
+                                aria-label={`Start call with ${lead.name || 'this lead'}`}
+                                title={`Start call with ${lead.name || 'this lead'}`}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30 dark:hover:bg-emerald-500/25 transition-colors cursor-pointer"
+                              >
+                                <PhoneCall className="w-3 h-3" />
+                              </button>
+                            )}
 
                             {/* Delete Button */}
                             <button

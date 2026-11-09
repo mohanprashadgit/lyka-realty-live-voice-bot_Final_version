@@ -58,9 +58,10 @@ test('browser sends native audio unchanged and suppresses interrupted or manuall
   }
   const manualStart = server.indexOf("} else if (msg.type === 'barge_in')");
   const manualBlock = server.slice(manualStart + "} else if (msg.type === 'barge_in') {".length, server.indexOf("} else if (msg.type === 'end')", manualStart));
-  const manual = new Function('browserOutputActive', 'safeSend', `let suppressInterruptedAudio = false; ${manualBlock}; return suppressInterruptedAudio;`);
-  assert.equal(manual(true, () => {}), true);
-  assert.equal(manual(false, () => {}), false, 'interrupt while idle must not mute the next answer');
+  const manual = new Function('browserOutputActive', 'safeSend', 'clearSilenceFollowUp', `let suppressInterruptedAudio = false; ${manualBlock}; return suppressInterruptedAudio;`);
+  const noop = () => {};
+  assert.equal(manual(true, noop, noop), true);
+  assert.equal(manual(false, noop, noop), false, 'interrupt while idle must not mute the next answer');
   assert.match(server, /if \(turnComplete\) \{\s*suppressInterruptedAudio = false/);
 });
 
@@ -110,6 +111,6 @@ test('transcript remains provider text, never reconstructed from expression exam
   assert.equal(append('Puriyudhu. ', '[chuckles] Budget?'), 'Puriyudhu. [chuckles] Budget?');
   assert.ok(server.includes('text: outputTranscription.text'));
   assert.ok(server.includes('delta: outputTranscription.text'));
-  assert.ok(server.includes("systemInstruction: getSystemInstruction('bilingual')"));
-  assert.ok(server.includes(': getSystemInstruction(language, gender, persona.name, leadName, voiceName)'));
+  assert.ok(server.includes("systemInstruction: getSystemInstruction('bilingual', 'female', undefined, knownCustomerName(leadName), undefined, offerPresentationContext(activeTwilioCalls[callSid || '']?.slots || savedLead || {}))"));
+  assert.ok(server.includes(': getSystemInstruction(language, gender, persona.name, leadName, voiceName, offerPresentationContext(callFacts))'));
 });

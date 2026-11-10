@@ -2,6 +2,7 @@ import { customerFacts } from '../utils/customerIntelligence';
 import { knownCustomerName } from '../utils/salesIntelligence';
 import { usableContactPhone } from '../utils/leadFields';
 import { CustomerIntelligence } from './CustomerIntelligence';
+import { VoiceParticleVisualizer } from './VoiceParticleVisualizer';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   PhoneCall,
@@ -24,7 +25,6 @@ import {
   CheckCheck,
   Bot,
   Sparkles,
-  Move3d,
   ExternalLink,
   ChevronDown,
 } from 'lucide-react';
@@ -172,26 +172,6 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
   };
 
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  // Interactive 3D Globe Physics and Rotation State
-  const mouseRef = useRef<{
-    isDown: boolean;
-    startX: number;
-    startY: number;
-    rotX: number;
-    rotY: number;
-    velX: number;
-    velY: number;
-  }>({
-    isDown: false,
-    startX: 0,
-    startY: 0,
-    rotX: 0.22,
-    rotY: 0,
-    velX: 0,
-    velY: 0.005,
-  });
 
   const isCallActive = callStatus !== 'idle' && callStatus !== 'ended' && callStatus !== 'error';
   const persona = getAgentPersona(gender, selectedLanguage, selectedVoice);
@@ -200,278 +180,6 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
   useEffect(() => setLeadName(customerName), [customerName]);
   useEffect(() => setLeadPhone(customerPhone), [customerPhone]);
   useEffect(() => setLeadCity(customerCity), [customerCity]);
-
-  // Enhanced 3D Interactive Celestial Particle Orb (Stitch Celestial Void)
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationFrameId: number;
-    let time = 0;
-
-    // 1. Fibonacci Sphere Lattice (200 particles)
-    const sphereCount = 200;
-    const sphereParticles = Array.from({ length: sphereCount }, (_, i) => {
-      const y = 1 - (i / (sphereCount - 1)) * 2; // -1 to 1
-      const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
-      const phi = i * 2.399963229728653; // Golden angle
-      return {
-        x: Math.cos(phi) * radiusAtY,
-        y: y,
-        z: Math.sin(phi) * radiusAtY,
-        baseR: 66,
-        phase: i * 0.18,
-        size: Math.random() * 1.5 + 0.9,
-      };
-    });
-
-    // 2. Concentric Celestial Orbital Rings
-    const ring1Count = 64; // Equatorial ring inclined 22 deg
-    const ring1 = Array.from({ length: ring1Count }, (_, i) => {
-      const angle = (i / ring1Count) * Math.PI * 2;
-      const r = 92;
-      const x = Math.cos(angle) * r;
-      const z = Math.sin(angle) * r;
-      const tilt = 0.38; // ~22 deg
-      return {
-        x: x,
-        y: z * Math.sin(tilt),
-        z: z * Math.cos(tilt),
-        phase: angle,
-        size: 1.1,
-      };
-    });
-
-    const ring2Count = 48; // Polar ring inclined -40 deg
-    const ring2 = Array.from({ length: ring2Count }, (_, i) => {
-      const angle = (i / ring2Count) * Math.PI * 2;
-      const r = 84;
-      const x = Math.cos(angle) * r;
-      const z = Math.sin(angle) * r;
-      const tilt = -0.7; // ~-40 deg
-      return {
-        x: x * Math.cos(tilt),
-        y: x * Math.sin(tilt),
-        z: z,
-        phase: angle,
-        size: 0.9,
-      };
-    });
-
-    // 3. Ambient Floating Cosmic Stardust (40 particles)
-    const stardust = Array.from({ length: 40 }, () => ({
-      x: (Math.random() - 0.5) * 220,
-      y: (Math.random() - 0.5) * 220,
-      size: Math.random() * 1.2 + 0.4,
-      alpha: Math.random() * 0.7 + 0.2,
-      speed: Math.random() * 0.02 + 0.01,
-    }));
-
-    const render = () => {
-      time += 0.03;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
-
-      // Dynamic energy intensity based on agent voice state & mic
-      const isSpeaking = voiceState === 'speaking';
-      const isListening = voiceState === 'listening';
-      const activeEnergy = isSpeaking ? Math.min(1.5, audioEnergy * 3.5) : isListening ? Math.min(1.2, micEnergy * 2.5) : 0;
-      const energyPulse = 1 + activeEnergy * 0.35;
-
-      // ── Ambient Coronal Aura Glow ──
-      const outerR = Math.max(70, (isSpeaking ? 115 : 95) * energyPulse);
-      const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, outerR);
-
-      if (isSpeaking) {
-        grad.addColorStop(0, 'rgba(229, 186, 115, 0.65)'); // Luminous violet
-        grad.addColorStop(0.35, 'rgba(216, 158, 67, 0.45)'); // Electric indigo
-        grad.addColorStop(0.7, 'rgba(247, 226, 184, 0.25)'); // Cyan flare
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      } else if (isListening) {
-        grad.addColorStop(0, 'rgba(16, 185, 129, 0.55)'); // Emerald
-        grad.addColorStop(0.5, 'rgba(5, 150, 105, 0.3)');
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      } else {
-        grad.addColorStop(0, 'rgba(200, 148, 70, 0.35)'); // Gentle idle cosmic violet
-        grad.addColorStop(0.6, 'rgba(156, 103, 22, 0.15)');
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      }
-
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Coronal shockwave ripples when agent is actively speaking
-      if (isSpeaking && activeEnergy > 0.12) {
-        const rippleCount = 2;
-        for (let rIdx = 0; rIdx < rippleCount; rIdx++) {
-          const ripPhase = ((time * 1.5 + rIdx * 1.2) % 2) / 2; // 0 to 1
-          const ripRadius = 55 + ripPhase * 58;
-          const ripAlpha = (1 - ripPhase) * 0.45 * Math.min(1, activeEnergy);
-          ctx.strokeStyle = `rgba(229, 186, 115, ${ripAlpha})`;
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.arc(cx, cy, ripRadius, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-      }
-
-      // ── Floating Stardust ──
-      for (const star of stardust) {
-        star.y -= star.speed;
-        if (star.y < -110) star.y = 110;
-        const blink = Math.sin(time * 2 + star.x) * 0.3 + 0.7;
-        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha * blink * 0.5})`;
-        ctx.beginPath();
-        ctx.arc(cx + star.x, cy + star.y, star.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // ── Physics-based Rotation Update ──
-      const m = mouseRef.current;
-      if (!m.isDown) {
-        m.rotY += m.velY + (isSpeaking ? 0.022 : isListening ? 0.014 : 0.007);
-        m.velY *= 0.96;
-        m.rotX += (0.24 - m.rotX) * 0.03;
-      }
-
-      const cosY = Math.cos(m.rotY);
-      const sinY = Math.sin(m.rotY);
-      const cosX = Math.cos(m.rotX);
-      const sinX = Math.sin(m.rotX);
-
-      type ProjectedItem = {
-        type: 'sphere' | 'ring1' | 'ring2';
-        px: number;
-        py: number;
-        pz: number;
-        radius: number;
-        color: string;
-      };
-      const projectedItems: ProjectedItem[] = [];
-
-      const project3D = (x: number, y: number, z: number) => {
-        const x1 = x * cosY - z * sinY;
-        const z1 = z * cosY + x * sinY;
-        const y2 = y * cosX - z1 * sinX;
-        const z2 = z1 * cosX + y * sinX;
-        const fov = 260;
-        const scale = fov / (fov + z2);
-        return {
-          px: cx + x1 * scale,
-          py: cy + y2 * scale,
-          pz: z2,
-          scale,
-        };
-      };
-
-      // Project Sphere Particles
-      for (const p of sphereParticles) {
-        let r = p.baseR;
-        if (isSpeaking) {
-          const wave = Math.sin(time * 7 + p.phase * 4);
-          r += wave * (activeEnergy * 18) + (activeEnergy * 10);
-        } else if (isListening) {
-          const wave = Math.cos(time * 5 + p.phase * 3);
-          r += wave * (activeEnergy * 12);
-        }
-
-        const worldX = p.x * r;
-        const worldY = p.y * r;
-        const worldZ = p.z * r;
-        const proj = project3D(worldX, worldY, worldZ);
-
-        if (proj.scale > 0) {
-          const depthAlpha = Math.max(0.15, Math.min(1, (proj.pz + 80) / 160));
-          let col = `rgba(255, 255, 255, ${depthAlpha * 0.9})`;
-          if (isSpeaking) {
-            col = depthAlpha > 0.6
-              ? `rgba(255, 255, 255, ${depthAlpha})`
-              : `rgba(243, 207, 122, ${depthAlpha * 0.95})`; // Radiant violet
-          } else if (isListening) {
-            col = depthAlpha > 0.6
-              ? `rgba(255, 255, 255, ${depthAlpha})`
-              : `rgba(52, 211, 153, ${depthAlpha * 0.95})`; // Emerald
-          }
-
-          projectedItems.push({
-            type: 'sphere',
-            px: proj.px,
-            py: proj.py,
-            pz: proj.pz,
-            radius: Math.max(0.5, p.size * proj.scale * (isSpeaking ? 1.25 : 1)),
-            color: col,
-          });
-        }
-      }
-
-      // Project Orbital Ring 1
-      for (let i = 0; i < ring1.length; i++) {
-        const rp = ring1[i];
-        const r1Expand = isSpeaking ? 1 + activeEnergy * 0.22 : 1;
-        const proj = project3D(rp.x * r1Expand, rp.y * r1Expand, rp.z * r1Expand);
-        if (proj.scale > 0) {
-          const depthAlpha = Math.max(0.1, Math.min(0.9, (proj.pz + 90) / 180));
-          const ringCol = isSpeaking
-            ? `rgba(247, 226, 184, ${depthAlpha * 0.85})` // Bright Cyan ring
-            : isListening
-            ? `rgba(52, 211, 153, ${depthAlpha * 0.8})`
-            : `rgba(229, 186, 115, ${depthAlpha * 0.6})`;
-          projectedItems.push({
-            type: 'ring1',
-            px: proj.px,
-            py: proj.py,
-            pz: proj.pz,
-            radius: rp.size * proj.scale * (isSpeaking ? 1.4 : 1),
-            color: ringCol,
-          });
-        }
-      }
-
-      // Project Orbital Ring 2
-      for (let i = 0; i < ring2.length; i++) {
-        const rp = ring2[i];
-        const r2Expand = isSpeaking ? 1 + activeEnergy * 0.16 : 1;
-        const proj = project3D(rp.x * r2Expand, rp.y * r2Expand, rp.z * r2Expand);
-        if (proj.scale > 0) {
-          const depthAlpha = Math.max(0.1, Math.min(0.85, (proj.pz + 80) / 160));
-          const ringCol = isSpeaking
-            ? `rgba(247, 226, 184, ${depthAlpha * 0.8})` // Fuchsia flare
-            : `rgba(245, 221, 168, ${depthAlpha * 0.5})`;
-          projectedItems.push({
-            type: 'ring2',
-            px: proj.px,
-            py: proj.py,
-            pz: proj.pz,
-            radius: rp.size * proj.scale,
-            color: ringCol,
-          });
-        }
-      }
-
-      // Depth sort back-to-front
-      projectedItems.sort((a, b) => a.pz - b.pz);
-
-      for (const item of projectedItems) {
-        ctx.beginPath();
-        ctx.arc(item.px, item.py, item.radius, 0, Math.PI * 2);
-        ctx.fillStyle = item.color;
-        ctx.fill();
-      }
-
-      animationFrameId = requestAnimationFrame(render);
-    };
-
-    render();
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [isCallActive, voiceState, audioEnergy, micEnergy]);
 
   // Auto-scroll only the transcript container so the page itself never jumps
   useEffect(() => {
@@ -717,52 +425,16 @@ export const LiveCallWorkspace: React.FC<LiveCallWorkspaceProps> = ({
         <div className="xl:col-span-5 space-y-4">
           {/* Black Card: Celestial Interactive 3D Orb Visualizer */}
           <div className="bg-[#1f0518] text-white rounded-2xl p-5 shadow-lg flex flex-col items-center justify-center relative overflow-hidden min-h-[320px] border border-slate-800 ring-1 ring-violet-500/20">
-            {/* Interactive Canvas Wrapper with drag & hover */}
-            <div
-              className="relative group cursor-grab active:cursor-grabbing select-none"
-              onMouseDown={(e) => {
-                mouseRef.current.isDown = true;
-                mouseRef.current.startX = e.clientX;
-                mouseRef.current.startY = e.clientY;
-              }}
-              onMouseMove={(e) => {
-                const canvas = canvasRef.current;
-                if (!canvas) return;
-                const rect = canvas.getBoundingClientRect();
-                const normY = (e.clientY - rect.top) / rect.height - 0.5;
-                if (mouseRef.current.isDown) {
-                  const dx = e.clientX - mouseRef.current.startX;
-                  const dy = e.clientY - mouseRef.current.startY;
-                  mouseRef.current.rotY += dx * 0.015;
-                  mouseRef.current.rotX += dy * 0.015;
-                  mouseRef.current.velY = dx * 0.002;
-                  mouseRef.current.startX = e.clientX;
-                  mouseRef.current.startY = e.clientY;
-                } else {
-                  mouseRef.current.rotX += (normY * 0.5 - mouseRef.current.rotX) * 0.04;
-                }
-              }}
-              onMouseUp={() => {
-                mouseRef.current.isDown = false;
-              }}
-              onMouseLeave={() => {
-                mouseRef.current.isDown = false;
-              }}
-            >
-              <canvas
-                ref={canvasRef}
-                width={260}
-                height={260}
-                className="w-56 h-56 block mx-auto transition-transform"
+            {/* Voice Particle Visualizer Canvas */}
+            <div className="relative w-full select-none">
+              <VoiceParticleVisualizer
+                voiceState={voiceState}
+                audioEnergy={audioEnergy}
+                micEnergy={micEnergy}
+                isCallActive={isCallActive}
+                callStatus={callStatus}
+                className="w-full h-64 sm:h-72 block mx-auto"
               />
-
-              {/* Hover rotation prompt */}
-              <div className="absolute bottom-1 inset-x-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="text-[10px] bg-slate-900/90 text-violet-300 px-2 py-0.5 rounded-full border border-violet-700/60 backdrop-blur-xs flex items-center gap-1 font-mono shadow-xs">
-                  <Move3d className="w-3 h-3 text-cyan-400" />
-                  <span>Interactive 3D Sphere · Drag to rotate</span>
-                </span>
-              </div>
             </div>
 
             {/* Dynamic Studio Audio Equalizer Spectrum */}

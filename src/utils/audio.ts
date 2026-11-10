@@ -222,8 +222,127 @@ export function findMatchingOutputDevice(
   return outputs.find((o) => o.isDefault || o.deviceId === 'default') || outputs[0];
 }
 
+// ─── Real-Time Voice Audio Analyser Bridge ──────────────────────────────────
+export interface AudioFrequencyFeatures {
+  volume: number;        // 0 to 1 RMS energy / speech volume
+  bass: number;          // 0 to 1 low-frequency energy (approx 60 - 250 Hz)
+  mid: number;           // 0 to 1 speech formant / vowel energy (approx 250 - 2500 Hz)
+  treble: number;        // 0 to 1 consonant / sibilant energy (approx 2500 - 8000 Hz)
+  pitch: number;         // 0 to 1 spectral centroid / estimated vocal pitch
+  transient: number;     // 0 to 1 sudden speech burst / consonant onset
+  hasRealSignal: boolean;
+}
+
+let activePlayerAnalyser: AnalyserNode | null = null;
+let activeMicAnalyser: AnalyserNode | null = null;
+
+export function registerPlayerAnalyser(analyser: AnalyserNode | null) {
+  activePlayerAnalyser = analyser;
+}
+
+export function registerMicAnalyser(analyser: AnalyserNode | null) {
+  activeMicAnalyser = analyser;
+}
+
+export function getActiveAudioAnalyser(voiceState: string): AnalyserNode | null {
+  if (voiceState === 'speaking') {
+    return activePlayerAnalyser;
+  }
+  return activeMicAnalyser;
+}
+
+const freqDataBuffer = new Uint8Array(256);
+const timeDataBuffer = new Uint8Array(256);
+let prevRms = 0;
+
+export function extractAudioFeatures(
+  voiceState: string,
+  fallbackAudioEnergy: number = 0,
+  fallbackMicEnergy: number = 0
+): AudioFrequencyFeatures {
+  const analyser = getActiveAudioAnalyser(voiceState);
+
+  if (analyser && analyser.context && analyser.context.state !== 'closed') {
+    try {
+      analyser.getByteFrequencyData(freqDataBuffer);
+      analyser.getByteTimeDomainData(timeDataBuffer);
+
+      // 1. RMS volume from raw waveform
+      let sumSquares = 0;
+      for (let i = 0; i < timeDataBuffer.length; i++) {
+        const norm = (timeDataBuffer[i] - 128) / 128;
+        sumSquares += norm * norm;
+      }
+      const rawRms = Math.sqrt(sumSquares / timeDataBuffer.length);
+      const volume = Math.min(1, rawRms * 4.8);
+
+      // 2. Frequency bands (FFT size 512 gives 256 bins)
+      // Bass: bins 1..8 (~50 - 350 Hz)
+      let bassSum = 0;
+      for (let i = 1; i <= 8; i++) bassSum += freqDataBuffer[i];
+      const bass = (bassSum / 8) / 255;
+
+      // Mid: bins 9..45 (~350 - 2500 Hz speech fundamental & formants)
+      let midSum = 0;
+      for (let i = 9; i <= 45; i++) midSum += freqDataBuffer[i];
+      const mid = (midSum / 37) / 255;
+
+      // Treble: bins 46..120 (~2500 - 8000 Hz sibilants & harmonics)
+      let trebleSum = 0;
+      for (let i = 46; i <= 120; i++) trebleSum += freqDataBuffer[i];
+      const treble = (trebleSum / 75) / 255;
+
+      // 3. Spectral Centroid / Pitch estimation
+      let weightedSum = 0;
+      let totalMag = 0;
+      for (let i = 1; i <= 100; i++) {
+        const mag = freqDataBuffer[i];
+        weightedSum += i * mag;
+        totalMag += mag;
+      }
+      const centroid = totalMag > 25 ? Math.min(1, (weightedSum / totalMag) / 60) : 0.35;
+
+      // 4. Transient onset detector
+      const delta = Math.max(0, volume - prevRms);
+      prevRms = volume;
+      const transient = Math.min(1, delta * 3.5);
+
+      const hasRealSignal = volume > 0.015;
+
+      return {
+        volume,
+        bass: Math.min(1, bass * 2.2),
+        mid: Math.min(1, mid * 2.6),
+        treble: Math.min(1, treble * 3.2),
+        pitch: centroid,
+        transient,
+        hasRealSignal,
+      };
+    } catch {
+      // AudioContext state transition safety fallback
+    }
+  }
+
+  // Graceful fallback using energy props when analyser is silent or unmounted
+  const isSpeaking = voiceState === 'speaking';
+  const rawFallback = isSpeaking ? fallbackAudioEnergy : fallbackMicEnergy;
+  const energy = Math.min(1, Math.max(0, rawFallback));
+  const hasRealSignal = energy > 0.02;
+
+  return {
+    volume: energy,
+    bass: energy * 0.85,
+    mid: energy * 0.95,
+    treble: energy * 0.70,
+    pitch: 0.35,
+    transient: 0,
+    hasRealSignal,
+  };
+}
+
 export class LiveAudioPlayer {
   private ctx: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
   private playbackEpoch = 0;
   public diagnostics = { chunks: 0, underruns: 0, clears: 0, queueDepth: 0, queuedMs: 0 };
   private nextPlayTime: number = 0;
@@ -272,12 +391,26 @@ export class LiveAudioPlayer {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       this.ctx = new AudioCtx({ sampleRate: 24000 });
       this.nextPlayTime = 0;
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 512;
+      this.analyser.smoothingTimeConstant = 0.65;
+      registerPlayerAnalyser(this.analyser);
       // Re-apply output routing on a freshly created context
       this.applyOutputDevice();
     }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
+  }
+
+  public getAnalyser(): AnalyserNode | null {
+    if (!this.analyser && this.ctx && this.ctx.state !== 'closed') {
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 512;
+      this.analyser.smoothingTimeConstant = 0.65;
+      registerPlayerAnalyser(this.analyser);
+    }
+    return this.analyser;
   }
 
   /**
@@ -333,6 +466,10 @@ export class LiveAudioPlayer {
 
       const source = this.ctx.createBufferSource();
       source.buffer = audioBuffer;
+      const analyser = this.getAnalyser();
+      if (analyser) {
+        source.connect(analyser);
+      }
       source.connect(this.ctx.destination);
 
       const currentTime = this.ctx.currentTime;
@@ -415,6 +552,8 @@ export class LiveAudioPlayer {
   public close() {
     this.stopSafetyWatchdog();
     this.stopAndClear();
+    registerPlayerAnalyser(null);
+    this.analyser = null;
     if (this.ctx && this.ctx.state !== 'closed') {
       try {
         this.ctx.close();
@@ -426,6 +565,7 @@ export class LiveAudioPlayer {
 
 export class LiveMicRecorder {
   private ctx: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
   private stream: MediaStream | null = null;
   private processor: ScriptProcessorNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
@@ -461,6 +601,17 @@ export class LiveMicRecorder {
     this.onUserTranscript = onUserTranscript;
     this.language = language;
     this.deviceId = deviceId;
+  }
+
+  public getAnalyser(): AnalyserNode | null {
+    if (!this.analyser && this.ctx && this.ctx.state !== 'closed' && this.source) {
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 512;
+      this.analyser.smoothingTimeConstant = 0.65;
+      this.source.connect(this.analyser);
+      registerMicAnalyser(this.analyser);
+    }
+    return this.analyser;
   }
 
   public setMuted(muted: boolean) {
@@ -504,6 +655,12 @@ export class LiveMicRecorder {
       }
 
       this.source = this.ctx.createMediaStreamSource(this.stream);
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 512;
+      this.analyser.smoothingTimeConstant = 0.65;
+      this.source.connect(this.analyser);
+      registerMicAnalyser(this.analyser);
+
       this.processor = this.ctx.createScriptProcessor(2048, 1, 1);
 
       this.processor.onaudioprocess = (e) => {
@@ -631,6 +788,13 @@ export class LiveMicRecorder {
       if (this.ctx && this.processor) {
         this.source = this.ctx.createMediaStreamSource(newStream);
         this.source.connect(this.processor);
+        if (!this.analyser) {
+          this.analyser = this.ctx.createAnalyser();
+          this.analyser.fftSize = 512;
+          this.analyser.smoothingTimeConstant = 0.65;
+        }
+        this.source.connect(this.analyser);
+        registerMicAnalyser(this.analyser);
       }
       return true;
     } catch (err) {
@@ -641,6 +805,11 @@ export class LiveMicRecorder {
 
   public stop() {
     this.isRecording = false;
+    registerMicAnalyser(null);
+    if (this.analyser) {
+      try { this.analyser.disconnect(); } catch {}
+      this.analyser = null;
+    }
     if (this.recognition) {
       try {
         this.recognition.stop();

@@ -1,5 +1,6 @@
 import { normalizeLeadFields } from './utils/leadFields';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { detectCallEndingIntent } from './utils/callEnding';
 import { LiveAudioPlayer, LiveMicRecorder, getAvailableMicrophones, getAvailableSpeakers, findMatchingOutputDevice } from './utils/audio';
 import { Header } from './components/Header';
 import { LiveCallWorkspace } from './components/LiveCallWorkspace';
@@ -474,7 +475,11 @@ export default function App() {
 
   const finishLiveCallAfterPlayback = () => {
     if (!autoEndPendingRef.current || callTerminatedRef.current) return;
-    if (playerRef.current?.isPlaying) return;
+    if (playerRef.current?.isPlaying) {
+      // Audio is still actively playing! Re-check in 250ms until playback drains.
+      scheduleAutoEndCheck(250);
+      return;
+    }
     autoEndPendingRef.current = false;
     clearAutoEndTimers();
     endLiveCallRef.current?.();
@@ -490,7 +495,7 @@ export default function App() {
   };
 
   const armAutoEndAfterGoodbye = () => {
-    if (callTerminatedRef.current || autoEndPendingRef.current) return;
+    if (callTerminatedRef.current) return;
     autoEndPendingRef.current = true;
     clearAutoEndTimers();
     // Absolute safety net: never leave the line open if playback state stalls.
@@ -499,8 +504,8 @@ export default function App() {
       if (!autoEndPendingRef.current || callTerminatedRef.current) return;
       autoEndPendingRef.current = false;
       endLiveCallRef.current?.();
-    }, 30000);
-    if (!playerRef.current?.isPlaying) scheduleAutoEndCheck(600);
+    }, 15000);
+    scheduleAutoEndCheck(playerRef.current?.isPlaying ? 250 : 600);
   };
 
   // ── Start Live Call Flow ──
@@ -674,6 +679,9 @@ export default function App() {
           } else if (msg.type === 'turn_complete') {
             // Turn completed by model — commit once as completed turn!
             let textToCommit = (msg.fullText || '').trim();
+            if (textToCommit && detectCallEndingIntent(textToCommit)) {
+              armAutoEndAfterGoodbye();
+            }
             if (textToCommit) {
               const formattedTime = new Date(msg.timestamp || Date.now()).toLocaleTimeString([], {
                 minute: '2-digit',
@@ -961,6 +969,7 @@ export default function App() {
 
     // If WebSocket is open and connected, forward text directly to Gemini Live
     if (wsRef.current?.readyState === WebSocket.OPEN) {
+      cancelAutoEnd();
       wsRef.current.send(JSON.stringify({ type: 'text', id: userTurn.id, data: userText }));
       setVoiceState('thinking');
       return;

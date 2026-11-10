@@ -58,10 +58,10 @@ test('browser sends native audio unchanged and suppresses interrupted or manuall
   }
   const manualStart = server.indexOf("} else if (msg.type === 'barge_in')");
   const manualBlock = server.slice(manualStart + "} else if (msg.type === 'barge_in') {".length, server.indexOf("} else if (msg.type === 'end')", manualStart));
-  const manual = new Function('browserOutputActive', 'safeSend', 'clearSilenceFollowUp', `let suppressInterruptedAudio = false; ${manualBlock}; return suppressInterruptedAudio;`);
+  const manual = new Function('browserOutputActive', 'safeSend', 'clearSilenceFollowUp', 'resetSilenceStage', `let suppressInterruptedAudio = false; ${manualBlock}; return suppressInterruptedAudio;`);
   const noop = () => {};
-  assert.equal(manual(true, noop, noop), true);
-  assert.equal(manual(false, noop, noop), false, 'interrupt while idle must not mute the next answer');
+  assert.equal(manual(true, noop, noop, noop), true);
+  assert.equal(manual(false, noop, noop, noop), false, 'interrupt while idle must not mute the next answer');
   assert.match(server, /if \(turnComplete\) \{\s*suppressInterruptedAudio = false/);
 });
 
@@ -70,10 +70,10 @@ test('Twilio converts native PCM only when not interrupted and preserves duratio
   const convert = new Function(`${stripTypeScriptTypes(codecs)}; return pcm24kToMuLaw8k;`)();
   const begin = server.indexOf('if (!interrupted && modelTurn?.parts && streamSid)');
   const block = server.slice(begin, server.indexOf('// Save transcript', begin));
-  const run = new Function('interrupted', 'modelTurn', 'streamSid', 'pcm24kToMuLaw8k', 'sendToTwilio', block);
+  const run = new Function('interrupted', 'modelTurn', 'streamSid', 'pcm24kToMuLaw8k', 'sendToTwilio', 'phoneLastAgentAudioAt', block);
   for (const interrupted of [false, true]) {
     const sent: any[] = [];
-    run(interrupted, { parts: [{ inlineData: { data: Buffer.alloc(4800).toString('base64') } }] }, 'test-stream', convert, (m: any) => sent.push(m));
+    run(interrupted, { parts: [{ inlineData: { data: Buffer.alloc(4800).toString('base64') } }] }, 'test-stream', convert, (m: any) => sent.push(m), 0);
     assert.equal(sent.length, interrupted ? 0 : 1);
     if (!interrupted) {
       assert.equal(Buffer.from(sent[0].media.payload, 'base64').length, 800);
@@ -83,7 +83,7 @@ test('Twilio converts native PCM only when not interrupted and preserves duratio
   const clearBegin = server.indexOf('if (interrupted && streamSid)');
   const clearEnd = server.indexOf('\n              }', clearBegin) + '\n              }'.length;
   const sent: any[] = [];
-  new Function('interrupted', 'streamSid', 'sendToTwilio', server.slice(clearBegin, clearEnd))(true, 'test-stream', (m: any) => sent.push(m));
+  new Function('interrupted', 'streamSid', 'sendToTwilio', 'resetPhoneSilenceStage', server.slice(clearBegin, clearEnd))(true, 'test-stream', (m: any) => sent.push(m), () => {});
   assert.deepEqual(sent, [{ event: 'clear', streamSid: 'test-stream' }]);
 });
 

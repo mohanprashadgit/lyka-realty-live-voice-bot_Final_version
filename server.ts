@@ -1,4 +1,4 @@
-﻿import { loadCustomerMemory, releaseCustomerMemory } from './customerMemory.js';
+import { loadCustomerMemory, releaseCustomerMemory } from './customerMemory.js';
 import { knowledgeTools, knowledgeToolResult, knowledgeTrace, KNOWLEDGE_POLICY } from './backend/services/liveKnowledge.js';
 import { nextSalesAction, salesRuntimeContext, startSalesCall, observeSalesTurn } from './src/utils/salesConversation.js';
 import { callRecordsRouter, recordsAccess, CallJournal, saveCallDetails } from './callRecords.js';
@@ -24,6 +24,8 @@ import { normalizeAcquisitionSource } from './src/utils/acquisitionSource.js';
 import { detectCallEndingIntent } from './src/utils/callEnding.js';
 import { detectUnwantedSpeech, detectUnrelatedSpeech, isPropertyRelatedSpeech } from './src/utils/unwantedSpeech.js';
 import { detectObjectionSignal, CallRejectionTracker } from './src/utils/customerObjection.js';
+import { customerAskedForWait } from './src/utils/customerWaitRequest.js';
+import { getSilenceStageCount, getSilenceStageDelayMs, getSilenceWaitHoldMs, buildSilenceFollowUpDirective } from './src/utils/silenceFollowUp.js';
 import { verifyToken } from './authHelper.js';
 import { extractStructuredRequirements } from './backend/services/requirementExtractor.js';
 import {
@@ -2747,6 +2749,100 @@ twilioWss.on('connection', async (ws: WebSocket) => {
   let phoneConnecting=false;
   const phoneCancelledToolIds=new Set<string>();
   let phoneCloseTimer: NodeJS.Timeout | undefined;
+  // Tracks whether the AI agent has spoken a farewell on this Twilio call.
+  // Prevents double-triggering if detectCallEndingIntent fires multiple turns.
+  let phoneFarewellDetected = false;
+
+  // ── Intelligent silence detection & natural customer follow-up (PSTN) ──
+  // Browser sessions arm the staged silence follow-up from a playback_complete
+  // acknowledgement; the PSTN media stream has no such drain signal, so the
+  // timer is armed from Gemini turnComplete and the delay is reduced by the age
+  // of the last agent audio packet forwarded to Twilio (counting silence from
+  // the moment agent speech actually left for the phone). Three escalating
+  // check-ins maximum. HARD RULES: never fire while agent audio is streaming;
+  // reset the escalation whenever the customer speaks; respect explicit
+  // customer wait requests; and silence NEVER terminates the call — this
+  // mechanism must never trigger terminateTwilioCallAfterFarewell, a goodbye
+  // or any hangup. Call ending stays with the existing farewell/DNC rules.
+  let phoneSilenceTimer: NodeJS.Timeout | null = null;
+  let phoneSilenceFired = false; // one check-in per armed timer
+  let phoneSilenceStage = 0; // 0 = fresh window, 1..3 = escalating check-ins delivered
+  let phoneSilencePausedUntil = 0; // customer asked for waiting time
+  let phoneSilenceWaitHoldTimer: NodeJS.Timeout | null = null;
+  let phoneLastAgentAudioAt = 0; // last agent audio chunk forwarded to the phone
+  const PHONE_SILENCE_LANG = 'bilingual'; // PSTN calls open with the bilingual persona
+
+  const clearPhoneSilenceFollowUp = () => {
+    if (phoneSilenceTimer) {
+      clearTimeout(phoneSilenceTimer);
+      phoneSilenceTimer = null;
+    }
+    phoneSilenceFired = false;
+  };
+
+  // Valid customer speech resets the escalation for the next silence window.
+  const resetPhoneSilenceStage = () => {
+    clearPhoneSilenceFollowUp();
+    phoneSilenceStage = 0;
+  };
+
+  const clearPhoneSilenceWaitHold = () => {
+    if (phoneSilenceWaitHoldTimer) {
+      clearTimeout(phoneSilenceWaitHoldTimer);
+      phoneSilenceWaitHoldTimer = null;
+    }
+    phoneSilencePausedUntil = 0;
+  };
+
+  const holdPhoneSilenceForWaitRequest = () => {
+    phoneSilencePausedUntil = Date.now() + getSilenceWaitHoldMs();
+  };
+
+  const deliverPhoneSilenceFollowUp = (stageIndex: number, delayMs: number) => {
+    if (!liveSession) return;
+    try {
+      liveSession.sendClientContent({
+        turns: [{ role: 'user', parts: [{ text: buildSilenceFollowUpDirective(PHONE_SILENCE_LANG, stageIndex, delayMs) }] }],
+        turnComplete: true,
+      });
+    } catch (e) {
+      console.warn('[Twilio Silence] Could not send follow-up prompt:', e);
+    }
+  };
+
+  const armPhoneSilenceFollowUp = () => {
+    if (!liveSession || ws.readyState !== WebSocket.OPEN || phoneFarewellDetected) return;
+    // All check-ins already delivered: stay quiet, stay connected — silence
+    // alone must never end the PSTN call.
+    if (phoneSilenceStage >= getSilenceStageCount()) return;
+    clearPhoneSilenceFollowUp();
+    if (phoneSilencePausedUntil > Date.now()) {
+      if (!phoneSilenceWaitHoldTimer) {
+        phoneSilenceWaitHoldTimer = setTimeout(() => {
+          phoneSilenceWaitHoldTimer = null;
+          armPhoneSilenceFollowUp();
+        }, phoneSilencePausedUntil - Date.now());
+      }
+      return;
+    }
+    const stageIndex = phoneSilenceStage;
+    const stageDelayMs = getSilenceStageDelayMs(stageIndex);
+    // Silence counts from the moment the last agent audio reached the phone.
+    const elapsedSinceLastAudio = Math.max(0, Date.now() - (phoneLastAgentAudioAt || Date.now()));
+    const delayMs = Math.max(1000, stageDelayMs - elapsedSinceLastAudio);
+    phoneSilenceTimer = setTimeout(() => {
+      phoneSilenceTimer = null;
+      if (!liveSession || ws.readyState !== WebSocket.OPEN || phoneFarewellDetected || phoneSilenceFired) return;
+      if (phoneSilencePausedUntil > Date.now()) {
+        armPhoneSilenceFollowUp();
+        return;
+      }
+      phoneSilenceFired = true;
+      phoneSilenceStage = stageIndex + 1;
+      console.log(`[Twilio Silence] No customer speech for ${delayMs} ms — stage ${phoneSilenceStage}/${getSilenceStageCount()} gentle check-in.`);
+      deliverPhoneSilenceFollowUp(stageIndex, stageDelayMs);
+    }, delayMs);
+  };
 
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
@@ -2766,7 +2862,51 @@ twilioWss.on('connection', async (ws: WebSocket) => {
     }
   };
 
-  ws.on('close', () => { if (phoneCloseTimer) clearTimeout(phoneCloseTimer); });
+  // Explicitly terminate the Twilio PSTN call after the agent finishes its farewell.
+  // Closes the Gemini session and media-stream WS, then uses the Twilio REST API
+  // to hang up the actual phone call so the customer's handset disconnects cleanly.
+  // Safe to call multiple times — idempotent via phoneFarewellDetected guard.
+  const terminateTwilioCallAfterFarewell = (delayMs: number, reason: string) => {
+    if (phoneFarewellDetected) return;
+    phoneFarewellDetected = true;
+    if (phoneCloseTimer) clearTimeout(phoneCloseTimer);
+    console.log(`[Twilio Farewell] ${reason} — terminating PSTN call in ${delayMs}ms (callSid: ${callSid})`);
+    phoneCloseTimer = setTimeout(() => {
+      // 1. Mark call as completed in our records
+      if (callSid && activeTwilioCalls[callSid]) {
+        activeTwilioCalls[callSid].status = 'completed';
+        activeTwilioCalls[callSid].endedAt = new Date().toISOString();
+        persistPhoneCall(callSid);
+      }
+      // 2. Close the Gemini Live session
+      try { liveSession?.close(); } catch {}
+      liveSession = null;
+      // 3. Close the Twilio media-stream WebSocket (ends <Stream> verb)
+      try { if (ws.readyState === WebSocket.OPEN) ws.close(); } catch {}
+      // 4. Explicitly hang up the actual Twilio PSTN call via REST API
+      //    Closing the WS alone ends the stream but may leave the PSTN call
+      //    ringing or connected. The REST update forces immediate disconnection.
+      const accountSid = process.env.TWILIO_ACCOUNT_SID || '';
+      const authToken = process.env.TWILIO_AUTH_TOKEN || '';
+      if (callSid && accountSid && authToken) {
+        const twilioRest = twilio(accountSid, authToken);
+        twilioRest.calls(callSid).update({ status: 'completed' }).then(() => {
+          console.log(`[Twilio Farewell] PSTN call ${callSid} hung up successfully.`);
+        }).catch((err: any) => {
+          // Non-fatal: call may have already ended on the customer's side.
+          console.warn(`[Twilio Farewell] Twilio hangup notice for ${callSid}:`, err?.message || err);
+        });
+      }
+    }, delayMs);
+  };
+
+  ws.on('close', () => {
+    // The stream may also close before the Gemini session connects: clear the
+    // silence follow-up timers here too, so no timer survives a disconnect.
+    if (phoneCloseTimer) clearTimeout(phoneCloseTimer);
+    clearPhoneSilenceWaitHold();
+    clearPhoneSilenceFollowUp();
+  });
 
   const startGeminiLiveForTwilio = async () => {
     if(phoneConnecting || liveSession) return;
@@ -2848,16 +2988,63 @@ twilioWss.on('connection', async (ws: WebSocket) => {
               if (outputTranscription?.text) phoneOutput += outputTranscription.text;
               if ((interrupted || turnComplete) && callSid && activeTwilioCalls[callSid]) {
                 activeTwilioCalls[callSid].slots = recordOfferDelivery(activeTwilioCalls[callSid].slots, phoneOutput, !!interrupted);
+                // ── Farewell / Complete Session detection: fires once when the agent's turn is complete ──
+                // Only check on turnComplete (not interrupted). If the customer interrupted,
+                // the goodbye was not completed — the call must continue.
+                if (turnComplete && !interrupted && !phoneFarewellDetected) {
+                  const finalPhoneOutput = phoneOutput.trim() || activeTwilioCalls[callSid].transcript.slice(-3).filter((t: any) => t.role === 'agent').map((t: any) => t.text).join(' ');
+                  const record = activeTwilioCalls[callSid];
+                  const currentAction = nextSalesAction(record?.slots || {});
+                  const isCompleteSession = currentAction && currentAction.stage === 'closing';
+                  const isFarewell = finalPhoneOutput && detectCallEndingIntent(finalPhoneOutput);
+                  if (finalPhoneOutput && (isFarewell || isCompleteSession)) {
+                    // Never allow the phone call to close on Turn 1 or Turn 2 of a cold call objection!
+                    const isEarlyObjectionTurn =
+                      phoneRejections.count > 0 &&
+                      phoneRejections.count < 3 &&
+                      currentAction?.stage === 'objection_handling' &&
+                      !phoneRejections.dnc &&
+                      record?.slots?.qualification_status !== 'OPT_OUT';
+
+                    if (isEarlyObjectionTurn) {
+                      console.log(`[Twilio Farewell] Prevented premature goodbye on objection turn ${phoneRejections.count}/3; staying on the line.`);
+                    } else {
+                      console.log(`[Twilio Farewell] Agent farewell/complete session detected on PSTN call (farewell=${Boolean(isFarewell)}, complete=${Boolean(isCompleteSession)}). Scheduling hangup.`);
+                      terminateTwilioCallAfterFarewell(8000, isCompleteSession ? 'session_complete' : 'agent_farewell_detected');
+                    }
+                  }
+                }
                 phoneOutput = '';
                 void persistPhoneCall(callSid);
+                // The turn finished and no farewell is pending: arm the staged
+                // PSTN silence check-in (a browser-style playback ack does not
+                // exist on the phone media stream). Never arms after a goodbye.
+                if (turnComplete && !phoneFarewellDetected) armPhoneSilenceFollowUp();
               }
-              if (inputTranscription?.text) phoneInput += inputTranscription.text;
+              if (inputTranscription?.text) {
+                phoneInput += inputTranscription.text;
+                // Customer is speaking — cancel any pending check-in immediately
+                // and reset the escalation counter (neural server-side VAD).
+                resetPhoneSilenceStage();
+              }
               if (phoneInput.trim() && (inputTranscription?.finished || modelTurn?.parts?.length || outputTranscription?.text || turnComplete)) {
                 if (callSid && activeTwilioCalls[callSid]) {
                   const record = activeTwilioCalls[callSid];
                   record.slots = observeSalesTurn(record.slots, phoneInput);
                   // ASR updates state only; no generation/context trigger here.
                 }
+                // Customer interrupted while in farewell mode — cancel the pending hangup
+                // so the conversation can continue (the agent will re-bid farewell later).
+                if (phoneFarewellDetected && phoneCloseTimer) {
+                  phoneFarewellDetected = false;
+                  clearTimeout(phoneCloseTimer);
+                  phoneCloseTimer = undefined;
+                  console.log('[Twilio Farewell] Customer spoke after farewell — farewell cancelled, call continues.');
+                }
+                // Explicit customer wait request holds further check-ins; any other
+                // finalized customer speech ends a previous wait hold.
+                if (customerAskedForWait(phoneInput)) holdPhoneSilenceForWaitRequest();
+                else if (phoneSilencePausedUntil) clearPhoneSilenceWaitHold();
                 const decision = phoneRejections.consume(phoneInput);
                 phoneInput = '';
                 if (callSid && activeTwilioCalls[callSid] && (decision.signal === 'rejection' || decision.dnc)) {
@@ -2866,10 +3053,9 @@ twilioWss.on('connection', async (ws: WebSocket) => {
                   if (decision.terminate || decision.count >= 3) record.outcome = decision.dnc ? 'OPT_OUT' : 'COLD';
                   persistPhoneCall(callSid);
                   if (decision.close && !phoneCloseTimer) {
-                    phoneCloseTimer = setTimeout(() => {
-                      liveSession?.close();
-                      ws.close();
-                    }, 12000); // Allow a brief closing; never wait for more refusals.
+                    // Schedule close after 12 s to let the agent deliver its closing words,
+                    // then explicitly hang up the PSTN call (not just the media-stream WS).
+                    terminateTwilioCallAfterFarewell(12000, 'customer_rejection_close');
                   }
                 }
               }
@@ -2877,6 +3063,9 @@ twilioWss.on('connection', async (ws: WebSocket) => {
               if (!interrupted && modelTurn?.parts && streamSid) {
                 for (const part of modelTurn.parts) {
                   if (part.inlineData?.data) {
+                    // Track when agent speech last left for the phone — the PSTN
+                    // silence countdown starts from this, not from turnComplete.
+                    phoneLastAgentAudioAt = Date.now();
                     const pcm24k = Buffer.from(part.inlineData.data, 'base64');
                     const muLaw8k = pcm24kToMuLaw8k(pcm24k);
                     sendToTwilio({
@@ -2918,6 +3107,10 @@ twilioWss.on('connection', async (ws: WebSocket) => {
                   event: 'clear',
                   streamSid,
                 });
+                // Customer interruption is valid customer speech: reset the silence
+                // escalation and cancel follow-up audio (the 'clear' event above
+                // stops any check-in the customer cut short).
+                resetPhoneSilenceStage();
               }
             }
           },
@@ -2978,6 +3171,9 @@ twilioWss.on('connection', async (ws: WebSocket) => {
         } as any);
       } else if (msg.event === 'stop') {
         console.log(`[Twilio Media Stream] Stream stopped: ${streamSid}`);
+        // Call stream is finished: clear all silence follow-up timers.
+        clearPhoneSilenceWaitHold();
+        clearPhoneSilenceFollowUp();
         if (callSid && activeTwilioCalls[callSid]) {
           activeTwilioCalls[callSid].status = 'completed';
           activeTwilioCalls[callSid].endedAt = new Date().toISOString();
@@ -2992,6 +3188,10 @@ twilioWss.on('connection', async (ws: WebSocket) => {
 
   ws.on('close', () => {
     console.log('[Twilio Media Stream] WebSocket closed');
+    // Media stream gone: clear all silence follow-up timers so nothing fires
+    // after the call has disconnected.
+    clearPhoneSilenceWaitHold();
+    clearPhoneSilenceFollowUp();
     liveSession?.close();
   });
 });
@@ -3081,14 +3281,27 @@ wss.on('connection', async (clientWs: WebSocket) => {
   let goodbyeFallbackTimer: NodeJS.Timeout | null = null;
   let lastUnwantedAt = 0;
 
-  // â”€â”€ 6-second silence follow-up (Bug 4) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Timer starts ONLY after a confirmed agent turn_complete; cancelled on any
-  // customer input, barge-in, interrupted signal, disconnect, or closing.
-  // Fires once per turn; never repeats or overlaps.
-  const SILENCE_FOLLOW_UP_MS = 6000;
-  const SILENCE_FOLLOW_UP_TEXT = 'Sir, line-la irukkeengala?';
+  // ── Intelligent silence detection & natural customer follow-up (browser) ──
+  // After an agent turn has FULLY finished playing (playback_complete ack),
+  // each stage waits for a configurable window with no customer speech, audio,
+  // transcription or barge-in before gently checking the line is still alive:
+  //   Stage 1 (default 6s): "Hello sir, line-la irukeengala?"
+  //   Stage 2 (default 8s): "Sir, en voice kekkutha?"
+  //   Stage 3 (default 10s): "Sir, disturb panrenaa?"
+  // Hard rules: one check-in per armed timer (silenceFollowUpFired); never
+  // fires while agent audio plays; the escalation counter resets whenever the
+  // customer speaks; explicit customer wait requests hold the check-ins; and
+  // silence NEVER ends the call — this mechanism never triggers a goodbye,
+  // hangup, or any busy/unavailable assumption. Call termination stays
+  // exclusively with the existing call-ending rules.
+  // Arming requires a confirmed agent turn_complete; cancelled on any customer
+  // input, barge-in, interrupted signal, disconnect, or closing.
   let silenceFollowUpTimer: NodeJS.Timeout | null = null;
   let silenceFollowUpFired = false; // prevent double-fire within same agent turn
+  let silenceFollowUpStage = 0; // 0 = fresh window, 1..3 = escalating check-ins delivered
+  // Customer asked for "one minute" style waiting time — hold all check-ins.
+  let silencePausedUntil = 0;
+  let silenceWaitHoldTimer: NodeJS.Timeout | null = null;
   // Set at turnComplete. Browser must send playback_complete with this turnId
   // before the silence timer arms — ensures we never prompt while audio plays.
   let pendingSilenceArmTurnId: string | null = null;
@@ -3102,26 +3315,75 @@ wss.on('connection', async (clientWs: WebSocket) => {
     pendingSilenceArmTurnId = null;
   };
 
+  // Valid customer speech resets the escalation so the next silence window
+  // restarts at the first gentle check-in.
+  const resetSilenceStage = () => {
+    silenceFollowUpStage = 0;
+  };
+
+  // Cancel a pending wait-request hold (the customer spoke again).
+  const clearSilenceWaitHold = () => {
+    if (silenceWaitHoldTimer) {
+      clearTimeout(silenceWaitHoldTimer);
+      silenceWaitHoldTimer = null;
+    }
+    silencePausedUntil = 0;
+  };
+
+  const holdSilenceForWaitRequest = () => {
+    silencePausedUntil = Date.now() + getSilenceWaitHoldMs();
+  };
+
+  // Sends the staged check-in through the SAME Gemini Live session and voice —
+  // no second TTS engine, no voice change; the directive carries the response
+  // acknowledgement ("Sure sir." / "Okay sir, thank you.") and the strict
+  // no-busy/no-disconnect rules, then the call resumes its previous point.
+  const deliverSilenceFollowUp = (stageIndex: number, delayMs: number) => {
+    if (!liveSession) return;
+    try {
+      liveSession.sendClientContent({
+        turns: [{ role: 'user', parts: [{ text: buildSilenceFollowUpDirective(currentLanguage, stageIndex, delayMs) }] }],
+        turnComplete: true,
+      });
+    } catch (e) {
+      console.warn('[Silence] Could not send follow-up prompt:', e);
+    }
+  };
+
   const armSilenceFollowUp = () => {
     // Only arm in agent mode; never during chatbot, closing, or after goodbye.
     if (currentMode !== 'agent' || callFinalized || goodbyeEnding || isClosing) return;
+    // All three escalating check-ins already delivered: stay quiet and stay on
+    // the line — silence alone must never produce a goodbye or hangup.
+    if (silenceFollowUpStage >= getSilenceStageCount()) return;
     clearSilenceFollowUp();
+    // Customer requested wait time: defer until the requested period lapses.
+    if (silencePausedUntil > Date.now()) {
+      if (!silenceWaitHoldTimer) {
+        silenceWaitHoldTimer = setTimeout(() => {
+          silenceWaitHoldTimer = null;
+          armSilenceFollowUp();
+        }, silencePausedUntil - Date.now());
+      }
+      return;
+    }
+    const stageIndex = silenceFollowUpStage;
+    const stageDelayMs = getSilenceStageDelayMs(stageIndex);
     silenceFollowUpTimer = setTimeout(() => {
       silenceFollowUpTimer = null;
       if (callFinalized || goodbyeEnding || isClosing || silenceFollowUpFired) return;
-      silenceFollowUpFired = true;
-      console.log('[Silence] No customer speech for 6 s â€” sending gentle check-in.');
-      if (liveSession) {
-        try {
-          liveSession.sendClientContent({
-            turns: [{ role: 'user', parts: [{ text: '[System: Customer has been silent for 6 seconds. Gently ask once: "' + SILENCE_FOLLOW_UP_TEXT + '" â€” do NOT repeat the pending question yet.]' }] }],
-            turnComplete: true,
-          });
-        } catch (e) {
-          console.warn('[Silence] Could not send follow-up prompt:', e);
-        }
+      if (browserOutputActive) return; // never overlap the agent's own audio playback
+      if (silencePausedUntil > Date.now()) {
+        armSilenceFollowUp(); // wait-request arrived mid-window; re-evaluate
+        return;
       }
-    }, SILENCE_FOLLOW_UP_MS);
+      silenceFollowUpFired = true;
+      silenceFollowUpStage = stageIndex + 1;
+      console.log(`[Silence] No customer speech for ${stageDelayMs} ms — stage ${silenceFollowUpStage}/${getSilenceStageCount()} gentle check-in.`);
+      if (liveSession) {
+        deliverSilenceFollowUp(stageIndex, stageDelayMs);
+      }
+    }, stageDelayMs);
   };
 
   // â”€â”€ Three-level objection handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -3147,6 +3409,7 @@ wss.on('connection', async (clientWs: WebSocket) => {
   const finalizeLiveCall = (requestedReason: string) => {
     if (callFinalized) return;
     clearGoodbyeDetection();
+    clearSilenceWaitHold();
     // Flush first: a buffered final rejection must count before the reason is
     // chosen (the timer-based close can race the last transcription fragment).
     flushPendingTranscript();
@@ -3156,12 +3419,12 @@ wss.on('connection', async (clientWs: WebSocket) => {
       objectionFallbackTimer = null;
     }
     // An objection close or do-not-call request keeps its outcome even when the
-    // client reports the normal "goodbye" or "client_end" reason.
-    const closingReasons = ['goodbye', 'goodbye_timeout', 'client_end', 'customer_declined', 'do_not_call'];
+    // client reports the normal "goodbye", "session_complete" or "client_end" reason.
+    const closingReasons = ['goodbye', 'goodbye_timeout', 'session_complete', 'client_end', 'customer_declined', 'do_not_call'];
     const reason =
       objectionEndReason && closingReasons.includes(requestedReason)
         ? objectionEndReason
-        : ['goodbye', 'goodbye_timeout', 'client_end'].includes(requestedReason) &&
+        : ['goodbye', 'goodbye_timeout', 'session_complete', 'client_end'].includes(requestedReason) &&
           lastUnwantedAt > 0 &&
           Date.now() - lastUnwantedAt <= 90000
           ? 'unwanted_speech'
@@ -3204,6 +3467,7 @@ wss.on('connection', async (clientWs: WebSocket) => {
     if (unwantedHangupDone || callFinalized) return;
     unwantedHangupDone = true;
     clearGoodbyeDetection();
+    clearSilenceWaitHold();
     flushPendingTranscript();
     journal?.details({
       ...callFacts,
@@ -3312,10 +3576,11 @@ wss.on('connection', async (clientWs: WebSocket) => {
       objectionFallbackTimer = null;
     }
     goodbyeEnding = true;
+    clearSilenceWaitHold();
     const reason = objectionEndReason;
     console.log(`[Objection] ${reason}; waiting for the closing audio to finish.`);
     safeSend({ type: 'call_ending', reason, text, timestamp: Date.now() });
-    goodbyeFallbackTimer = setTimeout(() => finalizeLiveCall(reason), 45000);
+    goodbyeFallbackTimer = setTimeout(() => finalizeLiveCall(reason), 20000);
   };
 
   const registerCustomerObjection = (text: string) => {
@@ -3394,6 +3659,12 @@ wss.on('connection', async (clientWs: WebSocket) => {
       // The customer kept talking, so the previous goodbye no longer ends the call.
       // If the agent closes again, the next completed turn re-arms detection.
       if (goodbyeEnding && !callFinalized) clearGoodbyeDetection();
+      // Valid customer speech: reset the silence escalation counter and end any
+      // previous wait-request hold. A fresh explicit wait request re-holds it so
+      // the agent does not nag the customer while they take their time.
+      clearSilenceWaitHold();
+      resetSilenceStage();
+      if (customerAskedForWait(raw)) holdSilenceForWaitRequest();
       updateSalesTurn(raw);
       registerUnwantedSpeech(raw);
       registerCustomerObjection(raw);
@@ -3422,7 +3693,7 @@ wss.on('connection', async (clientWs: WebSocket) => {
       }
     };
 
-    prepareVoiceSwitch = () => { clearSilenceFollowUp(); flushPendingTranscript(); replaced = true; };
+    prepareVoiceSwitch = () => { clearSilenceFollowUp(); resetSilenceStage(); clearSilenceWaitHold(); flushPendingTranscript(); replaced = true; };
     try {
       console.log(`[Gemini Live] Connecting (persona: ${persona.name}, voice: ${voiceName}, lang: ${language}, voiceSwitch: ${isVoiceSwitch})...`);
       safeSend({ type: 'status', status: 'connecting', message: isVoiceSwitch ? `Switching voice to ${voiceName}...` : `Connecting with ${persona.name}...` });
@@ -3571,8 +3842,11 @@ wss.on('connection', async (clientWs: WebSocket) => {
               // Fragments are accumulated and committed as ONE customer turn when the agent
               // starts replying (or the turn completes), then cleaned up for Tanglish.
               if (inputTranscription?.text) {
-                // Customer is speaking â€” cancel the silence follow-up immediately.
+                // Customer is speaking — cancel the silence follow-up immediately.
                 clearSilenceFollowUp();
+                // ...and reset the escalation counter so the next silence window
+                // starts again at the first gentle check-in.
+                resetSilenceStage();
                 userTranscriptBuf = appendTranscriptChunk(userTranscriptBuf, inputTranscription.text);
                 persistVoiceTurn('user', userTranscriptBuf, ensureUserTurnId());
                 // Never show a partial that arrived in Tamil/Devanagari/other script.
@@ -3642,6 +3916,8 @@ wss.on('connection', async (clientWs: WebSocket) => {
               if (interrupted) {
                 // Customer interrupted â€” cancel silence follow-up immediately.
                 clearSilenceFollowUp();
+                // Interruption is valid customer speech: reset the escalation counter.
+                resetSilenceStage();
                 callFacts = recordOfferDelivery(callFacts, currentAgentAccumulatedText, true);
                 journal?.details(callFacts);
                 safeSend({ type: 'lead_update', lead: { ...callFacts, next_sales_action: nextSalesAction(callFacts) } });
@@ -3685,38 +3961,51 @@ wss.on('connection', async (clientWs: WebSocket) => {
                 if (wsConversationId && finalText) {
                   persistVoiceTurn('assistant', finalText, currentAgentTurnId);
                 }
-                // Arm 6-second silence follow-up AFTER the browser confirms
+                // Arm the staged silence follow-up AFTER the browser confirms
                 // audio playback has fully drained (playback_complete message).
                 // This prevents the check-in prompt from firing while the agent
-                // voice is still audible. Twilio path is intentionally excluded
-                // until a reliable playback-complete signal is available there.
+                // voice is still audible. The Twilio path arms through its own
+                // turnComplete handler (armPhoneSilenceFollowUp) because PSTN
+                // has no playback-complete acknowledgement.
                 if (finalText && currentMode === 'agent' && !callFinalized && !goodbyeEnding) {
                   clearSilenceFollowUp();
                   pendingSilenceArmTurnId = currentAgentTurnId || `turn-${Date.now()}`;
                 }
+                const currentAction = currentMode === 'chatbot' ? null : nextSalesAction(callFacts);
+                const isCompleteSession = currentAction && currentAction.stage === 'closing';
+                const isFarewell = detectCallEndingIntent(finalText);
                 if (
                   finalText &&
                   currentMode === 'agent' &&
                   !callFinalized &&
-                  !goodbyeEnding &&
                   !unwantedHangupDone &&
-                  detectCallEndingIntent(finalText)
+                  (isFarewell || isCompleteSession)
                 ) {
                   // Never allow the live call to close on Turn 1 or Turn 2 of a cold call objection!
-                  if (rejectionTracker.count < 3 && !rejectionTracker.dnc && callFacts.qualification_status !== 'OPT_OUT') {
+                  // Guard only applies when actively in objection_handling (count > 0 and < 3)
+                  // and NOT when the session has completed its 14 stages (stage === 'closing').
+                  const isEarlyObjectionTurn =
+                    rejectionTracker.count > 0 &&
+                    rejectionTracker.count < 3 &&
+                    currentAction?.stage === 'objection_handling' &&
+                    !rejectionTracker.dnc &&
+                    callFacts.qualification_status !== 'OPT_OUT';
+
+                  if (isEarlyObjectionTurn) {
                     console.log(`[Live Call] Prevented premature goodbye on rejection turn ${rejectionTracker.count}/3; staying on the line.`);
                   } else {
                     goodbyeEnding = true;
-                    console.log('[Live Call] Agent closing intent detected; waiting for goodbye playback to finish.');
+                    if (goodbyeFallbackTimer) clearTimeout(goodbyeFallbackTimer);
+                    console.log(`[Live Call] Agent closing/complete session detected (isFarewell=${isFarewell}, isCompleteSession=${Boolean(isCompleteSession)}); waiting for goodbye playback to finish.`);
                     safeSend({
                       type: 'call_ending',
-                      reason: 'goodbye',
+                      reason: isCompleteSession ? 'session_complete' : 'goodbye',
                       turnId: currentAgentTurnId,
                       text: finalText,
                       timestamp: Date.now(),
                     });
                     // Safety net if the client never reports playback completion.
-                    goodbyeFallbackTimer = setTimeout(() => finalizeLiveCall('goodbye_timeout'), 45000);
+                    goodbyeFallbackTimer = setTimeout(() => finalizeLiveCall('goodbye_timeout'), 20000);
                   }
                 }
                 if (
@@ -3977,11 +4266,17 @@ wss.on('connection', async (clientWs: WebSocket) => {
           false // isVoiceSwitch
         );
       } else if (msg.type === 'audio') {
+        if (goodbyeEnding && !callFinalized) clearGoodbyeDetection();
         // Forward 16kHz PCM audio chunk to Gemini Live realtime input.
         // Cancel pending silence follow-up immediately when customer audio arrives —
         // transcript from Gemini Live can lag by several hundred ms, so this ensures
         // the silence prompt is never sent while the customer is actively speaking.
         if (silenceFollowUpTimer || pendingSilenceArmTurnId) clearSilenceFollowUp();
+        // Customer audio = customer presence: reset the escalation counter.
+        // (Speech-gated mic audio only reaches here for genuine speech energy,
+        // and the explicit wait-request hold is intentionally NOT cleared here;
+        // the finalized transcript decides whether the wait continues.)
+        resetSilenceStage();
         usageMetrics.totalAudioSecondsSent += 0.128;
         if (liveSession && msg.data) {
           try {
@@ -4000,9 +4295,14 @@ wss.on('connection', async (clientWs: WebSocket) => {
           }
         }
       } else if (msg.type === 'user_speech_transcript') {
+        if (goodbyeEnding && !callFinalized) clearGoodbyeDetection();
         // Forward finalized speech-to-text transcript to Gemini Live session
         if (liveSession && msg.text) {
           console.log('[WebSocket] Client spoke via mic:', msg.text);
+          // Customer speech: reset the silence escalation and evaluate wait requests.
+          resetSilenceStage();
+          if (customerAskedForWait(msg.text)) holdSilenceForWaitRequest();
+          else if (silencePausedUntil) clearSilenceWaitHold();
           updateSalesTurn(msg.text);
           registerUnwantedSpeech(msg.text);
           registerCustomerObjection(msg.text);
@@ -4022,9 +4322,14 @@ wss.on('connection', async (clientWs: WebSocket) => {
           });
         }
       } else if (msg.type === 'text') {
+        if (goodbyeEnding && !callFinalized) clearGoodbyeDetection();
         const textContent = msg.text || msg.data;
         if (liveSession && textContent) {
           console.log('[WebSocket] Customer text turn received:', {characters:String(textContent).length});
+          // Customer speech: reset the silence escalation and evaluate wait requests.
+          resetSilenceStage();
+          if (customerAskedForWait(textContent)) holdSilenceForWaitRequest();
+          else if (silencePausedUntil) clearSilenceWaitHold();
           updateSalesTurn(textContent);
           registerUnwantedSpeech(textContent);
           registerCustomerObjection(textContent);
@@ -4116,6 +4421,8 @@ wss.on('connection', async (clientWs: WebSocket) => {
       } else if (msg.type === 'barge_in') {
         suppressInterruptedAudio = browserOutputActive;
         clearSilenceFollowUp();
+        // Manual barge-in means the customer is present: reset the escalation.
+        resetSilenceStage();
         safeSend({ type: 'interrupted', manual: true });
       } else if (msg.type === 'end') {
         finalizeLiveCall(objectionEndReason || (goodbyeEnding ? 'goodbye' : 'client_end'));
@@ -4132,6 +4439,7 @@ wss.on('connection', async (clientWs: WebSocket) => {
     }
     callFinalized = true;
     clearGoodbyeDetection();
+    clearSilenceWaitHold();
     flushPendingTranscript();
     journal?.finish();
     console.log('[WebSocket] Client disconnected');

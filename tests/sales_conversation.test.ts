@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { nextSalesAction as next, observeSalesTurn as turn, startSalesCall, salesRuntimeContext } from '../src/utils/salesConversation.ts';
 import { mergeSalesLead } from '../src/utils/salesIntelligence.ts';
+import { customerAskedForWait } from '../src/utils/customerWaitRequest.ts';
 
 const engaged = { conversation_disposition: 'engaged' };
 const named = { ...engaged, name: 'Anand', hometown: 'Chennai' };
@@ -131,7 +132,10 @@ test('actual Twilio transcript block applies the same stop decision without a ge
   const end = source.indexOf('const decision = phoneRejections.consume(phoneInput);', start);
   const sent: any[] = [];
   const records = { test: { slots: investor } };
-  new Function('callSid', 'activeTwilioCalls', 'phoneInput', 'observeSalesTurn', 'salesRuntimeContext', 'liveSession', stripTypeScriptTypes(source.slice(start, end)))('test', records, 'I am busy', turn, salesRuntimeContext, { sendClientContent: (v: any) => sent.push(v) });
+  // The extracted slice references several outer scoped values (farewell
+  // cancel guard, silence wait-hold helpers, pause timestamp); the harness
+  // provides them as scope values so the snippet executes standalone.
+  new Function('callSid', 'activeTwilioCalls', 'phoneInput', 'phoneFarewellDetected', 'phoneCloseTimer', 'observeSalesTurn', 'salesRuntimeContext', 'liveSession', 'customerAskedForWait', 'holdPhoneSilenceForWaitRequest', 'clearPhoneSilenceWaitHold', 'phoneSilencePausedUntil', stripTypeScriptTypes(source.slice(start, end)))('test', records, 'I am busy', false, undefined, turn, salesRuntimeContext, { sendClientContent: (v: any) => sent.push(v) }, customerAskedForWait, () => {}, () => {}, 0);
   assert.equal(next(records.test.slots).stage, 'closing');
   assert.equal(sent.length, 0, 'telephone ASR must not inject context');
 });

@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { nextSalesAction as next, observeSalesTurn as turn, startSalesCall, salesRuntimeContext } from '../src/utils/salesConversation.ts';
+import { determineLeadStatusFromData } from '../src/utils/scoring.ts';
 import { mergeSalesLead } from '../src/utils/salesIntelligence.ts';
 import { customerAskedForWait } from '../src/utils/customerWaitRequest.ts';
 
 const engaged = { conversation_disposition: 'engaged' };
 const named = { ...engaged, name: 'Anand', hometown: 'Chennai' };
 const offers = { flight_offer_status: 'presented', golden_visa_offer_status: 'presented', purchase_support_offer_status: 'understood' };
-const investor = { ...named, profession: 'Engineer', property_type: 'apartment', bedrooms: '2', ...offers, investment_purpose: 'investment', engagement_indicator: 'interested', budget: 'AED 1M', timeline: 'within_3_months', location: 'Dubai', phone: '+971501234567' };
+const investor = { ...named, profession: 'Engineer', property_type: 'apartment', bedrooms: '2', ...offers, investment_purpose: 'investment', engagement_indicator: 'interested', budget: 'AED 1M', timeline: 'within_3_months', location: 'Dubai', phone: '+971501234567', family_lifestyle_checked: 'completed' };
 const complete = { ...investor, property_type: 'apartment', profession: 'Engineer', bedrooms: '2', budget: 'AED 1M', payment_preference: 'full payment', location: 'Dubai', timeline: 'next year', follow_up_permission: 'granted', preferred_contact_method: 'WhatsApp', trust_building_completed: 'true' };
 
 test('new customer: opening, permission, name, purpose', () => {
@@ -138,4 +139,68 @@ test('actual Twilio transcript block applies the same stop decision without a ge
   new Function('callSid', 'activeTwilioCalls', 'phoneInput', 'phoneFarewellDetected', 'phoneCloseTimer', 'observeSalesTurn', 'salesRuntimeContext', 'liveSession', 'customerAskedForWait', 'holdPhoneSilenceForWaitRequest', 'clearPhoneSilenceWaitHold', 'phoneSilencePausedUntil', stripTypeScriptTypes(source.slice(start, end)))('test', records, 'I am busy', false, undefined, turn, salesRuntimeContext, { sendClientContent: (v: any) => sent.push(v) }, customerAskedForWait, () => {}, () => {}, 0);
   assert.equal(next(records.test.slots).stage, 'closing');
   assert.equal(sent.length, 0, 'telephone ASR must not inject context');
+});
+
+test('Tamil investor answers are stored and the lead stays warm', () => {
+  let f: Record<string, any> = {};
+  for (const line of [
+    'பேசுங்க.',
+    'investment',
+    'ஓகே, நான் வந்து அகாடமிஷியன். ப்ரொஃபசர்.',
+    'research in cyber security',
+    'ஜenerallah search பண்ணுங்க.',
+    'ஒரு டூ 2.5 மில்லியன் ஏஇடி.',
+    'ஃULL பேமெண்ட், இஃப் பாசிபிள் கிரிப்டோ அல்லது வயர் டிரான்ஸ்ஃபர்.',
+    'immediate consideration',
+    'ஆ சரி.',
+    'WhatsApp',
+  ]) f = turn(f, line);
+  assert.equal(f.conversation_disposition, 'engaged');
+  assert.equal(f.investment_purpose, 'investment');
+  assert.equal(f.intent, 'invest');
+  assert.equal(f.profession, 'Professor');
+  assert.equal(f.salaried_field, 'Cyber security');
+  assert.equal(f.location, 'flexible');
+  assert.equal(f.budget, 'AED 1 to 2.5 million');
+  assert.equal(f.payment_preference, 'full payment');
+  assert.equal(f.timeline, 'immediate');
+  assert.equal(f.preferred_contact_method, 'WhatsApp');
+  assert.equal(f.follow_up_permission, 'granted');
+  assert.equal(determineLeadStatusFromData(f).outcome, 'WARM');
+});
+
+test('personal-use Tamil answers are stored and the missing family question stays open', () => {
+  let f: Record<string, any> = {};
+  for (const line of [
+    'நான் பேசுறேன்.',
+    'Satish personal purpose.',
+    'இந்தியால இருந்து எக்ஸ்போ.',
+    'நான் வந்து ப்ரொஃபசரா இருக்கேன்.',
+    'இல்ல, எனக்கு இத பத்தி ஆல்ரெடி தெரியும். உங்க அட்வர்டைஸ்மென்ட்ல பாத்துருக்கேன்.',
+    'சூட்டபிள் ஆச்சு. லொகேஷன்ஸ் ஆச்சு.',
+    'வில்லா வில்லா ப்ராப்பர்ட்டீஸ்',
+    '4 BHK',
+    'ஒரு 25 க்ரோர்ஸ்.',
+    'INR full payment',
+    'இம்மediate.',
+    'WhatsApp',
+    'ஒரு 10:30',
+  ]) f = turn(f, line);
+  assert.equal(f.name, 'Satish');
+  assert.equal(f.investment_purpose, 'own use');
+  assert.equal(f.intent, 'buy');
+  assert.equal(f.current_location, 'India');
+  assert.equal(f.profession, 'Professor');
+  assert.equal(f.lead_source, 'Advertisement');
+  assert.equal(f.flight_offer_status, 'understood');
+  assert.equal(f.location, 'flexible');
+  assert.equal(f.property_type, 'villa');
+  assert.equal(f.bedrooms, '4');
+  assert.equal(f.budget, 'INR 25 crore');
+  assert.equal(f.payment_preference, 'full payment');
+  assert.equal(f.timeline, 'immediate');
+  assert.equal(f.preferred_contact_method, 'WhatsApp');
+  assert.equal(f.best_time_to_contact, '10:30');
+  assert.equal(next(f).field, 'family_size');
+  assert.equal(determineLeadStatusFromData(f).outcome, 'HOT');
 });

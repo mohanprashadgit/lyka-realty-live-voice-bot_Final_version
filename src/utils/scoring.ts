@@ -221,20 +221,25 @@ export function extractLeadDetailsFromTranscript(
 
   // 2. Budget
   if (!existingData.budget) {
-    const crMatch = userText.match(/(\d+(?:\.\d+)?\s*(?:cr|crore|crores|கோடி))/i);
+    const crMatch = userText.match(/(\d+(?:\.\d+)?)\s*(?:cr|crore|crores|கோடி|க்ரோர்ஸ்|க்ரோர்)/iu);
     const lakhMatch = userText.match(/(\d+(?:\.\d+)?\s*(?:lakh|lakhs|lac|lacs|லட்சம்))/i);
     const dollarMatch = userText.match(/(?:\$)\s*(\d+(?:,\d+)*(?:\.\d+)?\s*[kmb]?)/i);
     const inrMatch = userText.match(/(?:₹)\s*(\d+(?:,\d+)*(?:\.\d+)?\s*(?:cr|lakh|lac|k)?)/i);
     const kMatch = userText.match(/(\d+\s*k)/i);
+    const millionMatch = userText.match(/(\d+(?:\.\d+)?)\s*(?:million|மில்லியன்)/iu);
 
     if (crMatch) {
-      extracted.budget = `₹${crMatch[1].replace(/கோடி/i, 'Cr').trim()}`;
+      extracted.budget = `₹${crMatch[1]} crore`;
     } else if (lakhMatch) {
       extracted.budget = `₹${lakhMatch[1].replace(/லட்சம்/i, 'L').trim()}`;
     } else if (dollarMatch) {
       extracted.budget = `$${dollarMatch[1]}`;
     } else if (inrMatch) {
       extracted.budget = `₹${inrMatch[1]}`;
+    } else if (millionMatch) {
+      const aed = /\bAED\b|ஏ(?:இ|ஈ)டி|dirham/iu.test(userText) ? 'AED ' : '';
+      const start = /(?:ஒரு|one|1)\s*(?:டூ|to|–|-)\s*/iu.test(userText) ? '1 to ' : '';
+      extracted.budget = `${aed}${start}${millionMatch[1]} million`.replace(/\s+/g, ' ').trim();
     } else if (kMatch) {
       extracted.budget = `$${kMatch[1]}`;
     }
@@ -412,7 +417,7 @@ export function calculateAuthoritativeLeadScore(
     interestReason = 'Greeting only; no property intent stated';
     missingInformation.push('Interest & buying intent (e.g. buying, investing, renting)');
   } else {
-    const intentLower = String(raw.intent || raw.buyer_type || raw.purpose || '').toLowerCase();
+    const intentLower = String(raw.intent || raw.buyer_type || raw.purpose || raw.investment_purpose || '').toLowerCase();
     const hasExplicitBuyOrRentIntent =
       intentLower.includes('buy') ||
       intentLower.includes('invest') ||
@@ -861,7 +866,7 @@ export function determineLeadStatusFromData(
   const budgetMax = typeof d.budget_max === 'number' ? d.budget_max : parseFloat(d.budget_max || '0');
   const hasBudget = Boolean(budgetMax > 0 || (budgetStr && /\d/.test(budgetStr)));
   const timeline = (d.timeline || '').toLowerCase();
-  const intent = (d.intent || d.buyer_type || '').toLowerCase();
+  const intent = (d.intent || d.buyer_type || d.investment_purpose || d.interest || '').toLowerCase();
   const hasLocation = Boolean((d.location || d.city || d.locality || '').trim());
 
   const isNearTermTimeline =
@@ -906,7 +911,8 @@ export function determineLeadStatusFromData(
     (hasBudget && isNearTermTimeline && hasSpecificRequirement)
   ) {
     const calculated = calculateAuthoritativeLeadScore(data);
-    return { outcome: 'HOT', score: calculated.score };
+    const named = knownCustomerName(d.customer_name_raw) || knownCustomerName(d.full_name) || knownCustomerName(d.name);
+    return { outcome: named ? 'HOT' : 'WARM', score: calculated.score };
   }
 
   // 6. Interested but insufficiently qualified (has requirement, interest notes, budget or location) -> WARM

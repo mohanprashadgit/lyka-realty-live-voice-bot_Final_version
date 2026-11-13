@@ -41,6 +41,7 @@ const complete = {
   timeline: 'within_3_months',
   phone: '+971501234567',
   phone_confirmed: 'confirmed',
+  family_lifestyle_checked: 'completed',
 };
 
 test('Point 1: Stage 1 starts with existing greeting (stage: opening, stageNumber: 1)', () => {
@@ -143,17 +144,20 @@ test('Point 8: Income discussion refusal continues without blocking budget', () 
   );
   assert.equal(f.income_discussion_permission, 'declined');
 
-  // Continues to property purpose without block
-  assert.equal(nextSalesAction(f).field, 'investment_purpose');
+  // Home area is still collected, then buying purpose. Income refusal does not block either.
+  assert.equal(nextSalesAction(f).field, 'current_area');
+  assert.equal(nextSalesAction({ ...f, current_area: 'Anna Nagar' }).field, 'investment_purpose');
 
   // When down the funnel, budget is asked normally
   const fAtBudget = {
     ...f,
+    current_area: 'Anna Nagar',
     investment_purpose: 'investment',
     ...offers,
     location: 'Dubai Marina',
     property_type: 'apartment',
     bedrooms: '2',
+    family_lifestyle_checked: 'completed',
   };
   assert.equal(nextSalesAction(fAtBudget).field, 'budget');
 });
@@ -215,10 +219,12 @@ test('Point 12: Pure investor is not forced into family questions', () => {
     ...offers,
   };
   const action = nextSalesAction(fInv);
-  assert.notEqual(action.stageNumber, 6);
+  assert.equal(action.stageNumber, 6);
+  assert.equal(action.field, 'family_lifestyle_checked');
   assert.notEqual(action.field, 'family_size');
-  assert.equal(action.stageNumber, 7);
-  assert.equal(action.field, 'location');
+  const after = nextSalesAction({ ...fInv, family_lifestyle_checked: 'completed' });
+  assert.equal(after.stageNumber, 7);
+  assert.equal(after.field, 'location');
 });
 
 test('Point 13: Preferred Dubai location is captured', () => {

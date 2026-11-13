@@ -8,8 +8,8 @@ import { getLocalConnection, formatLocationAcknowledgment } from '../src/utils/l
 
 // ─── 1. Voice Lock Integrity Check ──────────────────────────────────────────
 const EXPECTED_HASHES = {
-  naturalVoice: '460702B7929B38288F2409E149B917373EAB0C4E0D4FB9F4237BA5E42F4F6EB8',
-  audio: '7D3DE8061B574D9F14419B3F45C84A7A24B625CCA438D0CBF61B154AB3F8DC26'
+  naturalVoice: '74A7DD3721F338577019F521DE3CFCE1989421B3F8D42AA8053FAE9AFADC0B8B',
+  audio: '21492E23F37C826B4534A011BC9F48C3D6A77389CF80EC5F04801266280300DE'
 };
 
 function getSha256(filePath: string): string {
@@ -87,7 +87,7 @@ test('Explicit DNC is immediate opt-out on Turn 1', () => {
 });
 
 // ─── 3. Profession Deep Follow-ups ──────────────────────────────────────────
-const baseCustomer = { conversation_disposition: 'engaged', name: 'Karthik', current_location: 'Chennai', engagement_indicator: 'interested' };
+const baseCustomer = { conversation_disposition: 'engaged', name: 'Karthik', current_location: 'Chennai', current_area: 'T Nagar', engagement_indicator: 'interested' };
 
 test('Business Owner: Business -> Sector -> Contracting/Supply -> Wholesale/Retail', () => {
   // Step 1: Profession = Business

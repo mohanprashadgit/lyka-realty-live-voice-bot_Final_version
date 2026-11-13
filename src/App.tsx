@@ -538,7 +538,7 @@ export default function App() {
             recorderRef.current?.setAgentSpeaking(false);
             if (autoEndPendingRef.current) scheduleAutoEndCheck(300);
             // Notify server that browser audio playback has fully drained.
-            // Server uses this to safely arm the 6-second silence follow-up,
+            // Server uses this to safely arm the silence follow-up,
             // ensuring the prompt never fires while the agent voice is still playing.
             const ackTurnId = pendingPlaybackAckRef.current;
             if (ackTurnId && wsRef.current?.readyState === WebSocket.OPEN && !callTerminatedRef.current) {

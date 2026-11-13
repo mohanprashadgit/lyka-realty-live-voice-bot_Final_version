@@ -4,6 +4,7 @@ import { knownCustomerName, splitNotes, OFFER_PRESENTATION_FIELDS, SALES_FIELDS,
 import { normalizeAcquisitionSource } from './acquisitionSource.js';
 import { getLiveTimeInfo, getSyncRate } from '../../backend/services/currencyAndTime.js';
 import { formatLocationAcknowledgment, formatCityAreaQuestion, formatAreaAcknowledgment } from './localKnowledge.js';
+import { tamilToEnglish } from './tamilToEnglish.js';
 
 export interface StageDefinition {
   stageNumber: number;
@@ -39,7 +40,12 @@ export function startSalesCall(input: Record<string, any>): Record<string, any> 
   const result: Record<string, any> = { ...input, notes: text };
   delete result.conversation_disposition;
   for (const field of ['flight_offer_delivery','golden_visa_offer_delivery','purchase_support_offer_delivery']) delete result[field];
-  result.location ||= input.original_location || input.locality || input.city;
+  // Preferred property area stays in location. Home city stays in current_location.
+  if (!result.location && input.original_location) result.location = input.original_location;
+  if (!result.current_location && !result.hometown) {
+    const home = [input.locality, input.city].filter(Boolean).join(', ');
+    if (home && home !== result.location) result.current_location = home;
+  }
   if (!result.budget && (input.budget_min != null || input.budget_max != null)) {
     result.budget = [input.currency, input.budget_min != null ? `minimum ${input.budget_min}` : '', input.budget_max != null ? `maximum ${input.budget_max}` : ''].filter(Boolean).join(' ');
   }
@@ -48,6 +54,7 @@ export function startSalesCall(input: Record<string, any>): Record<string, any> 
 
 /** Conservative transcript fallback. Gemini's existing tool handles multilingual semantic extraction. */
 export function observeSalesTurn(facts: Record<string, any>, text: string): Record<string, any> {
+  text = tamilToEnglish(text);
   const patch: Record<string, string> = extractCustomerIntelligence(text);
   const action = nextSalesAction(facts);
   if (action.field === 'location' && patch.hometown && text.trim().replace(/[.!?]$/, '') === patch.hometown) {
@@ -67,22 +74,35 @@ export function observeSalesTurn(facts: Record<string, any>, text: string): Reco
     }
   }
 
-  // Stage 6 Family/Lifestyle check detection
-  if (/\b(?:family|kids?|children|solo|parents|shift|members?|naalu per|peru)\b/i.test(text) || patch.family_size || patch.family_relocation || patch.lifestyle_requirements) {
+  // Stage 6 — complete only from a real family answer, or from the investor lifestyle question itself.
+  if (patch.family_size || patch.family_relocation || patch.lifestyle_requirements) {
     patch.family_lifestyle_checked = 'completed';
   }
-  if ((action.stageNumber === 6 || action.stage === 'family_lifestyle') && /\b(?:investment|rental|capital appreciation|returns|invest)\b/i.test(text)) {
-    patch.family_lifestyle_checked = 'completed';
+  if (action.field === 'family_lifestyle_checked' && text.trim()) {
+    if (/\b(?:family|kids?|children|solo|parents|shift|members?|naalu per|peru)\b/i.test(text) || patch.family_size || patch.family_relocation || patch.lifestyle_requirements) {
+      patch.family_lifestyle_checked = 'completed';
+    }
+    if ((action.stageNumber === 6 || action.stage === 'family_lifestyle') && /\b(?:investment|rental|capital appreciation|returns|invest)\b/i.test(text)) {
+      patch.family_lifestyle_checked = 'completed';
+    }
   }
 
-  // Stage 12 Trust building acknowledgement detection
+  // Stage 12 — any reply that is not a fresh trust question means the explanation was heard.
+  if (action.field === 'trust_building_completed' && text.trim() && patch.active_objection !== 'trust') {
+    patch.trust_building_completed = 'true';
+  }
   if ((action.stageNumber === 12 || action.stage === 'trust_credibility' || action.field === 'trust_building_completed') && /^(?:yes|sure|okay|ok|seri|puriyudhu|correct|nalladhu|super|good)[.!\s]*$/i.test(text.trim())) {
     patch.trust_building_completed = 'true';
   }
 
+  // Stage 13 — the customer has heard the verified-shortlist explanation.
+  if ((action.stage === 'recommendation' || action.field === 'recommendation_status') && text.trim() && !patch.recommendation_status) {
+    patch.recommendation_status = 'verification_pending';
+  }
+
   // Stage 11 Phone confirmation detection
-  if (action.field === 'phone_confirmation' || action.field === 'phone') {
-    if (/\b(?:yes|sure|okay|ok|adhe\s+number|same\s+number|use\s+(?:that|this)\s+number|seri|aama|correct|fine|confirm|right)\b/i.test(text)) {
+  if (action.field === 'phone_confirmation' || action.field === 'phone' || action.field === 'follow_up_permission') {
+    if (/\b(?:yes|sure|okay|ok|adhe\s+number|same\s+number|use\s+(?:that|this)\s+number|seri|aama|correct|fine|confirm|right)\b/i.test(text) || /^(?:ஆ\s*)?சரி[.!\s]*$/u.test(text.trim()) || /^(?:ஆமாம்?|சொல்லுங்க|ஓகே)[.!\s]*$/u.test(text.trim())) {
       patch.phone_confirmed = 'confirmed';
       patch.follow_up_permission = 'granted';
     }
@@ -91,10 +111,10 @@ export function observeSalesTurn(facts: Record<string, any>, text: string): Reco
   // Stage 9 Currency clarification detection
   if (action.field === 'budget_currency_clarification') {
     const rawBudget = String(facts.budget || '').replace(/^(?:INR|AED|USD|Rs\.?)\s*/i, '');
-    if (/\b(?:inr|rupees?|rs|india|indian|rupee)\b/i.test(text)) {
+    if (/\b(?:inr|rupees?|rupay|rs|india|indian|rupee)\b/i.test(text)) {
       patch.budget = 'INR ' + rawBudget;
       patch.budget_currency_clarification = 'clarified';
-    } else if (/\b(?:aed|dirhams?|dubai|uae)\b/i.test(text)) {
+    } else if (/\b(?:aed|dirhams?|dirham|dubai|uae)\b/i.test(text)) {
       patch.budget = 'AED ' + rawBudget;
       patch.budget_currency_clarification = 'clarified';
     }
@@ -162,7 +182,7 @@ export function observeSalesTurn(facts: Record<string, any>, text: string): Reco
     if (nextCount >= 3) {
       patch.conversation_disposition = 'end';
       patch.soft_objection_step = 'closed';
-    } else {
+  } else if (action.stage === 'opening' && (/^(?:hello[,! ]*|hi[,! ]*)?(?:yes|sure|okay|ok|go ahead|sollunga|seri|pesalam|pesalaam|kandippa pesalam|aama|tell me|proceed)(?:[,!\s]+(?:tell me|sollunga|pesalam|please|go ahead|sure))?[.!\s]*$/i.test(text.trim()) || /^(?:(?:நான்\s+)?)(?:பேசுங்க|பேசுங்கள்|பேசுறேன்|பேசுறேங்க|பேசுவேன்|சொல்லுங்க|சொல்லுங்கள்|ஆமாம்?|சரி|ஆ\s*சரி|ஓகே)[.!\s]*$/u.test(text.trim()))) {
       patch.soft_objection_step = nextCount === 1 ? 'credibility_offered' : 'clarity_offered';
       patch.conversation_disposition = 'hesitant';
     }
@@ -180,6 +200,11 @@ export function observeSalesTurn(facts: Record<string, any>, text: string): Reco
         patch.customer_name_raw = extracted;
       }
     }
+    const leadName = text.match(/^([A-Z][A-Za-z'.-]{1,40})\s+(?:personal|own|family|self)\b/);
+    if (leadName && knownCustomerName(leadName[1])) {
+      patch.name = leadName[1];
+      patch.customer_name_raw = leadName[1];
+    }
   }
   if (!patch.name) {
     // Explicit names may be collected regardless of the pending question.
@@ -196,7 +221,7 @@ export function observeSalesTurn(facts: Record<string, any>, text: string): Reco
     // "Naan Arun" or simply "Arun" is a name ONLY in response to the name question.
     // Never turn "Naan Tirunelveli" or "Naan business panren" into a customer name.
     const answer = text.trim().match(/^(?:naan\s+)?([\p{L}][\p{L}'. -]{0,45}?)\s*(?:dhan[ae]?)?[.!]?$/iu);
-    if (answer && !/\b(?:my|whatsapp|email|fine|thanks|skip|from|prefer|apartment|villa|month|months|share|decline|interested|hello|hi|sollunga|seri|rather|number|calling|call|have|want|don't|not)\b/i.test(answer[1]) && !/\b(?:panren|work|business|job|irukken|irukkuren|settle|invest|property|sir|yes|sure|okay|ok|no|vendam|busy|please|later)\b/i.test(answer[1])) {
+    if (answer && answer[1].trim().split(/\s+/).length <= 3 && !/\b(?:my|whatsapp|email|fine|thanks|skip|from|prefer|apartment|villa|month|months|share|decline|interested|hello|hi|sollunga|seri|rather|number|calling|call|have|want|don't|not|investment|professor|research|security|cyber|budget|payment|immediate|general|personal|purpose|use)\b/i.test(answer[1]) && !/\b(?:panren|work|business|job|irukken|irukkuren|settle|invest(?:ment|ing)?|property|sir|yes|sure|okay|ok|no|vendam|busy|please|later)\b/i.test(answer[1])) {
       const extracted = answer[1].trim();
       if (knownCustomerName(extracted)) {
         patch.name = extracted;
@@ -210,10 +235,15 @@ export function observeSalesTurn(facts: Record<string, any>, text: string): Reco
     if (property[1]) patch.bedrooms = property[1];
     if (property[2] && property[2].toLowerCase() !== 'property') patch.property_type = property[2].toLowerCase();
     if (property[3]) patch.location = property[3].trim();
+    else if (/வில்லா/u.test(text)) patch.property_type = 'villa';
+    else if (/அபார்ட்மெண்ட்|அபார்ட்மென்ட்/u.test(text)) patch.property_type = 'apartment';
   }
   if (!patch.property_type) {
     const propTypeMatch = text.match(/\b(apartment|villa|townhouse|penthouse|plot|house)\b/i);
     if (propTypeMatch) patch.property_type = propTypeMatch[1].toLowerCase();
+  }
+  if (!patch.location && ((/(?:ஜெனரல்|general|eneral)/iu.test(text) && /(?:search|சர்ச்|பண்ண)/iu.test(text)) || (/(?:சூட்டபிள்|suitable|suggest)/iu.test(text) && /(?:லொகேஷன்|location|ஏரியா|area)/iu.test(text)))) {
+    patch.location = 'flexible';
   }
   if (!patch.location && !/\b(?:live|living|based|calling|stay(?:ing)?)\s+in\b/i.test(text)) {
     const locMatch = text.match(/\b(?:property|options?|units?|houses?|villas?|apartments?|buy|invest|looking)?\s*in\s+([A-Z][\p{L} '-]+?(?:\s+[A-Z][\p{L} '-]+)*)(?=\s*(?:with|,|\.|$))/u);
@@ -224,13 +254,14 @@ export function observeSalesTurn(facts: Record<string, any>, text: string): Reco
       }
     }
   }
+  if (!patch.timeline && /(?:இம்ம(?:ediate|ீடியட்)|immediate(?:ly)?(?:\s+consideration)?|உடனே|இப்பவே)/iu.test(text)) patch.timeline = 'immediate';
   const purchase = text.match(/(?:(?:i(?:'m| am) (?:planning|hoping) to (?:buy|purchase) |i plan to (?:buy|purchase) )|(?:^|\b))((?:in|within) (?:the next )?(?:\d+(?:-\d+|\s+to\s+\d+)?|one|two|three|six|twelve) (?:weeks?|months?|years?)|next (?:month|year)|just exploring|immediate(?:ly|-ah)?|ready to move)[.!]?(?=\s*(?:with|,|\.|$))/i);
   if (purchase) patch.timeline = purchase[1];
   const channel = text.match(/\b(whatsapp|email|phone)\b/i);
-  if (channel && (action.field === 'preferred_contact_method' || action.field === 'follow_up_permission' || /\b(?:prefer|contact|reach|use|fine|works|please)\b/i.test(text))) {
+  if (channel && (action.field === 'preferred_contact_method' || action.field === 'follow_up_permission' || /\b(?:prefer|contact|reach|use|fine|works|please)\b/i.test(text) || /^(?:whatsapp|email|phone)[.!\s]*$/i.test(text.trim()))) {
     const method = channel[1].toLowerCase();
     patch.preferred_contact_method = method === 'whatsapp' ? 'WhatsApp' : method[0].toUpperCase() + method.slice(1);
-    if (action.field === 'follow_up_permission') patch.follow_up_permission = 'granted';
+    if (action.field === 'follow_up_permission' || /^(?:whatsapp|email|phone)[.!\s]*$/i.test(text.trim())) patch.follow_up_permission = 'granted';
   }
   const contact = text.match(/^(?:(?:my (?:other |alternate |alternative |contact |phone )?number is|(?:reach|call|contact) me (?:on|at)|use (?:this|the) number) )?(\+?[\d ()-]+)[.!]?$/i);
   if (contact && (/[a-z]/i.test(contact[0]) || action.field === 'phone')) {
@@ -243,20 +274,45 @@ export function observeSalesTurn(facts: Record<string, any>, text: string): Reco
   const customerTextBudget = text.split(/\b(?:another realtor|other agent|competitor|vera realt|vera agent)/i)[0];
   const budgetEn = customerTextBudget.match(/\b(?:budget(?: is| of| to)?(?: around| up to)?|^up to|^around)\s*((?:AED|INR|USD|Rs\.?)\s*[\d,.]+(?:\s*(?:million|lakhs?|crores?|[mk]))?)/i);
   if (budgetEn && (/\bbudget\b/i.test(customerTextBudget) || action.field === 'budget')) patch.budget = budgetEn[1];
+  if (!patch.budget && !/\b(?:agent|realtor|competitor|quoted?)\b/i.test(text)) {
+    const million = text.match(/(\d+(?:\.\d+)?)\s*(?:மில்லியன்|million)/iu);
+    const saidAed = /\b(?:AED|Dirhams?)\b|ஏ(?:இ|ஈ)டி|திர்ஹாம்/iu.test(text);
+    if (million) {
+      const start = /(?:ஒரு|one|1)\s*(?:டூ|to|–|-)\s*/iu.test(text) ? '1 to ' : '';
+      patch.budget = `${saidAed ? 'AED ' : ''}${start}${million[1]} million`.replace(/\s+/g, ' ').trim();
+      if (saidAed) patch.budget_currency_clarification = 'clarified';
+    }
+  }
+  if (!patch.budget && !/\b(?:agent|realtor|competitor|quoted?)\b/i.test(text)) {
+    const crore = text.match(/(\d+(?:\.\d+)?)\s*(?:க்ரோர்ஸ்|க்ரோர்|crores?|கோடி)/iu);
+    if (crore) patch.budget = `${crore[1]} crore`;
+  }
   if (!patch.budget) {
     // Standalone "2 crore", "80 lakhs", "AED 1 million" answer
     const budgetTa = text.trim().match(/^(?:budget[- ]?ah?)?\s*((?:AED|INR|Rs\.?)?\s*[\d,.]+\s*(?:crores?|lakhs?|millions?|AED|INR|USD))\.?\s*$/i);
     if (budgetTa) patch.budget = budgetTa[1].trim();
   }
-  if (patch.budget && !/\b(?:AED|INR|USD|Dirhams?|Rupees?)\b/i.test(text)) {
+  const saidCurrency = /\b(?:AED|INR|USD|Dirhams?|Rupees?)\b|ஏ(?:இ|ஈ)டி|ரூபாய்/iu.test(text);
+  if (patch.budget && patch.budget_currency_clarification !== 'clarified' && !saidCurrency) {
     patch.budget_currency_clarification = 'needed';
   }
+  if ((patch.budget || facts.budget) && /\b(?:INR|Rs\.?|Rupees?)\b|ரூபாய்/iu.test(text)) {
+    const current = String(patch.budget || facts.budget).replace(/^(?:INR|AED|USD|Rs\.?|₹)\s*/i, '');
+    patch.budget = `INR ${current}`.trim();
+    patch.budget_currency_clarification = 'clarified';
+  }
+  const clock = text.trim().match(/^(?:ஒரு|around|about|at)?\s*(\d{1,2}:\d{2})\s*(?:am|pm)?[.!\s]*$/iu);
+  if (clock) patch.best_time_to_contact = clock[1];
 
   // Investment purpose — English and Tanglish
   if (/\b(?:both|both investment and own use|investment and own use|rent and own)\b/i.test(text)) patch.investment_purpose = 'both';
-  else if (/\b(?:just exploring|exploring options?|exploring)\b/i.test(text)) patch.investment_purpose = 'exploring';
+  if (!patch.investment_purpose && /^(?:investment|invest|முதலீடு|முதலீட்டு)[.!\s]*$/iu.test(text.trim())) patch.investment_purpose = 'investment';
+  if (!patch.investment_purpose && /\b(?:own use-?ku|family-?ku|self use|family settle|personal purpose|personal use)\b/i.test(text)) patch.investment_purpose = 'own use';
   else if (/\b(?:for investment|investment only|rental investment|investment-?ku\s+paakalaam|invest panna paakalaam)\b/i.test(text)) patch.investment_purpose = 'investment';
-  else if (/\b(?:for my family|own use|family residence)\b/i.test(text)) patch.investment_purpose = 'own use';
+  else if (/\b(?:just exploring|exploring options?|exploring)\b/i.test(text)) patch.investment_purpose = 'exploring';
+  if (patch.investment_purpose === 'investment' && !facts.intent && !patch.intent) patch.intent = 'invest';
+  else if ((patch.investment_purpose === 'own use' || patch.investment_purpose === 'family residence') && !facts.intent && !patch.intent) patch.intent = 'buy';
+  else if (!patch.investment_purpose && /\b(?:for my family|own use|family residence)\b/i.test(text)) patch.investment_purpose = 'own use';
   if (!patch.investment_purpose && /\b(?:investment-?ku|invest panna|rental purposes?|investment-?ku\s+paakalaam)\b/i.test(text)) patch.investment_purpose = 'investment';
   if (!patch.investment_purpose && /\b(?:own use-?ku|family-?ku|self use|family settle)\b/i.test(text)) patch.investment_purpose = 'own use';
   if (patch.investment_purpose && !patch.conversation_disposition) patch.conversation_disposition = 'engaged';
@@ -265,11 +321,10 @@ export function observeSalesTurn(facts: Record<string, any>, text: string): Reco
   if (!patch.bedrooms && /\b(?:flexible|any\s*(?:bhk|bedroom|one)?|no\s+preference|edhavadhu|anything)\b/i.test(text)) {
     patch.bedrooms = 'flexible';
   }
-
   // Payment preference — English and Tanglish
   const customerTextPay = text.split(/\b(?:another realtor|other agent|competitor|vera realt|vera agent)/i)[0];
+  if (!patch.payment_preference && (/\b(?:full payment|full-?ah pay|lump sum|one shot)\b/i.test(customerTextPay) || /(?:full|ஃபுல்|ull)\s*பேமெண்ட்/iu.test(customerTextPay))) patch.payment_preference = 'full payment';
   if (/\b(?:prefer|want|interested in) installments\b/i.test(customerTextPay)) patch.payment_preference = 'installments';
-  if (!patch.payment_preference && /\b(?:full payment|full-?ah pay|lump sum|one shot)\b/i.test(customerTextPay)) patch.payment_preference = 'full payment';
   if (!patch.payment_preference && /\b(?:installment|monthly|EMI)\b/i.test(customerTextPay)) patch.payment_preference = 'installments';
 
   // Profession — Tanglish "naan X panren" and standalone profession answers
@@ -295,11 +350,42 @@ export function observeSalesTurn(facts: Record<string, any>, text: string): Reco
   if (!patch.profession && /\b(?:work in a (?:job|company)|have a job|working in a (?:private )?job|private job|government job|salaried employee|salaried)\b/i.test(text)) {
     patch.profession = 'Salaried';
   }
+  if (!patch.profession && /(?:ப்ரொஃபசர|ப்ரொபசர|புரொபசர|professor|அகாடமிஷியன்|academician)/iu.test(text)) {
+    patch.profession = 'Professor';
+  }
+  if (/(?:ஆல்ரெடி\s*தெரியும்|already\s+know|ஏற்கனவே\s+தெரியும்)/iu.test(text) && /(?:அட்வர்|advert|offer|benefit|flight|visa|விசா|ticket|benefit)/iu.test(text)) {
+    patch.flight_offer_status = 'understood';
+    patch.golden_visa_offer_status = 'understood';
+    patch.purchase_support_offer_status = 'understood';
+    patch.offers_permission = 'delivered';
+  }
+  if (/(?:அட்வர்டைஸ்மென்ட்|advertisement|விளம்பர)/iu.test(text) && !/\b(?:instagram|facebook|youtube|google|whatsapp)\b/i.test(text)) {
+    patch.lead_source = 'Advertisement';
+    patch.acquisition_source_status = 'captured';
+  }
+  if (/(?:இந்தியா|india)/iu.test(text) && /(?:இருந்து|from|எக்ஸ்போ|explore)/iu.test(text) && !patch.current_location && !facts.current_location) {
+    patch.current_location = 'India';
+  }
+  if (action.field === 'hometown' && !patch.hometown) {
+    const cleaned = text.trim().replace(/[.!?]+$/g, '');
+    const words = cleaned.split(/\s+/).filter(Boolean);
+    const place = words.length > 0 && words.length <= 3 && !/\d/.test(cleaned) && !/(?:villa|bhk|crore|payment|whatsapp|professor|personal|purpose|explore|எக்ஸ்போ|ப்ரொ|வில்லா|க்ரோர்)/iu.test(cleaned);
+    if (place) patch.hometown = cleaned;
+    else {
+      const prior = String(facts.skipped_fields || '').split(',').map(s => s.trim()).filter(Boolean);
+      if (!prior.includes('hometown')) patch.skipped_fields = [...prior, 'hometown'].join(',');
+    }
+  }
+  if (/cyber\s*security/i.test(text)) {
+    patch.profession_role = 'Cyber security research';
+    patch.salaried_field = 'Cyber security';
+    if (!patch.profession && !facts.profession) patch.profession = 'Academic researcher';
+  }
   if (!patch.profession && /\b(?:self[- ]employed|self employed)\b/i.test(text)) {
     patch.profession = 'Self Employed';
   }
   if (!patch.profession) {
-    if (/\b(?:teacher|teaching|professor)\b/i.test(text)) patch.profession = 'Teacher';
+    if (/\b(?:teacher|teaching)\b/i.test(text)) patch.profession = 'Teacher';
     else if (/\b(?:doctor|physician|surgeon)\b/i.test(text)) patch.profession = 'Doctor';
     else if (/\b(?:healthcare|medical|hospital)\b/i.test(text)) patch.profession = 'Healthcare';
   }
@@ -362,12 +448,11 @@ export function observeSalesTurn(facts: Record<string, any>, text: string): Reco
   // Locality / Area extraction
   if (action.field === 'current_area' && !patch.current_area) {
     const raw = text.trim().replace(/[.!?]$/, '');
-    const cleanArea = raw
-      .replace(/^(?:naan\s+)?(?:en\s+area\s+)?/i, '')
-      .replace(/\b(?:side|area|la|le|dhaan|dhan|irukken|irukkiren|stay\s+panren)\b/gi, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (cleanArea && cleanArea.length < 50 && !/\b(?:business|job|salaried|work|invest|budget|crore|lakh|phone|whatsapp)\b/i.test(cleanArea)) {
+    const cleanArea = raw.trim();
+    const words = cleanArea.split(/\s+/).filter(Boolean);
+    const looksLikePlace = words.length > 0 && words.length <= 4 && cleanArea.length <= 40 && !/\d/.test(cleanArea)
+      && !/\b(?:prefer|not|don't|dont|income|salary|skip|what|where|when|why|how|weather|hello|yes|no|ok|okay|budget|business|job|invest|realtor|quote|offer|call|busy|family|property|apartment|villa|want|looking)\b/i.test(cleanArea);
+    if (looksLikePlace && cleanArea.length < 50 && !/\b(?:business|job|salaried|work|invest|budget|crore|lakh|phone|whatsapp)\b/i.test(cleanArea)) {
       patch.current_area = cleanArea;
     }
   } else if (!patch.current_area && !facts.current_area && (action.field === 'current_location' || action.stageNumber === 3)) {
@@ -408,7 +493,12 @@ export function nextSalesAction(input: Record<string, any>): SalesAction {
   const f = { ...input, ...splitNotes(input.notes).sales };
   const skipped = new Set([f.declined_fields, f.skipped_fields].filter(Boolean).join(',').split(',').map(s => s.trim()));
   const missing = (key: string) => !f[key] && !skipped.has(key);
-  const ask = (stage: string, stageNumber: number, field: string, instruction: string) => ({ stage, stageNumber, field, instruction });
+  const ask = (stage: string, stageNumber: number, field: string, instruction: string) => ({
+    stage,
+    stageNumber,
+    field,
+    instruction: (f.fast_mode === 'true' ? 'Customer wants this kept short. One friendly sentence, then one question. ' : '') + instruction,
+  });
 
   if (['OPT_OUT', 'UNWANTED'].includes(f.qualification_status))
     return { stage: 'closing', stageNumber: 14, instruction: 'Immediate DNC opt-out: Stop qualification and offers. Customer requested do-not-call or removal. Honor it instantly, apologize, promise no further calls, and hang up without any questions: "Sorry sir, disturb pannitten. Inime indha number-ku call varaadhu. Romba thanks sir, bye. / Sorry sir, disturb பண்ணிட்டேன். இனிமே இந்த number-க்கு call வராது. ரொம்ப தேங்க்ஸ் sir, bye."' };
@@ -512,18 +602,22 @@ export function nextSalesAction(input: Record<string, any>): SalesAction {
   const locName = f.current_location || f.hometown || f.location;
 
   if (missing('hometown') && missing('current_location'))
-    return ask('qualification', 3, 'current_location', 'When it fits naturally, ask where they are joining from: "Neenga ippo endha city-la irukkeenga sir?" Store current city separately from hometown.');
+    return ask('qualification', 3, 'current_location', 'When it fits naturally, ask where they are joining from: "Neenga ippo endha city-la irukkeenga sir?" Store current city separately from hometown. Do not store this answer as the preferred Dubai property location.');
 
   const POSITIVE_ENGAGEMENT = /highly interested|interested|family focused|budget conscious|curious|skeptical/i;
   const isReceptive = POSITIVE_ENGAGEMENT.test(f.engagement_indicator || '') || Boolean(f.investment_purpose);
   const isBusyOrClosing = f.conversation_disposition === 'busy' || f.conversation_disposition === 'end' || f.conversation_disposition === 'uninterested' || f.fast_mode === 'true';
+  const offersStarted = ['flight_offer_status', 'golden_visa_offer_status', 'purchase_support_offer_status'].some(k => ['presented', 'understood'].includes(f[k]));
+  const countryOnly = /^(?:india|indian|uae|usa|uk|united arab emirates)$/i.test(String(f.current_location || '').trim());
+  if (!isBusyOrClosing && isReceptive && countryOnly && missing('hometown') && !skipped.has('hometown'))
+    return ask('qualification', 3, 'hometown', 'They named a country, not a city. Ask which city, one question only: "India-la endha city-la irukkeenga sir?" Save that city as hometown. Do not save the country as the preferred Dubai location.');
 
   const locAckPrefix = (f.current_area && f.area_acknowledged !== 'true' && !skipped.has('area_acknowledged'))
     ? formatAreaAcknowledgment(f.current_area) + ' '
     : (f.location_acknowledged !== 'true' && locName && !skipped.has('location_acknowledged') ? formatLocationAcknowledgment(locName) + ' ' : '');
 
   // Area / Locality Discovery & Profession Discovery
-  if (missing('profession') && isReceptive && !isBusyOrClosing) {
+  if (!isBusyOrClosing && isReceptive && missing('profession') && !offersStarted) {
     if (locName && missing('current_area') && !skipped.has('current_area')) {
       return ask('qualification', 3, 'current_area', formatCityAreaQuestion(locName));
     }
@@ -564,6 +658,10 @@ export function nextSalesAction(input: Record<string, any>): SalesAction {
   if (!missing('profession') && /salaried|job|employee/i.test(f.profession || '') && missing('salaried_field'))
     return ask('qualification', 3, 'salaried_field', 'Ask what field they work in: "Nice! Endha field-la work panreenga?"');
 
+  if (!isBusyOrClosing && (isReceptive || !missing('profession')) && missing('investment_purpose') && locName && missing('current_area') && !skipped.has('current_area')) {
+    return ask('qualification', 3, 'current_area', formatCityAreaQuestion(locName));
+  }
+
   // Stage 4 — Property Buying & Investment Interest
   if (missing('investment_purpose'))
     return ask('purpose', 4, 'investment_purpose', (locAckPrefix || '') + 'Ask whether this is for investment or own use: "Dubai-la property investment-kaga paakreengala, illa own use-kaga?"');
@@ -582,12 +680,13 @@ export function nextSalesAction(input: Record<string, any>): SalesAction {
   }
 
   // Stage 6 — Family & Lifestyle + Purpose of Enquiry
-  const engaged = /highly interested|interested|family focused|budget conscious|curious/i.test(f.engagement_indicator || '') ||
-    /own|family|residen|self/i.test(f.investment_purpose || '');
-  if (engaged && /own|family|residen|self/i.test(f.investment_purpose || '')) {
-    if (missing('family_size')) return ask('family_lifestyle', 6, 'family_size', 'Ask how many household members the home should accommodate; optional. Example: "Unga family-la ethana per irukkeenga?"');
+  const ownUse = /own|family|residen|self/i.test(String(f.investment_purpose || ''));
+  if (ownUse && isReceptive && !isBusyOrClosing) {
+    if (missing('family_size')) return ask('family_lifestyle', 6, 'family_size', 'Ask how many household members the home should accommodate; optional and easy to skip. Example: "Unga family-la ethana per irukkeenga?"');
     if (missing('family_relocation')) return ask('family_lifestyle', 6, 'family_relocation', 'Ask whether family will move to Dubai. Example: "Family-oda shift aaga plan irukka?"');
     if (missing('lifestyle_requirements')) return ask('family_lifestyle', 6, 'lifestyle_requirements', 'Ask the most important community priority, using disclosed needs (schools, parks, beach access). Children details only if volunteered.');
+  } else if (isReceptive && !isBusyOrClosing && missing('family_lifestyle_checked') && !skipped.has('family_lifestyle_checked')) {
+    return ask('family_lifestyle', 6, 'family_lifestyle_checked', 'One friendly optional question, with an easy way to pass. Example: "Idhu mainly rental income-kaga-na sir, illa family later stay-kku-um use aaguma? Illana parava illa." Do not ask how many children. Record family_lifestyle_checked=completed, or declined if they pass.');
   }
 
   // Stage 7 — Preferred Property Location

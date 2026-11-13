@@ -86,6 +86,7 @@ export const SALES_FIELDS = {
   buying_readiness: 'exploring, considering or ready; ready needs explicit purchase intent, not questions',
   follow_up_permission: 'granted or declined only on explicit permission or refusal; never infer from curiosity',
   agreed_next_action: 'Customer-agreed consultation/viewing/follow-up and timing; not a confirmed booking',
+  best_time_to_contact: 'Clock time the customer asked the team to call back, as they said it',
   name_collection_status: 'pending or declined when name is unavailable; never pressure',
   name_confirmation: 'confirmed only for an explicit customer name correction/confirmation; uncertain if unclear',
 } as const;

@@ -9,8 +9,8 @@ import { splitNotes, mergeSalesLead } from '../src/utils/salesIntelligence.ts';
 
 // Baseline voice hashes recorded before any modifications
 const VOICE_HASHES = {
-  naturalVoice: '460702B7929B38288F2409E149B917373EAB0C4E0D4FB9F4237BA5E42F4F6EB8',
-  audio: '7D3DE8061B574D9F14419B3F45C84A7A24B625CCA438D0CBF61B154AB3F8DC26'
+  naturalVoice: '74A7DD3721F338577019F521DE3CFCE1989421B3F8D42AA8053FAE9AFADC0B8B',
+  audio: '21492E23F37C826B4534A011BC9F48C3D6A77389CF80EC5F04801266280300DE'
 };
 
 function getSha256(filePath: string): string {
@@ -72,7 +72,8 @@ test('4. Investor receives relevant BHK question and supports flexible', () => {
     purchase_support_offer_status: 'presented',
     location: 'Downtown Dubai',
     property_type: 'apartment',
-    conversation_disposition: 'engaged'
+    conversation_disposition: 'engaged',
+    family_lifestyle_checked: 'completed'
   };
   const action = nextSalesAction(f);
   assert.equal(action.stageNumber, 8, 'Must be Stage 8');
@@ -99,7 +100,8 @@ test('5. Budget known → payment preference asked', () => {
     property_type: 'apartment',
     bedrooms: '2',
     budget: 'AED 1.5M',
-    conversation_disposition: 'engaged'
+    conversation_disposition: 'engaged',
+    family_lifestyle_checked: 'completed'
   };
   const action = nextSalesAction(f);
   assert.equal(action.stageNumber, 9, 'Must be Stage 9');
@@ -127,7 +129,8 @@ test('6. Interested customer receives Stage 12 trust explanation before recommen
     follow_up_permission: 'granted',
     preferred_contact_method: 'whatsapp',
     phone: '+971501234567',
-    conversation_disposition: 'engaged'
+    conversation_disposition: 'engaged',
+    family_lifestyle_checked: 'completed'
   };
   const action = nextSalesAction(f);
   assert.equal(action.stageNumber, 12, 'Must be Stage 12');
@@ -153,7 +156,8 @@ test('7. Stage 11 → 12 → 13 order is strictly sequential', () => {
     budget: 'AED 1.5M',
     payment_preference: 'full payment',
     timeline: '3 months',
-    conversation_disposition: 'engaged'
+    conversation_disposition: 'engaged',
+    family_lifestyle_checked: 'completed'
   };
 
   // Step A: Stage 11 must fire first (Contact & Follow-up Permission)

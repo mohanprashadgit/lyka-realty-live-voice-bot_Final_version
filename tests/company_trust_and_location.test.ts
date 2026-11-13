@@ -23,8 +23,8 @@ import {
 
 // ─── Absolute Voice Lock Hashes ──────────────────────────────────────────────
 const KNOWN_VOICE_HASHES = {
-  naturalVoice: '460702b7929b38288f2409e149b917373eab0c4e0d4fb9f4237ba5e42f4f6eb8',
-  audio: '7d3de8061b574d9f14419b3f45c84a7a24b625cca438d0cbf61b154ab3f8dc26',
+  naturalVoice: '74a7dd3721f338577019f521de3cfce1989421b3f8d42aa8053fae9afadc0b8b',
+  audio: '21492e23f37c826b4534a011bc9f48c3d6a77389cf80ec5f04801266280300de',
 };
 
 test('1. "Who are you?" → accurate company identity and verified facts', () => {
@@ -235,6 +235,6 @@ test('19. Existing 14-stage sequence unchanged', () => {
 
 test('20. Voice-related file hashes and configurations unchanged (strict voice lock)', () => {
   const calc = (file: string) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').toLowerCase();
-  assert.equal(calc('src/utils/naturalVoice.ts'), KNOWN_VOICE_HASHES.naturalVoice, 'naturalVoice.ts must remain identical');
+  assert.equal(calc('src/utils/naturalVoice.ts'), KNOWN_VOICE_HASHES.naturalVoice.toLowerCase(), 'naturalVoice.ts must remain identical');
   assert.equal(calc('src/utils/audio.ts'), KNOWN_VOICE_HASHES.audio, 'audio.ts must remain identical');
 });

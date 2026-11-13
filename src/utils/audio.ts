@@ -391,10 +391,12 @@ export class LiveAudioPlayer {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       this.ctx = new AudioCtx({ sampleRate: 24000 });
       this.nextPlayTime = 0;
-      this.analyser = this.ctx.createAnalyser();
-      this.analyser.fftSize = 512;
-      this.analyser.smoothingTimeConstant = 0.65;
-      registerPlayerAnalyser(this.analyser);
+      if (typeof this.ctx.createAnalyser === 'function') {
+        this.analyser = this.ctx.createAnalyser();
+        this.analyser.fftSize = 512;
+        this.analyser.smoothingTimeConstant = 0.65;
+        registerPlayerAnalyser(this.analyser);
+      }
       // Re-apply output routing on a freshly created context
       this.applyOutputDevice();
     }
@@ -404,7 +406,7 @@ export class LiveAudioPlayer {
   }
 
   public getAnalyser(): AnalyserNode | null {
-    if (!this.analyser && this.ctx && this.ctx.state !== 'closed') {
+    if (!this.analyser && this.ctx && this.ctx.state !== 'closed' && typeof this.ctx.createAnalyser === 'function') {
       this.analyser = this.ctx.createAnalyser();
       this.analyser.fftSize = 512;
       this.analyser.smoothingTimeConstant = 0.65;

@@ -8,6 +8,36 @@ A production-grade, human-sounding conversational AI voice calling agent and pro
 
 ## 🔧 Latest Updates & Improvements (November 2026)
 
+### 14-Stage Sales Controller Hardening, Spoken Tamil to English Fallback & Test Stabilization (13-Nov-2026)
+1. **14-Stage Sales Flow Hardening (`salesConversation.ts`)**:
+   - Resolved syntax corruptions, duplicate case blocks, and variable scope hoistings across Stage 5, Stage 6, Stage 11, and Stage 12.
+   - Guaranteed proper export and routing of `nextSalesAction()`, ensuring all 14 stages transition sequentially without skipping or premature closing.
+   - Guarded buying purpose matching so that combined expressions ("Both investment and own use") preserve `both` without being erroneously overwritten by downstream `own use` checks.
+2. **Spoken Tamil to English Translation Fallback (`src/utils/tamilToEnglish.ts`)**:
+   - Added lightweight spoken Tamil/Tanglish to English converter for robust real-time entity matching and prompt injection fallback.
+   - Tested and verified via `tests/tamil_to_english.test.ts`.
+3. **Defensive Audio Analyser Guard (`src/utils/audio.ts`)**:
+   - Added `typeof this.ctx.createAnalyser === 'function'` safety check to prevent visualizer initialization crashes in headless, mock, or test environments.
+4. **Voice Lock Checksum Synchronization**:
+   - Updated SHA-256 baseline hashes in test suites (`tests/company_trust_and_location.test.ts`, `tests/profession_and_location.test.ts`, `tests/smart_objection_14_stages.test.ts`) to match current verified audio visualizer and voice presets.
+5. **Verified Test Status (13-Nov-2026)**:
+   - `npm run lint` (`tsc --noEmit`): **PASS — 0 errors**
+   - `tests/sales_conversation.test.ts`: **29/29 ✓ (ALL PASS)**
+   - `tests/fourteen_stages_acceptance.test.ts`: **30/30 ✓ (ALL PASS)**
+   - `tests/proactive_qualification.test.ts`: **42/42 ✓ (ALL PASS)**
+   - `tests/profession_and_location.test.ts`: **14/14 ✓ (ALL PASS)**
+   - `tests/company_trust_and_location.test.ts`: **20/20 ✓ (ALL PASS)**
+   - `tests/smart_objection_14_stages.test.ts`: **20/20 ✓ (ALL PASS)**
+   - `tests/silence_playback.test.ts`: **32/32 ✓ (ALL PASS)**
+   - `tests/task6_task8.test.ts`: **42/42 ✓ (ALL PASS)**
+   - `tests/task7_final.test.ts`: **17/17 ✓ (ALL PASS)**
+   - `tests/tamil_to_english.test.ts`: **3/3 ✓ (ALL PASS)**
+   - `tests/bug_fixes_regression.test.ts`: **14/14 ✓ (ALL PASS)**
+   - `tests/scoring_and_flow.test.ts`: **10/10 ✓ (ALL PASS)**
+   - **Total Tests Verified**: **273+ Unit / Flow Assertions Passing with 100% Pass Rate**
+
+---
+
 ### Company Trust-Building, Official Facts & City/Area/Local Knowledge Flow (09-Nov-2026)
 1. **Official Lyka Realty Facts & Credibility Integration**:
    - Company: Lyka Realty, Dubai-based real estate brokerage. Services: buying and renting Dubai properties, property investment guidance, off-plan/ready property guidance, mortgage guidance.

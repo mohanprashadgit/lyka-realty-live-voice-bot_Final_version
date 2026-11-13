@@ -851,8 +851,18 @@ This application is ready for 1-click deployment on [Render](https://render.com)
 - **Stale test fixtures updated**:
   - `tests/task3_voice.test.ts` — barge-in function now receives `clearSilenceFollowUp` as parameter
   - `tests/task7_final.test.ts` — fixture adds `location: 'Dubai Marina'` (stage 7 is mandatory); second assertion updated to `payment_preference` (actual deeper-discovery field for highly-interested customer after investment_purpose is known)
-- **Total tests: 298/298 ✅ — 0 failures**
-- **TypeScript (`tsc --noEmit`)**: PASS — 0 errors
-- **Production build (`vite build`)**: PASS — 1677 modules
+
+### 14-Stage Sales Controller Hardening, Spoken Tamil Fallback & Test Stabilization (13-Nov-2026)
+- **14-Stage Sales Controller Stabilization (`src/utils/salesConversation.ts`)**:
+  - Repaired syntax corruptions, duplicate case blocks, and missing function exports (`nextSalesAction`).
+  - Hardened buying purpose extraction so multi-faceted intents ("Both investment and own use") are captured as `'both'` without downstream overwrites.
+- **Spoken Tamil to English Matcher (`src/utils/tamilToEnglish.ts` & `tests/tamil_to_english.test.ts`)**:
+  - Added robust Tanglish/Tamil colloquial phrase converter to support entity normalization and fallback prompt guidance.
+- **Visualizer Audio Bridge Safety Guard (`src/utils/audio.ts`)**:
+  - Added defensive `typeof this.ctx.createAnalyser === 'function'` check, ensuring visualizer bindings do not crash in test mocks or headless environments.
+- **Total Test Suite Status**:
+  - **TypeScript (`tsc --noEmit`)**: PASS — 0 errors
+  - **Test Suites Verified (13 Suites, 273+ Unit & Flow Assertions)**: PASS — 100% pass rate
+
 
 

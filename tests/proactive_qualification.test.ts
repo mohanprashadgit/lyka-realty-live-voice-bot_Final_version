@@ -23,7 +23,7 @@ const offers = {
   golden_visa_offer_status: 'presented',
   purchase_support_offer_status: 'understood',
 };
-const withBudgetTimeline = { ...named, ...offers, profession: 'Engineer', current_location: 'Chennai', location: 'Dubai Marina', bedrooms: '2', investment_purpose: 'investment', budget: 'AED 1M', timeline: '3 months' };
+const withBudgetTimeline = { ...named, ...offers, profession: 'Engineer', current_location: 'Chennai', current_area: 'T Nagar', location: 'Dubai Marina', bedrooms: '2', investment_purpose: 'investment', budget: 'AED 1M', timeline: '3 months', family_lifestyle_checked: 'completed' };
 
 // ─── 1. Missing name triggers name question ───────────────────────────────────
 test('1. missing name triggers name question', () => {
@@ -155,6 +155,7 @@ test('7a. known budget and timeline → payment_preference question', () => {
     current_location: 'Chennai',
     // Stage 7: preferred Dubai property location must be known before Stage 9 payment_preference.
     location: 'Dubai Marina',
+    family_lifestyle_checked: 'completed',
   };
   assert.equal(next(f).field, 'payment_preference', 'Should ask payment preference after budget/timeline/profession/location');
 });
@@ -193,6 +194,7 @@ test('9b. declined income does not block budget', () => {
     property_type: 'apartment',
     bedrooms: '2',
     engagement_indicator: 'interested',
+    family_lifestyle_checked: 'completed',
   };
   assert.equal(next(f).field, 'budget', 'Should ask budget regardless of income decline');
 });
